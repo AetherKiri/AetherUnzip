@@ -33,7 +33,7 @@ struct WorkspaceView: View {
         let selection: Set<ArchiveEntry.ID>?
 
         var needsPassword: Bool {
-            manifest.entries.contains { entry in
+            !manifest.hasOpeningPassphrase && manifest.entries.contains { entry in
                 entry.isEncrypted && (selection?.contains(entry.id) ?? true)
             }
         }
@@ -46,8 +46,16 @@ struct WorkspaceView: View {
     }
 
     private struct NestedPasswordRequest: Identifiable {
+        let id = UUID()
         let entry: ArchiveEntry
-        var id: ArchiveEntry.ID { entry.id }
+        let retrying: Bool
+        let parentPassphrase: String?
+    }
+
+    private struct OpeningPasswordRequest {
+        let urls: [URL]
+        let profile: FormatProfile?
+        var message: String? = nil
     }
 
     @Bindable var model: AppModel
@@ -58,6 +66,7 @@ struct WorkspaceView: View {
     @State private var profileConfirmation: ProfileConfirmation?
     @State private var loadingProfile = false
     @State private var request: Request?
+    @State private var openingPassword: OpeningPasswordRequest?
     @State private var passwordRequest: PasswordRequest?
     @State private var retryPassword: PasswordRequest?
     @State private var nestedPassword: NestedPasswordRequest?
@@ -144,7 +153,7 @@ struct WorkspaceView: View {
                     loadProfile(url)
                 } else {
                     page = .archives
-                    model.open(urls, profile: profile, limits: limits)
+                    openArchive(urls, profile: profile)
                 }
             case .failure(let error): model.error = error.localizedDescription
             }
@@ -186,9 +195,20 @@ struct WorkspaceView: View {
             }
         }
         .sheet(item: $nestedPassword) { pending in
-            PasswordPrompt(archiveName: pending.entry.path, actionTitle: "Open Archive") { value in
-                nestedPassword = nil
-                openNested(pending.entry, passphrase: value)
+            if pending.retrying && pending.entry.isEncrypted {
+                NestedPasswordPrompt(entry: pending.entry.path,
+                                     hasParentPassword: pending.parentPassphrase != nil ||
+                                         model.manifest?.hasOpeningPassphrase == true) { parent, child in
+                    nestedPassword = nil
+                    openNested(pending.entry, passphrase: parent ?? pending.parentPassphrase,
+                               childPassphrase: child, prompting: false)
+                }
+            } else {
+                PasswordPrompt(archiveName: pending.entry.path, actionTitle: "Open Archive") { value in
+                    nestedPassword = nil
+                    openNested(pending.entry, passphrase: pending.entry.isEncrypted ? value : nil,
+                               childPassphrase: pending.entry.isEncrypted ? nil : value, prompting: false)
+                }
             }
         }
         .alert("AetherUnzip", isPresented: Binding(
@@ -225,7 +245,19 @@ struct WorkspaceView: View {
     }
 
     @ViewBuilder private var archivePage: some View {
-        if model.loading {
+        if let pending = openingPassword {
+            PasswordPrompt(archiveName: pending.urls.first?.lastPathComponent ?? "7z",
+                           actionTitle: "Open Archive", errorMessage: pending.message,
+                           working: model.loading, cancel: {
+                               model.cancelOpening()
+                               openingPassword = nil
+                           }) { value in
+                openArchive(pending.urls, profile: pending.profile, passphrase: value)
+            }
+            .frame(maxWidth: 420)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .navigationTitle("Open Archive")
+        } else if model.loading {
             VStack(spacing: 16) {
                 ProgressView("Reading archive…")
                 Button("Cancel", action: model.cancelOpening)
@@ -253,22 +285,39 @@ struct WorkspaceView: View {
             .id(model.archiveID)
         } else {
             HomeView(recents: model.recents, open: openPicker,
-                     reopen: { model.reopen($0, limits: limits) }, remove: model.remove)
+                     reopen: { item in
+                         model.reopen(item) { urls, profile in openArchive(urls, profile: profile) }
+                     }, remove: model.remove)
         }
     }
 
-    private func openNested(_ entry: ArchiveEntry, passphrase: String? = nil) {
+    private func openArchive(_ urls: [URL], profile: FormatProfile?, passphrase: String? = nil) {
+        model.open(urls, profile: profile, limits: limits, passphrase: passphrase) { failure in
+            if let failure {
+                if openingPassword == nil {
+                    openingPassword = OpeningPasswordRequest(urls: urls, profile: profile)
+                }
+                openingPassword?.message = failure == .incorrectPassphrase ? failure.localizedDescription : nil
+            } else {
+                openingPassword = nil
+            }
+        }
+    }
+
+    private func openNested(_ entry: ArchiveEntry, passphrase: String? = nil,
+                            childPassphrase: String? = nil, prompting: Bool = true) {
         retryNested = nil
-        if entry.isEncrypted && passphrase == nil {
-            nestedPassword = NestedPasswordRequest(entry: entry)
+        if prompting && entry.isEncrypted && model.manifest?.hasOpeningPassphrase != true {
+            nestedPassword = NestedPasswordRequest(entry: entry, retrying: false, parentPassphrase: nil)
             return
         }
-        model.openNested(entry, limits: limits, passphrase: passphrase) {
-            retryNested = NestedPasswordRequest(entry: entry)
+        model.openNested(entry, limits: limits, passphrase: passphrase, childPassphrase: childPassphrase) {
+            retryNested = NestedPasswordRequest(entry: entry, retrying: true, parentPassphrase: passphrase)
         }
     }
 
     private func openPicker() {
+        openingPassword = nil
         request = nil
         archiveProfile = nil
         choosingProfile = false
@@ -276,6 +325,7 @@ struct WorkspaceView: View {
     }
 
     private func openProfilePicker() {
+        openingPassword = nil
         request = nil
         archiveProfile = nil
         choosingProfile = true
@@ -316,6 +366,9 @@ struct WorkspaceView: View {
 private struct PasswordPrompt: View {
     let archiveName: String
     let actionTitle: LocalizedStringKey
+    var errorMessage: String? = nil
+    var working = false
+    var cancel: (() -> Void)? = nil
     let submit: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var passphrase = ""
@@ -326,17 +379,27 @@ private struct PasswordPrompt: View {
             Label("Archive Password", systemImage: "lock")
                 .font(.headline)
             Text(archiveName).foregroundStyle(.secondary)
+            if let errorMessage {
+                Text(errorMessage)
+                    .foregroundStyle(.red)
+                    .accessibilityIdentifier("archive-password-error")
+            }
             SecureField("Password", text: $passphrase)
                 .focused($focused)
-                .onSubmit(extract)
+                .onSubmit(confirm)
+                .disabled(working)
                 .accessibilityIdentifier("archive-password")
             HStack {
                 Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
+                if working { ProgressView().controlSize(.small) }
+                Button("Cancel", role: .cancel) {
+                    if let cancel { cancel() } else { dismiss() }
+                }
                     .keyboardShortcut(.cancelAction)
-                Button(actionTitle, action: extract)
+                Button(actionTitle, action: confirm)
                     .buttonStyle(.borderedProminent)
-                    .disabled(passphrase.isEmpty)
+                    .disabled(working || passphrase.isEmpty)
+                    .accessibilityIdentifier("submit-archive-password")
             }
         }
         .padding(24)
@@ -346,11 +409,46 @@ private struct PasswordPrompt: View {
         .onAppear { focused = true }
     }
 
-    private func extract() {
-        guard !passphrase.isEmpty else { return }
+    private func confirm() {
+        guard !working, !passphrase.isEmpty else { return }
         let value = passphrase
         passphrase = ""
         submit(value)
+    }
+}
+
+private struct NestedPasswordPrompt: View {
+    let entry: String
+    let hasParentPassword: Bool
+    let submit: (String?, String?) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var parentPassword = ""
+    @State private var childPassword = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("Archive Passwords", systemImage: "lock")
+                .font(.headline)
+            Text(entry).foregroundStyle(.secondary)
+            SecureField(hasParentPassword ? "Containing archive password (optional)"
+                                           : "Containing archive password", text: $parentPassword)
+            SecureField("Nested archive password (if required)", text: $childPassword)
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel) { dismiss() }
+                Button("Open Archive") {
+                    submit(parentPassword.isEmpty ? nil : parentPassword,
+                           childPassword.isEmpty ? nil : childPassword)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled((!hasParentPassword && parentPassword.isEmpty) ||
+                          (parentPassword.isEmpty && childPassword.isEmpty))
+            }
+        }
+        .padding(24)
+        #if os(macOS)
+        .frame(minWidth: 360)
+        #endif
     }
 }
 

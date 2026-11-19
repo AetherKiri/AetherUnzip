@@ -67,9 +67,20 @@ endif()
 find_package(ZLIB 1.2.1 REQUIRED)
 find_package(BZip2 REQUIRED)
 find_program(AETHER_UNZIP_PATCH_PROGRAM patch REQUIRED)
+# A changed patch set needs a fresh copy of the original upstream source.
+set(libarchive_patch_hashes "")
+foreach(patch IN ITEMS libarchive-split-zip.patch libarchive-gzip-trailer.patch libarchive-7z-aes.patch)
+    set(patch_path "${CMAKE_CURRENT_LIST_DIR}/patches/${patch}")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${patch_path}")
+    file(SHA256 "${patch_path}" patch_hash)
+    string(APPEND libarchive_patch_hashes "${patch_hash}")
+endforeach()
+string(SHA256 libarchive_patch_set "${libarchive_patch_hashes}")
+string(SUBSTRING "${libarchive_patch_set}" 0 12 libarchive_patch_set)
 FetchContent_Declare(libarchive
     URL https://www.libarchive.org/downloads/libarchive-3.8.11.tar.xz
     URL_HASH SHA256=a3dc0872b1b39da34dc18ef1b944f0f11ffd37425d70ae04be679279f1cf43d2
+    SOURCE_DIR "${FETCHCONTENT_BASE_DIR}/libarchive-${libarchive_patch_set}-src"
     PATCH_COMMAND "${CMAKE_COMMAND}"
         "-DPATCH_PROGRAM=${AETHER_UNZIP_PATCH_PROGRAM}"
         "-DPATCH_DIRECTORY=${CMAKE_CURRENT_LIST_DIR}/patches"

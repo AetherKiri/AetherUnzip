@@ -838,6 +838,69 @@ static void cancel_during_write(void *flag, const au_entry *entry, uint64_t byte
     if (entry_bytes) *(int *)flag = 1;
 }
 
+static void sevenzip_password_tests(au_context *correct, au_context *incorrect) {
+    const char *fixtures[] = {
+        "7z-aes-stored.7z", "7z-aes-solid.7z", "7z-aes-header.7z", "7z-aes-picker.7z"
+    };
+    au_context *unicode = NULL;
+    REQUIRE(aether_unzip_context_create_with_passphrase("档案🔑", &unicode) == AU_OK);
+    for (size_t i = 0; i < sizeof(fixtures) / sizeof(fixtures[0]); ++i) {
+        int encrypted_header = i >= 2;
+        au_context *password = i == 2 ? unicode : correct;
+        au_source *source = fixture(fixtures[i]);
+        au_archive *archive = NULL;
+        const au_entry *entry = NULL;
+        if (encrypted_header) {
+            REQUIRE(aether_unzip_archive_open(context, source, NULL, NULL, &archive) == AU_ENCRYPTED);
+            REQUIRE(!archive);
+            REQUIRE(aether_unzip_archive_open(incorrect, source, NULL, NULL, &archive) ==
+                    AU_BAD_PASSPHRASE);
+            REQUIRE(!archive);
+        }
+        REQUIRE(aether_unzip_archive_open(encrypted_header ? password : context, source, NULL, NULL,
+                                          &archive) == AU_OK);
+        const au_probe_result *info = aether_unzip_archive_info(archive);
+        REQUIRE(info->format == AU_FORMAT_7ZIP && (info->capabilities & AU_SUPPORTS_ENCRYPTION));
+        REQUIRE(aether_unzip_archive_next_entry(archive, &entry) == AU_OK);
+        REQUIRE(entry->encrypted && !strcmp(entry->name, "private.txt"));
+        REQUIRE(aether_unzip_archive_next_entry(archive, &entry) == AU_OK);
+        REQUIRE(entry->encrypted && !strcmp(entry->name, "second.txt"));
+        uint64_t index = entry->index;
+        REQUIRE(aether_unzip_archive_next_entry(archive, &entry) == AU_END);
+        aether_unzip_archive_close(archive);
+
+        const char *output = directory(fixtures[i]);
+        REQUIRE(aether_unzip_extract(context, source, NULL, output, NULL, 0, NULL) == AU_ENCRYPTED);
+        REQUIRE(aether_unzip_extract(incorrect, source, NULL, output, NULL, 0, NULL) ==
+                AU_BAD_PASSPHRASE);
+        no_output(output);
+
+        int stop = 0;
+        au_options options = aether_unzip_options_default();
+        options.cancel = cancelled;
+        options.progress = cancel_during_write;
+        options.user = &stop;
+        REQUIRE(aether_unzip_extract(password, source, NULL, output, NULL, 0, &options) ==
+                AU_CANCELLED);
+        no_output(output);
+
+        if (i == 1) {
+            options = aether_unzip_options_default();
+            options.max_total_bytes = 30;
+            REQUIRE(aether_unzip_extract(password, source, NULL, output, &index, 1, &options) == AU_LIMIT);
+            no_output(output);
+        }
+        REQUIRE(aether_unzip_extract(password, source, NULL, output, &index, 1, NULL) == AU_OK);
+        char path[512];
+        snprintf(path, sizeof(path), "%s/second.txt", output);
+        contents(path, "Another protected document\n");
+        snprintf(path, sizeof(path), "%s/private.txt", output);
+        REQUIRE(access(path, F_OK) != 0);
+        aether_unzip_source_close(source);
+    }
+    aether_unzip_context_destroy(unicode);
+}
+
 static void password_tests(void) {
     const char *fixtures[] = {"zipcrypto.zip", "aes256.zip"};
     au_context *correct = NULL, *incorrect = NULL;
@@ -898,6 +961,7 @@ static void password_tests(void) {
         aether_unzip_resource_close(file);
         aether_unzip_source_close(source);
     }
+    sevenzip_password_tests(correct, incorrect);
     aether_unzip_context_destroy(incorrect);
     aether_unzip_context_destroy(correct);
 }

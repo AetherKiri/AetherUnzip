@@ -40,6 +40,7 @@ au_status au_source_from_fd(int fd, au_source **out);
 size_t au_source_parts(const au_source *source);
 void au_source_part_range(const au_source *source, size_t part, uint64_t *offset, uint64_t *length);
 au_status au_options_resolve(const au_options *input, au_options *out);
+uint64_t au_expansion_budget(const au_options *options, uint64_t source_length);
 int au_cancelled(const au_options *options);
 au_status au_archive_discard(au_archive *archive);
 au_status au_archive_entry_access(const au_archive *archive);

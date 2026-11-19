@@ -1,4 +1,4 @@
-foreach(patch IN ITEMS libarchive-split-zip.patch libarchive-gzip-trailer.patch)
+foreach(patch IN ITEMS libarchive-split-zip.patch libarchive-gzip-trailer.patch libarchive-7z-aes.patch)
     set(patch_file "${PATCH_DIRECTORY}/${patch}")
     # FetchContent can revisit the patch step for an existing source tree.
     execute_process(

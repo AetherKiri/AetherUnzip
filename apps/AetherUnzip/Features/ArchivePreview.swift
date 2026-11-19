@@ -48,7 +48,7 @@ struct ArchivePreview: View {
                 .listStyle(.plain)
                 .accessibilityIdentifier("archive-entries")
             }
-            if archive.entries.contains(where: \.isEncrypted) {
+            if !archive.hasOpeningPassphrase, archive.entries.contains(where: \.isEncrypted) {
                 Label(archive.capabilities.contains(.encryption)
                       ? "A password is required to extract locked entries."
                       : "The encryption used by these entries is unsupported.",

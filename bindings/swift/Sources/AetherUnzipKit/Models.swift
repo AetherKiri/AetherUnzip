@@ -62,10 +62,18 @@ public struct ArchiveManifest: Sendable {
     public let profile: FormatProfile?
     let revisions: [FileRevision]
     let nestedSource: NestedArchiveSource?
+    let openingPassphrase: ArchivePassphrase?
 
     public var isNested: Bool { nestedSource != nil }
+    public var hasOpeningPassphrase: Bool { openingPassphrase != nil }
     var coordinatedURLs: [URL] { isNested ? [] : sourceURLs }
     var decoderName: String { profile?.payloadName ?? displayName }
+}
+
+struct ArchivePassphrase: Sendable, CustomReflectable {
+    let value: String
+
+    var customMirror: Mirror { Mirror(self, unlabeledChildren: EmptyCollection<Any>()) }
 }
 
 // The source is private and each Core use is synchronous and serialized by the lock.

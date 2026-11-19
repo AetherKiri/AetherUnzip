@@ -20,6 +20,8 @@ xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
 
 本机 macOS 使用 ad-hoc 签名和沙盒。分发时请用自己的签名设置。iOS 真机安装需要开发团队和设备授权。macOS 的 XCTest 端到端用例通过系统文件面板导入 ZIP、预览条目并选择目标目录，使用图形登录会话里的 `xcodebuild ... -destination 'platform=macOS' test` 运行。
 
+在 macOS App 的系统文件面板中打开 `tests/fixtures/7z-aes-picker.7z` 可以验证加密文件名的 7z。先输入 `wrong-password` 确认显示错误，再输入 `fixture-pass` 打开归档。选择 **Extract All** 并在系统面板选定空目录，核对 `private.txt` 和 `second.txt` 与样本说明一致。[样本说明](../tests/fixtures/README.md)
+
 移动端 XCTest 通过系统 Files 面板打开样本。将 `destination_id` 设为 `xcrun simctl list devices booted` 中的 iPhone 或 iPad 模拟器 ID，再从仓库根目录运行以下命令。
 
 ```sh
@@ -34,6 +36,7 @@ cp tests/fixtures/nested.zip "$app_data/Documents/MobileNested.zip"
 cp tests/fixtures/sample.xp3 "$app_data/Documents/MobileResources.xp3"
 cp tests/fixtures/format-profile.json "$app_data/Documents/MobileFormatProfile.json"
 cp tests/fixtures/profile-box.bin "$app_data/Documents/MobileProfileBox.bin"
+cp tests/fixtures/7z-aes-picker.7z "$app_data/Documents/MobileProtected.7z"
 xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
   -destination "platform=iOS Simulator,id=$destination_id" -derivedDataPath build/app-ios-ui \
   -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test-without-building

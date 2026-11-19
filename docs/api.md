@@ -49,15 +49,17 @@
 
 ## Swift 条目读取
 
-`ArchiveService.readEntry` 将单个普通文件读入 `Data`。`streamEntry` 在后台文件访问队列按顺序交付数据块，等待消费方返回后再继续读取。两者都检查清单的输入版本、所选条目、取消和调用方指定的字节上限，也接受当前读取所需的 ZIP 密码。消费方抛出的错误原样传播。流式消费方可先暂存数据，等待操作成功返回后再发布，以处理末尾校验失败的情况。
+`ArchiveService.readEntry` 将单个普通文件读入 `Data`。`streamEntry` 在后台文件访问队列按顺序交付数据块，等待消费方返回后再继续读取。两者都检查清单的输入版本、所选条目、取消和调用方指定的字节上限，也接受当前读取所需的密码。消费方抛出的错误原样传播。流式消费方可先暂存数据，等待操作成功返回后再发布，以处理末尾校验失败的情况。
 
-`ArchiveService.openNested` 根据父清单中的条目 ID 打开内层归档，密码参数用于读取受保护的父条目。返回的清单持有 Core 暂存源，可继续读取、提取和打开下一层。默认 3 层和 256 MiB 上限可由调用方指定，子层继承祖先链的剩余预算。
+`ArchiveService.openNested` 根据父清单中的条目 ID 打开内层归档。`passphrase` 用于读取受保护的父条目，`childPassphrase` 用于打开内层归档。返回的清单持有 Core 暂存源，可继续读取、提取和打开下一层。默认 3 层和 256 MiB 上限可由调用方指定，子层继承祖先链的剩余预算。
 
 ## 加密归档
 
 用 `aether_unzip_context_create_with_passphrase` 创建带密码的上下文。密码为非空、NUL 结尾的 UTF-8 字符串，Core 复制输入。读取归档的驱动持有自己的密码副本。资源挂载保留上下文，以便为每个打开的条目创建独立读取游标。结束时关闭这些句柄并释放上下文。
 
-ZIP 条目可在无密码时枚举。读取或提取受保护的条目分别通过 `AU_ENCRYPTED`、`AU_BAD_PASSPHRASE` 或 `AU_UNSUPPORTED_ENCRYPTION` 报告需要密码、密码错误或加密方法不支持。Swift 通过 `ExtractionOptions.passphrase` 为单次任务传入密码。
+ZIP 条目和文件名可见的 7z 条目可以无密码枚举。7z 文件名索引加密时，探测和打开归档也需要密码。`AU_ENCRYPTED` 表示需要密码，`AU_BAD_PASSPHRASE` 表示密码校验失败或加密数据损坏，`AU_UNSUPPORTED_ENCRYPTION` 表示加密布局或方法不支持。
+
+Swift 通过 `ArchiveService.open(..., passphrase:)` 提供打开密码，生成的清单在内存中保留该密码供后续操作使用。也可以通过 `ExtractionOptions.passphrase` 或读取 API 为单次操作提供密码。
 
 ## ABI 与并发
 

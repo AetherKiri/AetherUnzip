@@ -45,11 +45,8 @@ au_status aether_unzip_archive_open(const au_context *context, au_source *source
     archive->has_passphrase = au_context_passphrase(context) != NULL;
     archive->max_total = resolved.max_total_bytes;
     uint64_t bytes;
-    if (aether_unzip_source_length(source, &bytes) == AU_OK &&
-        bytes <= UINT64_MAX / resolved.max_expansion_ratio) {
-        uint64_t budget = bytes * resolved.max_expansion_ratio;
-        if (budget < archive->max_total) archive->max_total = budget;
-    }
+    if (aether_unzip_source_length(source, &bytes) == AU_OK)
+        archive->max_total = au_expansion_budget(&resolved, bytes);
     status = find_driver(context, source, name_hint, &resolved, &archive->info,
                          &archive->driver, &archive->reader);
     if (status != AU_OK) {

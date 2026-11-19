@@ -25,20 +25,23 @@ public struct ArchiveService: Sendable {
 
     public static var coreVersion: String { String(cString: aether_unzip_version()) }
 
-    public func open(_ url: URL, limits: ExtractionOptions.Limits = .init()) async throws
+    public func open(_ url: URL, limits: ExtractionOptions.Limits = .init(),
+                     passphrase: String? = nil) async throws
         -> ArchiveManifest {
-        try await open([url], limits: limits)
+        try await open([url], limits: limits, passphrase: passphrase)
     }
 
     /// Opens one archive or a matching set of ZIP, 7z or RAR volumes.
-    public func open(_ urls: [URL], limits: ExtractionOptions.Limits = .init()) async throws
+    public func open(_ urls: [URL], limits: ExtractionOptions.Limits = .init(),
+                     passphrase: String? = nil) async throws
         -> ArchiveManifest {
-        try await open(ArchiveInput(urls), profile: nil, limits: limits)
+        try await open(ArchiveInput(urls), profile: nil, limits: limits, passphrase: passphrase)
     }
 
-    public func open(_ url: URL, profile: FormatProfile, limits: ExtractionOptions.Limits = .init())
+    public func open(_ url: URL, profile: FormatProfile, limits: ExtractionOptions.Limits = .init(),
+                     passphrase: String? = nil)
         async throws -> ArchiveManifest {
-        try await open(ArchiveInput(profileURL: url), profile: profile, limits: limits)
+        try await open(ArchiveInput(profileURL: url), profile: profile, limits: limits, passphrase: passphrase)
     }
 
     /// Loads a versioned JSON profile from a coordinated Apple file URL.
@@ -74,13 +77,13 @@ public struct ArchiveService: Sendable {
     }
 
     private func open(_ input: ArchiveInput, profile: FormatProfile?,
-                      limits: ExtractionOptions.Limits) async throws -> ArchiveManifest {
+                      limits: ExtractionOptions.Limits, passphrase: String?) async throws -> ArchiveManifest {
         let control = OperationControl()
         if Task.isCancelled { control.cancel() }
         let worker = Task.detached(priority: .userInitiated) {
             try await coordinated(reading: input.urls, writing: nil, control: control) { urls, _ in
                 let revisions = try urls.map(FileRevision.init)
-                return try withSource(urls) { context, source in
+                return try withSource(urls, passphrase: passphrase) { context, source in
                     var options = control.options(.init(limits: limits))
                     return try withOpenedInput(context, source, input.name, profile, &options) { payload, handle in
                         guard let info = aether_unzip_archive_info(handle)?.pointee else {
@@ -105,7 +108,7 @@ public struct ArchiveService: Sendable {
                             isStream: info.kind == UInt32(AU_KIND_STREAM),
                             capabilities: .init(rawValue: info.capabilities),
                             compressedSize: compressedSize, entries: entries, profile: profile, revisions: revisions,
-                            nestedSource: nil
+                            nestedSource: nil, openingPassphrase: passphrase.map(ArchivePassphrase.init)
                         )
                     }
                 }
@@ -122,7 +125,8 @@ public struct ArchiveService: Sendable {
     /// Opens a file as an archive, with a shared depth and staging budget along its ancestors.
     /// The resulting manifest owns the staged source until all copies are released.
     public func openNested(_ id: ArchiveEntry.ID, in parent: ArchiveManifest,
-                           passphrase: String? = nil, maximumDepth: UInt32 = 3,
+                           passphrase: String? = nil, childPassphrase: String? = nil,
+                           maximumDepth: UInt32 = 3,
                            maximumStagedBytes: UInt64 = 256 * 1024 * 1024,
                            limits: ExtractionOptions.Limits = .init()) async throws -> ArchiveManifest {
         guard let index = Int(exactly: id), parent.entries.indices.contains(index) else {
@@ -148,7 +152,7 @@ public struct ArchiveService: Sendable {
                     try check(aether_unzip_resource_lookup(mount, expected.path, &found))
                     guard found?.pointee.index == id else { throw ArchiveError.changed }
 
-                    return try withContext { childContext in
+                    return try withContext(passphrase: childPassphrase) { childContext in
                         var child: OpaquePointer?
                         var nestedLimits = au_nested_limits(struct_size: UInt32(MemoryLayout<au_nested_limits>.size),
                                                             max_depth: depth, max_staged_bytes: bytes)
@@ -183,7 +187,8 @@ public struct ArchiveService: Sendable {
                             compression: info.filter == 0 ? nil : ArchiveFormat(rawValue: info.filter),
                             isStream: info.kind == UInt32(AU_KIND_STREAM),
                             capabilities: .init(rawValue: info.capabilities), compressedSize: size,
-                            entries: entries, profile: nil, revisions: parent.revisions, nestedSource: storage)
+                            entries: entries, profile: nil, revisions: parent.revisions, nestedSource: storage,
+                            openingPassphrase: childPassphrase.map(ArchivePassphrase.init))
                     }
                 }
             }
@@ -314,8 +319,7 @@ public struct ArchiveService: Sendable {
             if let last = selection.last, last >= UInt64(manifest.entries.count) {
                 throw ArchiveError.missingEntry
             }
-            // Check encrypted entries before writing any output. In a mixed ZIP,
-            // this lets the user retry an incorrect password in the same folder.
+            // Check passwords before writing any output so a retry can use the same folder.
             let verify = ids ?? Set(manifest.entries.lazy.filter(\.isEncrypted).map(\.id))
             try await coordinated(reading: manifest.coordinatedURLs, writing: directory, control: control) { input, output in
                 guard let output else { throw ArchiveError.invalidInput }
@@ -332,9 +336,7 @@ public struct ArchiveService: Sendable {
                                         throw ArchiveError.changed
                                     }
                                     if entry.isEncrypted && entry.kind == .file {
-                                        var byte: UInt8 = 0
-                                        var count = 0
-                                        try check(aether_unzip_archive_read(handle, &byte, 1, &count))
+                                        try validatePassphrase(handle, format: manifest.format)
                                     }
                                     remaining -= 1
                                 }
@@ -354,6 +356,17 @@ public struct ArchiveService: Sendable {
         }
         return ExtractionTask(progress: progress, worker: worker, control: control)
     }
+}
+
+private func validatePassphrase(_ handle: OpaquePointer, format: ArchiveFormat) throws {
+    let checksAtEnd = format == .sevenZip
+    var buffer = [UInt8](repeating: 0, count: checksAtEnd ? 65536 : 1)
+    var count = 0
+    repeat {
+        try buffer.withUnsafeMutableBytes {
+            try check(aether_unzip_archive_read(handle, $0.baseAddress, $0.count, &count))
+        }
+    } while checksAtEnd && count != 0
 }
 
 private func copyEntryBytes(_ handle: OpaquePointer, entry: ArchiveEntry, maximumBytes: UInt64,
@@ -649,6 +662,7 @@ private func withContext<T>(passphrase: String? = nil,
 
 private func withManifestSource<T>(_ manifest: ArchiveManifest, _ urls: [URL], passphrase: String?,
                                    _ body: (OpaquePointer, OpaquePointer) throws -> T) throws -> T {
+    let passphrase = passphrase ?? manifest.openingPassphrase?.value
     if let storage = manifest.nestedSource {
         return try withContext(passphrase: passphrase) { context in
             try storage.access { source in try body(context, source) }

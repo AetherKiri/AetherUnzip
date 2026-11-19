@@ -57,7 +57,8 @@ final class AppModel {
         }
     }
 
-    func open(_ urls: [URL], profile: FormatProfile? = nil, limits: ExtractionOptions.Limits) {
+    func open(_ urls: [URL], profile: FormatProfile? = nil, limits: ExtractionOptions.Limits,
+              passphrase: String? = nil, finished: @escaping (ArchiveError?) -> Void) {
         opening?.cancel()
         loading = true
         error = nil
@@ -68,9 +69,9 @@ final class AppModel {
                 let archive: ArchiveManifest
                 if let profile {
                     guard urls.count == 1, let url = urls.first else { throw ArchiveError.invalidInput }
-                    archive = try await service.open(url, profile: profile, limits: limits)
+                    archive = try await service.open(url, profile: profile, limits: limits, passphrase: passphrase)
                 } else {
-                    archive = try await service.open(urls, limits: limits)
+                    archive = try await service.open(urls, limits: limits, passphrase: passphrase)
                 }
                 let bookmarks = await Task.detached(priority: .utility) {
                     archive.sourceURLs.compactMap { createBookmark(for: $0) }
@@ -92,13 +93,22 @@ final class AppModel {
                                      profile: archive.profile), at: 0)
                 recents = Array(recents.prefix(12))
                 persist(recents, for: "recentArchives")
+                finished(nil)
             } catch {
-                if !Task.isCancelled { self.error = error.localizedDescription }
+                guard !Task.isCancelled else { return }
+                if let failure = error as? ArchiveError,
+                   failure == .encrypted || failure == .incorrectPassphrase {
+                    finished(failure)
+                } else {
+                    finished(nil)
+                    self.error = error.localizedDescription
+                }
             }
         }
     }
 
     func openNested(_ entry: ArchiveEntry, limits: ExtractionOptions.Limits, passphrase: String? = nil,
+                    childPassphrase: String? = nil,
                     authenticationFailed: @escaping () -> Void) {
         guard let parent = manifest, !loading else { return }
         opening?.cancel()
@@ -109,7 +119,7 @@ final class AppModel {
             defer { if !Task.isCancelled { loading = false } }
             do {
                 let archive = try await service.openNested(entry.id, in: parent, passphrase: passphrase,
-                                                           limits: limits)
+                                                           childPassphrase: childPassphrase, limits: limits)
                 guard !Task.isCancelled else { return }
                 parents.append((parent, previousSelection))
                 manifest = archive
@@ -132,7 +142,7 @@ final class AppModel {
         loading = false
     }
 
-    func reopen(_ item: RecentArchive, limits: ExtractionOptions.Limits) {
+    func reopen(_ item: RecentArchive, openArchive: ([URL], FormatProfile?) -> Void) {
         let bookmarks = item.volumeBookmarks ?? [item.bookmark].compactMap { $0 }
         guard !bookmarks.isEmpty else {
             error = "Access to this archive has expired. Select it again with Open Archive."
@@ -149,7 +159,7 @@ final class AppModel {
                 return try URL(resolvingBookmarkData: data, options: options, relativeTo: nil,
                                bookmarkDataIsStale: &stale)
             }
-            open(urls, profile: item.profile, limits: limits)
+            openArchive(urls, item.profile)
         } catch {
             self.error = error.localizedDescription
         }

@@ -12,6 +12,10 @@
 #define BASE_CAPABILITIES (AU_CAN_LIST | AU_CAN_EXTRACT | AU_CAN_READ)
 #define NAME_LIMIT 4096
 
+void aether_archive_read_7zip_set_controls(struct archive *, int (*)(void *),
+                                         int (*)(void *, uint64_t), void *);
+int aether_archive_read_7zip_can_skip(struct archive *);
+
 typedef struct reader reader;
 typedef struct {
     reader *owner;
@@ -24,7 +28,7 @@ struct reader {
     au_source *source;
     au_options options;
     au_status input_error;
-    uint64_t length;
+    uint64_t length, sevenzip_remaining;
     reader_volume primary;
     reader_volume *volumes;
     au_format format;
@@ -182,12 +186,17 @@ static au_status decoder_error(reader *state, au_status fallback) {
     if (state->input_error != AU_OK) return state->input_error;
     if (au_cancelled(&state->options)) return AU_CANCELLED;
     const char *message = archive_error_string(state->handle);
+    if (archive_errno(state->handle) == EINTR) return AU_CANCELLED;
     if (archive_errno(state->handle) == ENOMEM) return AU_NOMEM;
     if (message) {
         if (strstr(message, "Incorrect passphrase") || strstr(message, "incorrect passphrase"))
             return AU_BAD_PASSPHRASE;
         if (strstr(message, "Passphrase required"))
             return AU_ENCRYPTED;
+        if (strstr(message, "7-Zip key derivation limit exceeded") ||
+            strstr(message, "7-Zip encrypted header limit exceeded") ||
+            strstr(message, "7-Zip solid skip exceeds the expansion budget"))
+            return AU_LIMIT;
         if (strstr(message, "Decryption is unsupported") ||
             strstr(message, "encryption support unavailable") ||
             (strstr(message, "encrypted") && strstr(message, "not supported")) ||
@@ -263,6 +272,18 @@ static int enable_formats(reader *state, au_format candidate, int filter) {
     }
 }
 
+static int decoder_cancelled(void *user) {
+    reader *state = user;
+    return au_cancelled(&state->options);
+}
+
+static int reserve_sevenzip_bytes(void *user, uint64_t count) {
+    reader *state = user;
+    if (count > state->sevenzip_remaining) return 0;
+    state->sevenzip_remaining -= count;
+    return 1;
+}
+
 static au_status probe(au_source *source, const char *hint, const char *passphrase,
                        const au_options *options, au_probe_result *info, void **output) {
     unsigned char header[512];
@@ -304,7 +325,10 @@ static au_status probe(au_source *source, const char *hint, const char *passphra
         close_reader(state);
         return AU_UNSUPPORTED;
     }
-    if (passphrase && (info->candidate == AU_FORMAT_ZIP || info->candidate == AU_FORMAT_UNKNOWN) &&
+    state->sevenzip_remaining = au_expansion_budget(options, state->length);
+    aether_archive_read_7zip_set_controls(state->handle, decoder_cancelled, reserve_sevenzip_bytes, state);
+    if (passphrase && (info->candidate == AU_FORMAT_ZIP || info->candidate == AU_FORMAT_7ZIP ||
+                       info->candidate == AU_FORMAT_UNKNOWN) &&
         archive_read_add_passphrase(state->handle, passphrase) != ARCHIVE_OK) {
         status = decoder_error(state, AU_INVALID);
         close_reader(state);
@@ -346,7 +370,7 @@ static au_status probe(au_source *source, const char *hint, const char *passphra
     info->kind = state->raw ? AU_KIND_STREAM : AU_KIND_CONTAINER;
     info->evidence |= AU_EVIDENCE_STRUCTURE;
     info->capabilities = BASE_CAPABILITIES | AU_REQUIRES_SEEKABLE_SOURCE;
-    if (state->format == AU_FORMAT_ZIP)
+    if (state->format == AU_FORMAT_ZIP || state->format == AU_FORMAT_7ZIP)
         info->capabilities |= AU_SUPPORTS_ENCRYPTION;
     if (state->format == AU_FORMAT_ZIP || state->format == AU_FORMAT_7ZIP ||
         state->format == AU_FORMAT_RAR || state->format == AU_FORMAT_RAR5)
@@ -400,13 +424,16 @@ static au_status read_data(void *data, void *buffer, size_t size, size_t *n) {
     if (state->raw && archive_format(state->handle) == ARCHIVE_FORMAT_EMPTY) return AU_OK;
     la_ssize_t result = archive_read_data(state->handle, buffer, size);
     if (result < 0) return decoder_error(state, AU_CORRUPT);
+    if (state->format == AU_FORMAT_7ZIP && !reserve_sevenzip_bytes(state, (uint64_t)result))
+        return AU_LIMIT;
     *n = (size_t)result;
     return AU_OK;
 }
 
 static au_status skip_data(void *data, int *skipped) {
     reader *state = data;
-    *skipped = state->format == AU_FORMAT_ZIP || state->raw;
+    *skipped = state->format == AU_FORMAT_ZIP || state->raw ||
+               (state->format == AU_FORMAT_7ZIP && aether_archive_read_7zip_can_skip(state->handle));
     if (*skipped && !state->raw && archive_read_data_skip(state->handle) != ARCHIVE_OK)
         return decoder_error(state, AU_CORRUPT);
     return AU_OK;

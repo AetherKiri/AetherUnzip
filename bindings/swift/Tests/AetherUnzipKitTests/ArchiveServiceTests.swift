@@ -5,6 +5,65 @@ import AetherUnzipKit
 struct ArchiveServiceTests {
     private let service = ArchiveService()
 
+    @Test func opensSevenZipWithEncryptedNamesAndReusesThePassword() async throws {
+        let url = try #require(Bundle.module.url(forResource: "7z-aes-header", withExtension: "7z",
+                                                subdirectory: "Fixtures"))
+        await #expect(throws: ArchiveError.encrypted) { try await service.open(url) }
+        await #expect(throws: ArchiveError.incorrectPassphrase) {
+            try await service.open(url, passphrase: "wrong-password")
+        }
+        let archive = try await service.open(url, passphrase: "档案🔑")
+        #expect(archive.format == .sevenZip && archive.hasOpeningPassphrase)
+        #expect(!String(reflecting: archive).contains("档案🔑"))
+        #expect(archive.entries.map(\.path) == ["private.txt", "second.txt"])
+        let entry = try #require(archive.entries.last)
+        let bytes = Data("Another protected document\n".utf8)
+        #expect(try await service.readEntry(entry.id, from: archive, maximumBytes: 64) == bytes)
+        try await temporaryDirectory { output in
+            try await service.extract(archive, to: output, selecting: [entry.id]).value()
+            #expect(try Data(contentsOf: output.appending(path: entry.path)) == bytes)
+        }
+    }
+
+    @Test(arguments: ["7z-aes-stored", "7z-aes-solid"])
+    func extractsSevenZipWithVisibleNames(_ name: String) async throws {
+        let url = try #require(Bundle.module.url(forResource: name, withExtension: "7z",
+                                                subdirectory: "Fixtures"))
+        let archive = try await service.open(url)
+        #expect(archive.capabilities.contains(.encryption))
+        #expect(archive.entries.count == 2 && archive.entries.allSatisfy(\.isEncrypted))
+        try await temporaryDirectory { output in
+            let bad = service.extract(archive, to: output, options: .init(passphrase: "wrong-password"))
+            await #expect(throws: ArchiveError.incorrectPassphrase) { try await bad.value() }
+            #expect(try FileManager.default.contentsOfDirectory(atPath: output.path).isEmpty)
+            let task = service.extract(archive, to: output, options: .init(passphrase: "fixture-pass"))
+            try await task.value()
+            #expect(try String(contentsOf: output.appending(path: "private.txt"), encoding: .utf8)
+                    == "Protected document\n")
+            #expect(try String(contentsOf: output.appending(path: "second.txt"), encoding: .utf8)
+                    == "Another protected document\n")
+        }
+    }
+
+    @Test func opensNestedSevenZipWithSeparatePasswords() async throws {
+        let outer = try await service.open(fixture("7z-aes-nested"))
+        let package = try #require(outer.entries.first)
+        #expect(package.isEncrypted)
+        await #expect(throws: ArchiveError.encrypted) {
+            try await service.openNested(package.id, in: outer, childPassphrase: "档案🔑")
+        }
+        await #expect(throws: ArchiveError.incorrectPassphrase) {
+            try await service.openNested(package.id, in: outer, passphrase: "parent-pass",
+                                         childPassphrase: "wrong-password")
+        }
+        let inner = try await service.openNested(package.id, in: outer, passphrase: "parent-pass",
+                                                 childPassphrase: "档案🔑")
+        #expect(inner.isNested && inner.hasOpeningPassphrase && inner.format == .sevenZip)
+        let entry = try #require(inner.entries.first)
+        #expect(try await service.readEntry(entry.id, from: inner, maximumBytes: 64)
+                == Data("Protected document\n".utf8))
+    }
+
     @Test func opensAndExtractsAProfileWrappedPayload() async throws {
         let file = try #require(Bundle.module.url(forResource: "profile-box", withExtension: "bin",
                                                   subdirectory: "Fixtures"))

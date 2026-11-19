@@ -46,7 +46,8 @@ struct FilePreview: View {
         self.archive = archive
         self.request = request
         self.limits = limits
-        _phase = State(initialValue: request.entry.isEncrypted ? .password(nil) : .loading)
+        _phase = State(initialValue: request.entry.isEncrypted && !archive.hasOpeningPassphrase
+                       ? .password(nil) : .loading)
     }
 
     var body: some View {
@@ -94,7 +95,7 @@ struct FilePreview: View {
         .frame(minWidth: 560, minHeight: 380)
         #endif
         .task {
-            if !request.entry.isEncrypted { await load(passphrase: nil) }
+            if !request.entry.isEncrypted || archive.hasOpeningPassphrase { await load(passphrase: nil) }
         }
         .onDisappear {
             passwordTask?.cancel()

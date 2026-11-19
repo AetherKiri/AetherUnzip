@@ -160,6 +160,23 @@ final class ArchiveWorkflowTests: XCTestCase {
 
 @MainActor
 final class ArchiveWorkflowTests: XCTestCase {
+    func testUnlockSevenZipFromFiles() {
+        let app = XCUIApplication()
+        app.launch()
+        openFromFiles("MobileProtected.7z", in: app)
+        let password = app.secureTextFields["archive-password"].firstMatch
+        let submit = app.buttons["submit-archive-password"].firstMatch
+        XCTAssertTrue(password.waitForExistence(timeout: 8), app.debugDescription)
+        password.tap()
+        password.typeText("fixture-pass")
+        submit.tap()
+        let preview = app.buttons["Preview private.txt"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 10), app.debugDescription)
+        preview.tap()
+        XCTAssertTrue(app.buttons["Done"].firstMatch.waitForExistence(timeout: 8))
+        XCTAssertFalse(app.secureTextFields["preview-password"].exists)
+    }
+
     func testOpenWithFormatProfileFromFiles() {
         let app = XCUIApplication()
         app.launch()

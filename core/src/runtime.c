@@ -33,7 +33,7 @@ const char *aether_unzip_error_message(au_status status) {
     case AU_EXISTS: return "A destination item already exists";
     case AU_NOT_FOUND: return "Archive entry no longer exists";
     case AU_ENCRYPTED: return "This archive requires a password";
-    case AU_BAD_PASSPHRASE: return "The password is incorrect";
+    case AU_BAD_PASSPHRASE: return "The password is incorrect or the encrypted data is damaged";
     case AU_UNSUPPORTED_ENCRYPTION: return "This archive uses an unsupported encryption method";
     case AU_PROFILE_MISMATCH: return "The file does not match the format profile";
     default: return "Unknown archive error";
@@ -106,6 +106,15 @@ au_options aether_unzip_options_default(void) {
         .max_expansion_ratio = 1000
     };
 }
+uint64_t au_expansion_budget(const au_options *options, uint64_t source_length) {
+    uint64_t ratio = options->max_expansion_ratio;
+    if (source_length <= UINT64_MAX / ratio) {
+        uint64_t budget = source_length * ratio;
+        if (budget < options->max_total_bytes) return budget;
+    }
+    return options->max_total_bytes;
+}
+
 au_status au_options_resolve(const au_options *input, au_options *out) {
     *out = aether_unzip_options_default();
     if (!input) return AU_OK;
