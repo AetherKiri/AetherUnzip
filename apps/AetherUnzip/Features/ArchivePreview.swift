@@ -277,15 +277,15 @@ struct ArchivePreview: View {
 
     private func fileDetails(_ node: ArchiveNode, searching: Bool) -> String {
         if let children = node.children {
-            return children.count == 1 ? "1 item" : "\(children.count) items"
+            return String(localized: "\(children.count) items")
         }
         guard let entry = node.entry else { return "" }
         var details: [String] = []
         if searching {
-            details.append(entry.path.lastIndex(of: "/").map { String(entry.path[..<$0]) } ?? "Archive root")
+            details.append(entry.path.lastIndex(of: "/").map { String(entry.path[..<$0]) } ?? String(localized: "Archive root"))
         }
-        if entry.kind == .file { details.append(entry.size.map(formattedBytes) ?? "Unknown size") }
-        if !entry.isExtractable(supporting: archive.capabilities) { details.append("Extraction unavailable") }
+        if entry.kind == .file { details.append(entry.size.map(formattedBytes) ?? String(localized: "Unknown size")) }
+        if !entry.isExtractable(supporting: archive.capabilities) { details.append(String(localized: "Extraction unavailable")) }
         return details.joined(separator: " · ")
     }
 
@@ -375,7 +375,7 @@ struct ArchivePreview: View {
             Text(showingPath ? node.entry?.path ?? node.name : node.name).lineLimit(1)
             Spacer(minLength: 8)
             if let entry = node.entry, entry.kind == .file {
-                Text(entry.size.map(formattedBytes) ?? "Unknown size")
+                Text(entry.size.map(formattedBytes) ?? String(localized: "Unknown size"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
@@ -459,14 +459,16 @@ struct ArchivePreview: View {
         let format = if let filter = archive.compression, filter != archive.format {
             "\(archive.format) · \(filter)"
         } else if archive.isStream {
-            "\(archive.format) stream"
+            String(localized: "\(archive.format.description) stream")
         } else {
             archive.format.description
         }
-        let parts = archive.isNested || archive.sourceURLs.count == 1
-            ? "" : " · \(archive.sourceURLs.count) parts"
-        let items = browserIndex.map { $0.itemCount == 1 ? " · 1 item" : " · \($0.itemCount) items" } ?? ""
-        return "\(format) · \(formattedBytes(archive.compressedSize))\(items)\(parts)"
+        var fields = [format, formattedBytes(archive.compressedSize)]
+        if let index = browserIndex { fields.append(String(localized: "\(index.itemCount) items")) }
+        if !archive.isNested && archive.sourceURLs.count > 1 {
+            fields.append(String(localized: "\(archive.sourceURLs.count) parts"))
+        }
+        return fields.joined(separator: " · ")
     }
 }
 
@@ -500,7 +502,7 @@ private struct NearbyDestinationButton: View {
         }
     }
 
-    private func destination(_ title: String, symbol: String, action: ArchiveFileAction) -> some View {
+    private func destination(_ title: LocalizedStringKey, symbol: String, action: ArchiveFileAction) -> some View {
         Button {
             choosing = false
             extract(action)

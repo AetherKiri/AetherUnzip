@@ -1,6 +1,15 @@
 import SwiftUI
 
 private extension TaskRecord.State {
+    var title: String {
+        switch self {
+        case .running: String(localized: "Extracting")
+        case .success: String(localized: "Completed")
+        case .failed: String(localized: "Failed")
+        case .cancelled: String(localized: "Cancelled")
+        }
+    }
+
     var symbol: String {
         switch self {
         case .running: "arrow.down.to.line"
@@ -101,8 +110,8 @@ struct TasksView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            WorkspaceHeading(title: "Tasks",
-                             detail: model.history.isEmpty ? nil : "\(model.history.count) recent")
+            WorkspaceHeading(title: String(localized: "Tasks"),
+                             detail: model.history.isEmpty ? nil : String(localized: "\(model.history.count) recent"))
                 .modifier(WorkspaceHeaderLayout())
             if model.current == nil && model.history.isEmpty {
                 ContentUnavailableView("No Extraction Tasks", systemImage: "tray")
@@ -148,7 +157,7 @@ struct TasksView: View {
         .sheet(item: $details) { task in
             VStack(alignment: .leading, spacing: 12) {
                 WorkspaceHeading(title: task.archive, symbol: task.state.symbol, tint: task.state.tint,
-                                 detail: task.state.rawValue)
+                                 detail: task.state.title)
                 Text(task.details ?? "").textSelection(.enabled)
                 Button("Done") { details = nil }.keyboardShortcut(.cancelAction)
             }
@@ -168,7 +177,7 @@ struct TasksView: View {
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 3) {
-                Text(task.state.rawValue)
+                Text(task.state.title)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 8)

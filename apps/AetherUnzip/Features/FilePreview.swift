@@ -142,7 +142,7 @@ struct FilePreview: View {
             case .incorrectPassphrase, .encrypted:
                 phase = .password(error.localizedDescription)
             case .limitExceeded:
-                phase = .failed("This file exceeds the preview limits.")
+                phase = .failed(String(localized: "This file exceeds the preview limits."))
             default:
                 phase = .failed(error.localizedDescription)
             }

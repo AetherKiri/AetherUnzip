@@ -49,8 +49,10 @@ cp tests/fixtures/sample.tar.gz "$workspace/Release Backup.tar.gz"
 unzip -p tests/fixtures/sample.zip notes.txt > "$workspace/Release Notes.txt"
 xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
   -destination "platform=iOS Simulator,id=$destination_id" -derivedDataPath build/app-ios-ui \
-  -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test-without-building
+  -parallel-testing-enabled NO -testLanguage en -testRegion US CODE_SIGNING_ALLOWED=NO test-without-building
 ```
+
+App 和 Swift SDK 使用 String Catalog，支持英文、简体中文和日文。系统按 App 的语言设置选择界面，按地区设置显示日期和数字。新增界面文案时同步更新 App 或 SDK 的 `Localizable.xcstrings`。三个 `test*Localization` 用例分别验证本地化排序、搜索计数和解压密码错误。
 
 SDK 在 Swift 并发后台任务内完成系统文件协调和 C 调用。读写期间分别持有输入和目标安全作用域，访问协调器返回的 URL。最近打开记录储存书签，权限过期时可以重新选择。目标可由每次提取时选择，也可通过设置使用 App Documents 下的 `Extracted Archives` 目录。
 

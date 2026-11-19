@@ -15,7 +15,7 @@ struct BrowserFolder: Sendable {
 
     var url: URL { components.reduce(location.url) { $0.appending(path: $1, directoryHint: .isDirectory) } }
     var name: String { components.last ?? rootName }
-    var rootName: String { isDocuments ? "My Files" : location.url.lastPathComponent }
+    var rootName: String { isDocuments ? String(localized: "My Files") : location.url.lastPathComponent }
     var identity: URL { url.standardizedFileURL }
     var canGoUp: Bool { !components.isEmpty }
 
@@ -157,7 +157,7 @@ enum ArchiveNames {
         if let range = name.range(of: #"\.part[0-9]+$"#, options: [.regularExpression, .caseInsensitive]) {
             name.removeSubrange(range)
         }
-        if name.isEmpty || name == "." || name == ".." || name.hasPrefix(".") { return "Extracted Archive" }
+        if name.isEmpty || name == "." || name == ".." || name.hasPrefix(".") { return String(localized: "Extracted Archive") }
         return name
     }
 }

@@ -18,7 +18,16 @@ struct FileBrowserView: View {
     private enum Sort: String, CaseIterable {
         case name = "Name", modified = "Date Modified", kind = "Kind", size = "Size"
 
-        var shortTitle: String { self == .modified ? "Date" : rawValue }
+        var title: String {
+            switch self {
+            case .name: String(localized: "Name")
+            case .modified: String(localized: "Date Modified")
+            case .kind: String(localized: "Kind")
+            case .size: String(localized: "Size")
+            }
+        }
+
+        var shortTitle: String { self == .modified ? String(localized: "Date") : title }
         var defaultsToAscending: Bool { self == .name || self == .kind }
 
         var symbol: String {
@@ -32,9 +41,12 @@ struct FileBrowserView: View {
 
         func orderTitle(ascending: Bool) -> String {
             switch self {
-            case .name, .kind: ascending ? "A to Z" : "Z to A"
-            case .modified: ascending ? "Oldest First" : "Newest First"
-            case .size: ascending ? "Smallest First" : "Largest First"
+            case .name, .kind:
+                ascending ? String(localized: "A to Z") : String(localized: "Z to A")
+            case .modified:
+                ascending ? String(localized: "Oldest First") : String(localized: "Newest First")
+            case .size:
+                ascending ? String(localized: "Smallest First") : String(localized: "Largest First")
             }
         }
     }
@@ -50,8 +62,8 @@ struct FileBrowserView: View {
         }
         var title: String {
             switch self {
-            case .newFolder: "New Folder"
-            case .item: "Rename"
+            case .newFolder: String(localized: "New Folder")
+            case .item: String(localized: "Rename")
             }
         }
         var initial: String {
@@ -313,7 +325,7 @@ struct FileBrowserView: View {
                     .accessibilityIdentifier("workspace-sort-done")
             }
             ForEach(Sort.allCases, id: \.self) { option in
-                sortOption(option.rawValue, symbol: option.symbol, selected: sort == option) {
+                sortOption(option.title, symbol: option.symbol, selected: sort == option) {
                     if sort != option {
                         sort = option
                         reverseSort = false
@@ -373,7 +385,10 @@ struct FileBrowserView: View {
     }
 
     private var ascending: Bool { sort.defaultsToAscending != reverseSort }
-    private var sortValue: String { "\(sort.rawValue), \(ascending ? "Ascending" : "Descending")" }
+    private var sortValue: String {
+        let direction = ascending ? String(localized: "Ascending") : String(localized: "Descending")
+        return String(localized: "\(sort.title), \(direction)")
+    }
 
     @ViewBuilder private var fileActions: some View {
         if selecting {
@@ -447,7 +462,7 @@ struct FileBrowserView: View {
                         fileRow(file)
                     }
                 } footer: {
-                    Text(visible.count == 1 ? "1 item" : "\(visible.count) items")
+                    Text("\(visible.count) items")
                         .font(.caption)
                         .foregroundStyle(Color.secondary)
                         .accessibilityIdentifier("workspace-item-count")
@@ -596,7 +611,7 @@ struct FileBrowserView: View {
     private func metadata(_ file: WorkspaceFile) -> String? {
         if file.kind == .folder { return file.modified?.formatted(date: .abbreviated, time: .omitted) }
         var parts: [String] = []
-        if file.kind == .other { parts.append("Special item") }
+        if file.kind == .other { parts.append(String(localized: "Special item")) }
         if let size = file.size { parts.append(formattedBytes(size)) }
         if let date = file.modified { parts.append(date.formatted(date: .abbreviated, time: .omitted)) }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
@@ -662,7 +677,8 @@ struct FileBrowserView: View {
     }
 
     private var deleteTitle: String {
-        deletion.count == 1 ? "Delete \(deletion[0])?" : "Delete \(deletion.count) items?"
+        if let name = deletion.first, deletion.count == 1 { return String(localized: "Delete \(name)?") }
+        return String(localized: "Delete \(deletion.count) items?")
     }
 
     private func confirmDelete(_ names: [String]) {
@@ -777,9 +793,9 @@ private struct FileNameSheet: View {
     }
 
     private var invalidName: String? {
-        if name == "." || name == ".." { return "Choose a name other than ‘.’ or ‘..’." }
-        if name.contains("/") { return "Remove the slash (/) from the name." }
-        if name.utf8.contains(0) { return "This name contains a character that isn’t allowed." }
+        if name == "." || name == ".." { return String(localized: "Choose a name other than ‘.’ or ‘..’.") }
+        if name.contains("/") { return String(localized: "Remove the slash (/) from the name.") }
+        if name.utf8.contains(0) { return String(localized: "This name contains a character that isn’t allowed.") }
         return nil
     }
 
@@ -800,7 +816,7 @@ private struct FileNameSheet: View {
             do {
                 try await save(submittedName)
             } catch let error as CocoaError where error.code == .fileWriteFileExists {
-                self.error = "That name is already in use in this folder."
+                self.error = String(localized: "That name is already in use in this folder.")
             } catch {
                 self.error = error.localizedDescription
             }

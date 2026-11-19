@@ -195,7 +195,7 @@ final class AppModel {
         }
         let bookmarks = item.volumeBookmarks ?? [item.bookmark].compactMap { $0 }
         guard !bookmarks.isEmpty else {
-            error = "Access to this archive has expired. Select it again with Open Archive."
+            error = String(localized: "Access to this archive has expired. Select it again with Open Archive.")
             return
         }
         do {
@@ -258,10 +258,10 @@ final class AppModel {
                 try await task.value()
                 record.state = .success
                 lastOutput = output
-                notice = "Extraction completed in \(destination.lastPathComponent)."
+                notice = String(localized: "Extraction completed in \(destination.lastPathComponent).")
             } catch ArchiveError.cancelled {
                 record.state = .cancelled
-                notice = "Extraction cancelled. Files already extracted are kept."
+                notice = String(localized: "Extraction cancelled. Files already extracted are kept.")
             } catch {
                 record.state = .failed
                 record.details = error.localizedDescription

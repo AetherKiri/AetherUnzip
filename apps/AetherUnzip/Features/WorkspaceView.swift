@@ -10,19 +10,25 @@ enum DestinationPolicy: Int, CaseIterable {
 
     var title: String {
         switch self {
-        case .choose: "Ask each time"
-        case .documents: "App Documents"
+        case .choose: String(localized: "Ask each time")
+        case .documents: String(localized: "App Documents")
         }
     }
 }
 
 struct WorkspaceView: View {
-    private enum Page: String, CaseIterable, Identifiable {
-        case archives = "Files"
-        case recent = "Recents"
-        case tasks = "Tasks"
-        case settings = "Settings"
+    private enum Page: CaseIterable, Identifiable {
+        case archives, recent, tasks, settings
+
         var id: Self { self }
+        var title: LocalizedStringKey {
+            switch self {
+            case .archives: "Files"
+            case .recent: "Recents"
+            case .tasks: "Tasks"
+            case .settings: "Settings"
+            }
+        }
         var icon: String {
             switch self {
             case .archives: "folder"
@@ -236,16 +242,16 @@ struct WorkspaceView: View {
         if UIDevice.current.userInterfaceIdiom == .phone || horizontalSizeClass == .compact {
             TabView(selection: $page) {
                 mobileArchiveWorkspace
-                    .tabItem { Label(Page.archives.rawValue, systemImage: Page.archives.icon) }
+                    .tabItem { Label(Page.archives.title, systemImage: Page.archives.icon) }
                     .tag(Optional(Page.archives))
                 workspaceNavigation { recentPage }
-                    .tabItem { Label(Page.recent.rawValue, systemImage: Page.recent.icon) }
+                    .tabItem { Label(Page.recent.title, systemImage: Page.recent.icon) }
                     .tag(Optional(Page.recent))
                 workspaceNavigation(showTaskBanner: false) { TasksView(model: model) }
-                    .tabItem { Label(Page.tasks.rawValue, systemImage: Page.tasks.icon) }
+                    .tabItem { Label(Page.tasks.title, systemImage: Page.tasks.icon) }
                     .tag(Optional(Page.tasks))
                 workspaceNavigation { settingsPage }
-                    .tabItem { Label(Page.settings.rawValue, systemImage: Page.settings.icon) }
+                    .tabItem { Label(Page.settings.title, systemImage: Page.settings.icon) }
                     .tag(Optional(Page.settings))
             }
         } else {
@@ -261,7 +267,7 @@ struct WorkspaceView: View {
             List(selection: $page) {
                 Section {
                     ForEach(Page.allCases) { item in
-                        NavigationLink(value: item) { Label(item.rawValue, systemImage: item.icon) }
+                        NavigationLink(value: item) { Label(item.title, systemImage: item.icon) }
                     }
                 }
                 Section("Locations") {
@@ -364,7 +370,7 @@ struct WorkspaceView: View {
 
     @ViewBuilder private var archivePage: some View {
         if let pending = openingPassword {
-            PasswordPrompt(archiveName: pending.urls.first?.lastPathComponent ?? "Archive",
+            PasswordPrompt(archiveName: pending.urls.first?.lastPathComponent ?? String(localized: "Archive"),
                            actionTitle: "Open Archive", errorMessage: pending.message,
                            working: model.loading, retryCount: pending.retryCount, cancel: {
                                model.cancelOpening()
@@ -588,7 +594,7 @@ private struct PasswordPrompt: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            WorkspaceHeading(title: "Archive Password", symbol: "lock", tint: .orange,
+            WorkspaceHeading(title: String(localized: "Archive Password"), symbol: "lock", tint: .orange,
                              detail: archiveName, singleLine: true)
             WorkspacePasswordField(title: "Password", password: $passphrase, identifier: "archive-password",
                                    autoFocus: true, invalid: errorMessage != nil, submit: confirm)
@@ -637,7 +643,7 @@ private struct NestedPasswordPrompt: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            WorkspaceHeading(title: "Archive Passwords", symbol: "lock", tint: .orange,
+            WorkspaceHeading(title: String(localized: "Archive Passwords"), symbol: "lock", tint: .orange,
                              detail: entry, singleLine: true)
             WorkspacePasswordField(title: hasParentPassword ? "Parent Password (Optional)" : "Parent Password",
                                    password: $parentPassword, identifier: "parent-archive-password", submit: confirm)
@@ -674,8 +680,8 @@ struct RecentArchivesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            WorkspaceHeading(title: "Recents",
-                             detail: recents.isEmpty ? nil : (recents.count == 1 ? "1 archive" : "\(recents.count) archives"))
+            WorkspaceHeading(title: String(localized: "Recents"),
+                             detail: recents.isEmpty ? nil : String(localized: "\(recents.count) archives"))
                 .modifier(WorkspaceHeaderLayout())
             if recents.isEmpty {
                 ContentUnavailableView("No Recent Archives", systemImage: "clock")

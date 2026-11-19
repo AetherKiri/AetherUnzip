@@ -179,6 +179,58 @@ final class ArchiveWorkflowTests: XCTestCase {
 
 @MainActor
 final class ArchiveWorkflowTests: XCTestCase {
+    func testEnglishLocalization() {
+        checkLocalization(language: "en", locale: "en_US", filesTitle: "My Files", searchTitle: "Search this folder",
+                          sortTitle: "Sort By", dateTitle: "Date Modified", itemCount: "1 item",
+                          passwordTitle: "Archive Password", passwordError: "The password is incorrect or the encrypted data is damaged")
+    }
+
+    func testSimplifiedChineseLocalization() {
+        checkLocalization(language: "zh-Hans", locale: "zh_CN", filesTitle: "我的文件", searchTitle: "搜索此文件夹",
+                          sortTitle: "排序方式", dateTitle: "修改日期", itemCount: "1 项",
+                          passwordTitle: "压缩包密码", passwordError: "密码不正确，或加密数据已损坏")
+    }
+
+    func testJapaneseLocalization() {
+        checkLocalization(language: "ja", locale: "ja_JP", filesTitle: "マイファイル", searchTitle: "このフォルダ内を検索",
+                          sortTitle: "並べ替え", dateTitle: "変更日", itemCount: "1 項目",
+                          passwordTitle: "アーカイブのパスワード", passwordError: "パスワードが違うか、暗号化データが破損しています")
+    }
+
+    private func checkLocalization(language: String, locale: String, filesTitle: String, searchTitle: String,
+                                   sortTitle: String, dateTitle: String, itemCount: String,
+                                   passwordTitle: String, passwordError: String) {
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+        app.launch()
+
+        let root = app.buttons["file-path-0"].firstMatch
+        XCTAssertTrue(root.waitForExistence(timeout: 8))
+        XCTAssertEqual(root.label, filesTitle)
+        let sort = app.buttons["workspace-sort"].firstMatch
+        XCTAssertEqual(sort.label, sortTitle)
+        sort.tap()
+        XCTAssertTrue(app.buttons[dateTitle].firstMatch.waitForExistence(timeout: 8))
+        capture("Sort \(language)", in: app)
+        app.buttons["workspace-sort-done"].firstMatch.tap()
+
+        let search = app.textFields["workspace-search"].firstMatch
+        XCTAssertEqual(search.placeholderValue, searchTitle)
+        search.tap()
+        search.typeText("MobileProtectedRAR.rar")
+        XCTAssertTrue(app.staticTexts[itemCount].firstMatch.waitForExistence(timeout: 8))
+        app.buttons["workspace-file-MobileProtectedRAR.rar"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts[passwordTitle].firstMatch.waitForExistence(timeout: 8))
+        let password = app.secureTextFields["archive-password"].firstMatch
+        password.tap()
+        password.typeText("wrong-password")
+        app.buttons["submit-archive-password"].firstMatch.tap()
+        let error = app.staticTexts["archive-password-error"].firstMatch
+        XCTAssertTrue(error.waitForExistence(timeout: 8))
+        XCTAssertEqual(error.label, passwordError)
+        capture("Password \(language)", in: app)
+    }
+
     func testArchiveAndWorkspacePageLayouts() {
         let app = XCUIApplication()
         app.launch()

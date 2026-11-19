@@ -14,7 +14,7 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            WorkspaceHeading(title: "Settings")
+            WorkspaceHeading(title: String(localized: "Settings"))
                 .modifier(WorkspaceHeaderLayout())
             preferences
         }
@@ -96,7 +96,7 @@ struct SettingsView: View {
         let url = Bundle.main.url(forResource: name == "AetherUnzip" ? "LICENSE" : name,
                                   withExtension: name == "AetherUnzip" ? nil : "txt")
         guard let url, let text = try? String(contentsOf: url, encoding: .utf8) else {
-            return "License text is unavailable."
+            return String(localized: "License text is unavailable.")
         }
         return text
     }
