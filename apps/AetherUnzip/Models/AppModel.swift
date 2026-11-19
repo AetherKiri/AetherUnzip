@@ -10,6 +10,8 @@ struct RecentArchive: Identifiable, Codable {
     let bookmark: Data?
     let volumeBookmarks: [Data]?
     let profile: FormatProfile?
+    var locationBookmark: Data?
+    var relativeFiles: [[String]]?
 }
 
 struct TaskRecord: Identifiable, Codable {
@@ -28,10 +30,21 @@ struct TaskRecord: Identifiable, Codable {
     var details: String?
 }
 
+private struct ParentArchive {
+    let archive: ArchiveManifest
+    let selection: Set<ArchiveEntry.ID>
+    #if os(iOS)
+    let browsing: ArchiveBrowsing
+    #endif
+}
+
 @MainActor @Observable
 final class AppModel {
     var manifest: ArchiveManifest?
     var selection: Set<ArchiveEntry.ID> = []
+    #if os(iOS)
+    var browsing = ArchiveBrowsing()
+    #endif
     var recents: [RecentArchive] = []
     var history: [TaskRecord] = []
     var current: TaskRecord?
@@ -40,11 +53,13 @@ final class AppModel {
     var cancelling = false
     var error: String?
     var notice: String?
+    private(set) var archiveOrigin: BrowserFolder?
+    private(set) var lastOutput: BrowserFolder?
 
     private let service = ArchiveService()
     private var extraction: ExtractionTask?
     private var opening: Task<Void, Never>?
-    private var parents: [(archive: ArchiveManifest, selection: Set<ArchiveEntry.ID>)] = []
+    private var parents: [ParentArchive] = []
     private(set) var archiveID = UUID()
 
     init() {
@@ -58,7 +73,8 @@ final class AppModel {
     }
 
     func open(_ urls: [URL], profile: FormatProfile? = nil, limits: ExtractionOptions.Limits,
-              passphrase: String? = nil, finished: @escaping (ArchiveError?) -> Void) {
+              passphrase: String? = nil, origin: BrowserFolder? = nil,
+              finished: @escaping (ArchiveError?) -> Void) {
         opening?.cancel()
         loading = true
         error = nil
@@ -74,23 +90,34 @@ final class AppModel {
                     archive = try await service.open(urls, limits: limits, passphrase: passphrase)
                 }
                 let bookmarks = await Task.detached(priority: .utility) {
-                    archive.sourceURLs.compactMap { createBookmark(for: $0) }
+                    let archiveBookmarks = archive.sourceURLs.compactMap { createBookmark(for: $0) }
+                    let locationBookmark = origin.flatMap { $0.isDocuments ? nil : try? $0.location.bookmark() }
+                    return (archiveBookmarks, locationBookmark)
                 }.value
                 guard !Task.isCancelled else { return }
                 parents.removeAll()
                 manifest = archive
+                archiveOrigin = origin
                 archiveID = UUID()
                 selection = []
+                #if os(iOS)
+                browsing = ArchiveBrowsing()
+                #endif
                 let id = archive.url.absoluteString
                 recents.removeAll { $0.id == id }
                 let single = archive.sourceURLs.count == 1
-                let complete = bookmarks.count == archive.sourceURLs.count
+                let complete = bookmarks.0.count == archive.sourceURLs.count
+                let relativeFiles = origin.flatMap { folder in
+                    folder.isDocuments || bookmarks.1 != nil
+                        ? archive.sourceURLs.map { folder.components + [$0.lastPathComponent] } : nil
+                }
                 recents.insert(.init(id: id, name: archive.displayName,
                                      format: archive.format.description,
                                      size: archive.compressedSize,
-                                     bookmark: single ? bookmarks.first : nil,
-                                     volumeBookmarks: !single && complete ? bookmarks : nil,
-                                     profile: archive.profile), at: 0)
+                                     bookmark: single ? bookmarks.0.first : nil,
+                                     volumeBookmarks: !single && complete ? bookmarks.0 : nil,
+                                     profile: archive.profile, locationBookmark: bookmarks.1,
+                                     relativeFiles: relativeFiles), at: 0)
                 recents = Array(recents.prefix(12))
                 persist(recents, for: "recentArchives")
                 finished(nil)
@@ -114,17 +141,24 @@ final class AppModel {
         opening?.cancel()
         loading = true
         error = nil
-        let previousSelection = selection
+        #if os(iOS)
+        let previous = ParentArchive(archive: parent, selection: selection, browsing: browsing)
+        #else
+        let previous = ParentArchive(archive: parent, selection: selection)
+        #endif
         opening = Task {
             defer { if !Task.isCancelled { loading = false } }
             do {
                 let archive = try await service.openNested(entry.id, in: parent, passphrase: passphrase,
                                                            childPassphrase: childPassphrase, limits: limits)
                 guard !Task.isCancelled else { return }
-                parents.append((parent, previousSelection))
+                parents.append(previous)
                 manifest = archive
                 archiveID = UUID()
                 selection = []
+                #if os(iOS)
+                browsing = ArchiveBrowsing()
+                #endif
             } catch {
                 guard !Task.isCancelled else { return }
                 if let failure = error as? ArchiveError,
@@ -142,7 +176,23 @@ final class AppModel {
         loading = false
     }
 
-    func reopen(_ item: RecentArchive, openArchive: ([URL], FormatProfile?) -> Void) {
+    func reopen(_ item: RecentArchive, openArchive: ([URL], FormatProfile?, BrowserFolder?) -> Void) {
+        if let relative = item.relativeFiles, let first = relative.first,
+           relative.allSatisfy({ !$0.isEmpty && $0.allSatisfy { !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("/") } }) {
+            do {
+                var folder = if let bookmark = item.locationBookmark {
+                    BrowserFolder(location: try WorkspaceAccess.restore(bookmark))
+                } else { BrowserFolder.documents }
+                folder.components = Array(first.dropLast())
+                let root = folder.location.url
+                let urls = relative.map { components in components.reduce(root) { $0.appending(path: $1) } }
+                openArchive(urls, item.profile, folder)
+                return
+            } catch {
+                self.error = error.localizedDescription
+                return
+            }
+        }
         let bookmarks = item.volumeBookmarks ?? [item.bookmark].compactMap { $0 }
         guard !bookmarks.isEmpty else {
             error = "Access to this archive has expired. Select it again with Open Archive."
@@ -159,7 +209,7 @@ final class AppModel {
                 return try URL(resolvingBookmarkData: data, options: options, relativeTo: nil,
                                bookmarkDataIsStale: &stale)
             }
-            openArchive(urls, item.profile)
+            openArchive(urls, item.profile, nil)
         } catch {
             self.error = error.localizedDescription
         }
@@ -173,13 +223,24 @@ final class AppModel {
     func closeArchive() {
         let parent = parents.popLast()
         manifest = parent?.archive
+        if parent == nil { archiveOrigin = nil }
         selection = parent?.selection ?? []
+        #if os(iOS)
+        browsing = parent?.browsing ?? ArchiveBrowsing()
+        #endif
         archiveID = UUID()
     }
 
-    func extract(_ archive: ArchiveManifest, to destination: URL, ids: Set<ArchiveEntry.ID>?,
-                 options: ExtractionOptions, authenticationFailed: (() -> Void)? = nil) {
+    func leaveArchive() {
+        parents.removeAll()
+        closeArchive()
+    }
+
+    func extract(_ archive: ArchiveManifest, to output: BrowserFolder, ids: Set<ArchiveEntry.ID>?,
+                 options: ExtractionOptions, sourceAccess: WorkspaceAccess?,
+                 authenticationFailed: (() -> Void)? = nil) {
         guard extraction == nil else { return }
+        let destination = output.url
         var record = TaskRecord(id: UUID(), archive: archive.displayName,
                                 destination: destination.lastPathComponent, started: .now,
                                 state: .running)
@@ -187,13 +248,16 @@ final class AppModel {
         progress = nil
         cancelling = false
         notice = nil
+        lastOutput = nil
         let task = service.extract(archive, to: destination, selecting: ids, options: options)
         extraction = task
         Task {
+            defer { withExtendedLifetime((sourceAccess, output.location)) {} }
             for await update in task.progress { progress = update }
             do {
                 try await task.value()
                 record.state = .success
+                lastOutput = output
                 notice = "Extraction completed in \(destination.lastPathComponent)."
             } catch ArchiveError.cancelled {
                 record.state = .cancelled

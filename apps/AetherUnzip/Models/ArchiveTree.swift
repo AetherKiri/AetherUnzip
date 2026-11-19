@@ -1,7 +1,7 @@
 import AetherUnzipKit
 import Foundation
 
-struct ArchiveNode: Identifiable {
+struct ArchiveNode: Identifiable, Sendable {
     let id: String
     let name: String
     let entry: ArchiveEntry?
@@ -12,6 +12,7 @@ struct ArchiveNode: Identifiable {
         for entry in entries {
             var components = entry.path.split(separator: "/").map(String.init)
             while components.first == "." { components.removeFirst() }
+            if components.isEmpty, isRootMarker(entry) { continue }
             if components.isEmpty { components = [entry.path] }
             // Unsafe paths remain visible as single entries, without building deep UI trees.
             if components.count > 32 || entry.path.hasPrefix("/") ||
@@ -29,6 +30,11 @@ struct ArchiveNode: Identifiable {
             }
         }
         return root.nodes()
+    }
+
+    static func isRootMarker(_ entry: ArchiveEntry) -> Bool {
+        guard entry.kind == .directory, entry.path.first == "." else { return false }
+        return entry.path.split(separator: "/").allSatisfy { $0 == "." }
     }
 
     private final class Branch {
@@ -61,6 +67,40 @@ struct ArchiveNode: Identifiable {
                 let order = $0.name.localizedStandardCompare($1.name)
                 return order == .orderedSame ? $0.id < $1.id : order == .orderedAscending
             }
+        }
+    }
+}
+
+#if os(iOS)
+struct ArchiveBrowsing {
+    var folders: [String] = []
+    var selecting = false
+    var query = ""
+}
+#endif
+
+struct ArchiveBrowserIndex: Sendable {
+    let root: [ArchiveNode]
+    let itemCount: Int
+    private var directories: [String: ArchiveNode] = [:]
+    private(set) var files: [ArchiveNode] = []
+
+    init(_ entries: [ArchiveEntry]) {
+        root = ArchiveNode.build(entries)
+        itemCount = entries.reduce(into: 0) { count, entry in
+            if !ArchiveNode.isRootMarker(entry) { count += 1 }
+        }
+        for node in root { index(node) }
+    }
+
+    subscript(folder id: String) -> ArchiveNode? { directories[id] }
+
+    private mutating func index(_ node: ArchiveNode) {
+        if let children = node.children {
+            directories[node.id] = node
+            for child in children { index(child) }
+        } else {
+            files.append(node)
         }
     }
 }

@@ -22,6 +22,8 @@ xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
 
 在 macOS App 的系统文件面板中打开 `tests/fixtures/7z-aes-picker.7z` 可以验证加密文件名的 7z。先输入 `wrong-password` 确认显示错误，再输入 `fixture-pass` 打开归档。选择 **Extract All** 并在系统面板选定空目录，核对 `private.txt` 和 `second.txt` 与样本说明一致。[样本说明](../tests/fixtures/README.md)
 
+RAR5 文件名加密使用 `tests/fixtures/rar5-aes-picker.rar`，密码同为 `fixture-pass`，提取后核对 `rar5-picker-note.txt`。[样本说明](../tests/fixtures/README.md)
+
 移动端 XCTest 通过系统 Files 面板打开样本。将 `destination_id` 设为 `xcrun simctl list devices booted` 中的 iPhone 或 iPad 模拟器 ID，再从仓库根目录运行以下命令。
 
 ```sh
@@ -32,16 +34,26 @@ xcrun simctl install "$destination_id" build/app-ios-ui/Build/Products/Debug-iph
 xcrun simctl install "$destination_id" build/app-ios-ui/Build/Products/Debug-iphonesimulator/AetherUnzipUITests-Runner.app
 app_data=$(xcrun simctl get_app_container "$destination_id" org.aetherunzip.app data)
 mkdir -p "$app_data/Documents"
+cp tests/fixtures/sample.zip "$app_data/Documents/MobileSample.zip"
 cp tests/fixtures/nested.zip "$app_data/Documents/MobileNested.zip"
 cp tests/fixtures/sample.xp3 "$app_data/Documents/MobileResources.xp3"
 cp tests/fixtures/format-profile.json "$app_data/Documents/MobileFormatProfile.json"
 cp tests/fixtures/profile-box.bin "$app_data/Documents/MobileProfileBox.bin"
 cp tests/fixtures/7z-aes-picker.7z "$app_data/Documents/MobileProtected.7z"
+cp tests/fixtures/rar5-aes-picker.rar "$app_data/Documents/MobileProtectedRAR.rar"
+cp tests/fixtures/rar5-aes-solid-header.rar "$app_data/Documents/MobileSolidRAR.rar"
+workspace="$app_data/Documents/Project Downloads"
+mkdir -p "$workspace/Guides"
+cp tests/fixtures/sample.zip "$workspace/Project Assets.zip"
+cp tests/fixtures/sample.tar.gz "$workspace/Release Backup.tar.gz"
+unzip -p tests/fixtures/sample.zip notes.txt > "$workspace/Release Notes.txt"
 xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
   -destination "platform=iOS Simulator,id=$destination_id" -derivedDataPath build/app-ios-ui \
   -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test-without-building
 ```
 
 SDK 在 Swift 并发后台任务内完成系统文件协调和 C 调用。读写期间分别持有输入和目标安全作用域，访问协调器返回的 URL。最近打开记录储存书签，权限过期时可以重新选择。目标可由每次提取时选择，也可通过设置使用 App Documents 下的 `Extracted Archives` 目录。
+
+文件工作区默认显示 App Documents。添加位置时通过系统文件面板获得目录访问权。清单、文件编辑和传输在 SDK 的文件协调回调中执行。用户从授权目录打开压缩包时，目录权限会持续到预览和提取完成。macOS 的删除操作使用系统废纸篓，iOS/iPadOS 的删除操作在确认后直接移除项目。
 
 导入分卷时，在同一个系统文件面板中选择全部分卷。SDK 识别编号 ZIP/7z 字节分片、磁盘编号 ZIP 和 RAR 命名，按读取顺序排列，再以一次协调操作访问整组 URL。最近记录会存储同组分卷的书签。

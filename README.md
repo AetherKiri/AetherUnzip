@@ -1,6 +1,10 @@
 # AetherUnzip
 
-AetherUnzip 是一个跨平台归档与资源处理框架。原生 SwiftUI App 通过 AetherUnzipKit 调用与 C 命令行示例相同的 Core，提供导入、目录树、文件内容预览、全部或选定文件提取、进度、取消、最近记录和解压设置。
+AetherUnzip 是一个跨平台归档与资源处理框架。原生 SwiftUI App 以文件管理器为入口，通过 AetherUnzipKit 调用与验证 CLI 相同的 Core。
+
+**Files** 默认打开 App 的 **My Files**。点按当前目录名称可跳转到上级路径、切换已保存的位置，或通过 **Add Folder Location…** 添加系统授权的本机、iCloud Drive 或第三方提供器目录。列表上方可搜索当前目录，或按名称、日期、类型和大小排序。文件列表支持 Quick Look 和分享。通过目录操作和文件菜单可新建文件夹、重命名、复制、移动或删除项目。
+
+点按压缩包可进入其目录。对文件工作区中的归档，可从项目菜单或归档的提取位置菜单选择 **Extract Here** 或 **Extract to New Folder**。提取完成后选择 **View Folder** 返回输出位置。系统文件选择器仍可用于打开归档和选择输出目录。最近打开的归档在独立的 **Recents** 中。
 
 | 当前读取范围 | 样本覆盖 |
 | --- | --- |

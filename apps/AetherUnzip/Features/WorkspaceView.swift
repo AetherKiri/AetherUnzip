@@ -1,6 +1,9 @@
 import AetherUnzipKit
 import SwiftUI
 import UniformTypeIdentifiers
+#if os(iOS)
+import UIKit
+#endif
 
 enum DestinationPolicy: Int, CaseIterable {
     case choose, documents
@@ -15,13 +18,15 @@ enum DestinationPolicy: Int, CaseIterable {
 
 struct WorkspaceView: View {
     private enum Page: String, CaseIterable, Identifiable {
-        case archives = "Archives"
+        case archives = "Files"
+        case recent = "Recents"
         case tasks = "Tasks"
         case settings = "Settings"
         var id: Self { self }
         var icon: String {
             switch self {
-            case .archives: "archivebox"
+            case .archives: "folder"
+            case .recent: "clock"
             case .tasks: "list.bullet.rectangle"
             case .settings: "gearshape"
             }
@@ -31,6 +36,7 @@ struct WorkspaceView: View {
     private struct Request {
         let manifest: ArchiveManifest
         let selection: Set<ArchiveEntry.ID>?
+        let sourceAccess: WorkspaceAccess?
 
         var needsPassword: Bool {
             !manifest.hasOpeningPassphrase && manifest.entries.contains { entry in
@@ -42,7 +48,8 @@ struct WorkspaceView: View {
     private struct PasswordRequest: Identifiable {
         let id = UUID()
         let extraction: Request
-        let directory: URL
+        let directory: BrowserFolder
+        var subfolder: String? = nil
     }
 
     private struct NestedPasswordRequest: Identifiable {
@@ -55,13 +62,22 @@ struct WorkspaceView: View {
     private struct OpeningPasswordRequest {
         let urls: [URL]
         let profile: FormatProfile?
+        let origin: BrowserFolder?
+        let action: ArchiveFileAction
         var message: String? = nil
+        var retryCount = 0
     }
 
     @Bindable var model: AppModel
+    @State private var files = FileBrowserModel()
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
     @State private var page: Page? = .archives
     @State private var showPicker = false
     @State private var choosingProfile = false
+    @State private var addingLocation = false
+    @State private var preparingOutput = false
     @State private var archiveProfile: FormatProfile?
     @State private var profileConfirmation: ProfileConfirmation?
     @State private var loadingProfile = false
@@ -96,59 +112,25 @@ struct WorkspaceView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
-            List(Page.allCases, selection: $page) { item in
-                NavigationLink(value: item) { Label(item.rawValue, systemImage: item.icon) }
-            }
-            .navigationTitle("AetherUnzip")
-            #if os(macOS)
-            .navigationSplitViewColumnWidth(min: 175, ideal: 200)
-            #endif
-        } detail: {
-            Group {
-                switch page ?? .archives {
-                case .archives: archivePage
-                case .tasks: TasksView(model: model)
-                case .settings:
-                    SettingsView(conflict: $conflict, destination: $destination,
-                                 entryLimitGiB: $entryLimitGiB, totalLimitGiB: $totalLimitGiB,
-                                 entryCountLimit: $entryCountLimit, depthLimit: $depthLimit,
-                                 expansionLimit: $expansionLimit)
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: openPicker) {
-                        Label("Open Archive", systemImage: "folder.badge.plus")
-                    }
-                    .keyboardShortcut("o", modifiers: .command)
-                    .disabled(model.loading || loadingProfile)
-                    .accessibilityIdentifier("open-archive")
-                }
-                ToolbarItem(placement: .secondaryAction) {
-                    Button(action: openProfilePicker) {
-                        Label("Open with Format Profile…", systemImage: "doc.badge.gearshape")
-                    }
-                    .keyboardShortcut("o", modifiers: [.command, .shift])
-                    .disabled(model.loading || loadingProfile)
-                    .accessibilityIdentifier("open-format-profile")
-                }
-            }
-        }
+        workspace
         .fileImporter(isPresented: $showPicker,
-                      allowedContentTypes: choosingProfile ? [.json] : request == nil ? [.item] : [.folder],
-                      allowsMultipleSelection: request == nil && !choosingProfile && archiveProfile == nil) { result in
+                      allowedContentTypes: choosingProfile ? [.json] : (request != nil || addingLocation ? [.folder] : [.item]),
+                      allowsMultipleSelection: request == nil && !choosingProfile && !addingLocation && archiveProfile == nil) { result in
             let pending = request
             let isProfile = choosingProfile
+            let isLocation = addingLocation
             let profile = archiveProfile
             request = nil
             choosingProfile = false
+            addingLocation = false
             archiveProfile = nil
             switch result {
             case .success(let urls):
                 guard let url = urls.first else { return }
                 if let pending {
-                    start(pending, at: url)
+                    start(pending, at: BrowserFolder(location: WorkspaceAccess(url)))
+                } else if isLocation {
+                    addFileLocation(url)
                 } else if isProfile {
                     loadProfile(url)
                 } else {
@@ -160,6 +142,7 @@ struct WorkspaceView: View {
         } onCancellation: {
             request = nil
             choosingProfile = false
+            addingLocation = false
             archiveProfile = nil
         }
         .sheet(item: $profileConfirmation, onDismiss: {
@@ -191,7 +174,7 @@ struct WorkspaceView: View {
         .sheet(item: $passwordRequest) { pending in
             PasswordPrompt(archiveName: pending.extraction.manifest.displayName, actionTitle: "Extract") { value in
                 passwordRequest = nil
-                run(pending.extraction, at: pending.directory, passphrase: value)
+                run(pending.extraction, at: pending.directory, subfolder: pending.subfolder, passphrase: value)
             }
         }
         .sheet(item: $nestedPassword) { pending in
@@ -237,26 +220,165 @@ struct WorkspaceView: View {
         } message: {
             Text(model.error ?? "")
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if model.current != nil || model.notice != nil {
-                TaskBanner(model: model)
-            }
+        #if os(macOS)
+        .safeAreaInset(edge: .bottom, spacing: 0) { if page != .tasks { taskBanner } }
+        #endif
+    }
+
+    @ViewBuilder private var taskBanner: some View {
+        if model.current != nil || model.notice != nil {
+            TaskBanner(model: model, openOutput: revealOutput)
         }
     }
 
+    @ViewBuilder private var workspace: some View {
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .phone || horizontalSizeClass == .compact {
+            TabView(selection: $page) {
+                mobileArchiveWorkspace
+                    .tabItem { Label(Page.archives.rawValue, systemImage: Page.archives.icon) }
+                    .tag(Optional(Page.archives))
+                workspaceNavigation { recentPage }
+                    .tabItem { Label(Page.recent.rawValue, systemImage: Page.recent.icon) }
+                    .tag(Optional(Page.recent))
+                workspaceNavigation(showTaskBanner: false) { TasksView(model: model) }
+                    .tabItem { Label(Page.tasks.rawValue, systemImage: Page.tasks.icon) }
+                    .tag(Optional(Page.tasks))
+                workspaceNavigation { settingsPage }
+                    .tabItem { Label(Page.settings.rawValue, systemImage: Page.settings.icon) }
+                    .tag(Optional(Page.settings))
+            }
+        } else {
+            splitWorkspace
+        }
+        #else
+        splitWorkspace
+        #endif
+    }
+
+    private var splitWorkspace: some View {
+        NavigationSplitView {
+            List(selection: $page) {
+                Section {
+                    ForEach(Page.allCases) { item in
+                        NavigationLink(value: item) { Label(item.rawValue, systemImage: item.icon) }
+                    }
+                }
+                Section("Locations") {
+                    Button {
+                        model.leaveArchive()
+                        files.show(.documents)
+                        page = .archives
+                    } label: {
+                        Label("My Files", systemImage: "internaldrive")
+                    }
+                    .buttonStyle(.plain)
+                    ForEach(files.favorites) { saved in
+                        Button {
+                            Task {
+                                do {
+                                    try await files.show(saved)
+                                    model.leaveArchive()
+                                    page = .archives
+                                } catch { model.error = error.localizedDescription }
+                            }
+                        } label: {
+                            Label(saved.name, systemImage: "folder")
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Remove Location", role: .destructive) { files.remove(saved) }
+                        }
+                    }
+                    Button("Add Folder Location…", systemImage: "folder.badge.plus", action: pickLocation)
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("sidebar-add-folder-location")
+                }
+            }
+            .navigationTitle("AetherUnzip")
+            #if os(macOS)
+            .navigationSplitViewColumnWidth(min: 175, ideal: 200)
+            #endif
+        } detail: {
+            Group {
+                switch page ?? .archives {
+                #if os(iOS)
+                case .archives: mobileArchiveWorkspace
+                case .recent: workspaceNavigation { recentPage }
+                case .tasks: workspaceNavigation(showTaskBanner: false) { TasksView(model: model) }
+                case .settings: workspaceNavigation { settingsPage }
+                #else
+                case .archives: archivePage
+                case .recent: recentPage
+                case .tasks: TasksView(model: model)
+                case .settings: settingsPage
+                #endif
+                }
+            }
+            #if os(macOS)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: openPicker) {
+                        Label("Open Archive", systemImage: "folder.badge.plus")
+                    }
+                    .keyboardShortcut("o", modifiers: .command)
+                    .disabled(model.loading || loadingProfile)
+                    .accessibilityIdentifier("open-archive")
+                }
+                ToolbarItem(placement: .secondaryAction) {
+                    Button(action: openProfilePicker) {
+                        Label("Open with Format Profile…", systemImage: "doc.badge.gearshape")
+                    }
+                    .keyboardShortcut("o", modifiers: [.command, .shift])
+                    .disabled(model.loading || loadingProfile)
+                    .accessibilityIdentifier("open-format-profile")
+                }
+            }
+            #endif
+        }
+    }
+
+    private var settingsPage: some View {
+        SettingsView(conflict: $conflict, destination: $destination,
+                     entryLimitGiB: $entryLimitGiB, totalLimitGiB: $totalLimitGiB,
+                     entryCountLimit: $entryCountLimit, depthLimit: $depthLimit,
+                     expansionLimit: $expansionLimit)
+    }
+
+    #if os(iOS)
+    @ViewBuilder private var mobileArchiveWorkspace: some View {
+        if model.manifest != nil && !model.loading && openingPassword == nil {
+            archivePage.safeAreaInset(edge: .bottom, spacing: 0) { taskBanner }
+        } else {
+            workspaceNavigation { archivePage }
+        }
+    }
+
+    private func workspaceNavigation<Content: View>(showTaskBanner: Bool = true,
+                                                     @ViewBuilder _ content: () -> Content) -> some View {
+        NavigationStack {
+            content().safeAreaInset(edge: .bottom, spacing: 0) { if showTaskBanner { taskBanner } }
+        }
+    }
+    #endif
+
     @ViewBuilder private var archivePage: some View {
         if let pending = openingPassword {
-            PasswordPrompt(archiveName: pending.urls.first?.lastPathComponent ?? "7z",
+            PasswordPrompt(archiveName: pending.urls.first?.lastPathComponent ?? "Archive",
                            actionTitle: "Open Archive", errorMessage: pending.message,
-                           working: model.loading, cancel: {
+                           working: model.loading, retryCount: pending.retryCount, cancel: {
                                model.cancelOpening()
                                openingPassword = nil
                            }) { value in
-                openArchive(pending.urls, profile: pending.profile, passphrase: value)
+                openArchive(pending.urls, profile: pending.profile, passphrase: value,
+                            origin: pending.origin, action: pending.action)
             }
             .frame(maxWidth: 420)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .navigationTitle("Open Archive")
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .modifier(WorkspaceCanvas())
+            #if os(iOS)
+            .toolbar(.hidden, for: .navigationBar)
+            #endif
         } else if model.loading {
             VStack(spacing: 16) {
                 ProgressView("Reading archive…")
@@ -265,41 +387,84 @@ struct WorkspaceView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle("Archives")
         } else if let archive = model.manifest {
+            #if os(iOS)
+            ArchivePreview(archive: archive, selection: $model.selection, browsing: $model.browsing,
+                           busy: model.current != nil || preparingOutput, limits: limits, close: model.closeArchive,
+                           openNested: { openNested($0) }, extract: { extract(archive, ids: $0) },
+                           nearbyDestination: model.archiveOrigin?.name,
+                           extractNearby: { ids, action in extractNearby(archive, ids: ids, action: action) })
+                .id(model.archiveID)
+            #else
             ArchivePreview(archive: archive, selection: $model.selection,
-                           busy: model.current != nil, limits: limits, close: model.closeArchive,
-                           openNested: { openNested($0) }) { ids in
-                let pending = Request(manifest: archive, selection: ids)
-                if destination == .documents {
-                    do {
-                        let target = URL.documentsDirectory.appending(path: "Extracted Archives", directoryHint: .isDirectory)
-                        try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
-                        start(pending, at: target)
-                    } catch {
-                        model.error = error.localizedDescription
-                    }
-                } else {
-                    request = pending
-                    showPicker = true
-                }
-            }
-            .id(model.archiveID)
+                           busy: model.current != nil || preparingOutput, limits: limits, close: model.closeArchive,
+                           openNested: { openNested($0) }, extract: { extract(archive, ids: $0) },
+                           nearbyDestination: model.archiveOrigin?.name,
+                           extractNearby: { ids, action in extractNearby(archive, ids: ids, action: action) })
+                .id(model.archiveID)
+            #endif
         } else {
-            HomeView(recents: model.recents, open: openPicker,
-                     reopen: { item in
-                         model.reopen(item) { urls, profile in openArchive(urls, profile: profile) }
-                     }, remove: model.remove)
+            FileBrowserView(model: files, openPicker: openPicker, openProfile: openProfilePicker,
+                            addLocation: pickLocation,
+                            openArchive: { urls, origin, action in
+                                openArchive(urls, profile: nil, origin: origin, action: action)
+                            }, showError: { model.error = $0 })
         }
     }
 
-    private func openArchive(_ urls: [URL], profile: FormatProfile?, passphrase: String? = nil) {
-        model.open(urls, profile: profile, limits: limits, passphrase: passphrase) { failure in
+    private var recentPage: some View {
+        RecentArchivesView(recents: model.recents, reopen: { item in
+            model.reopen(item) { urls, profile, origin in
+                if let origin { files.show(origin) }
+                openArchive(urls, profile: profile, origin: origin)
+            }
+        }, remove: model.remove)
+    }
+
+    private func extract(_ archive: ArchiveManifest, ids: Set<ArchiveEntry.ID>?) {
+        let pending = Request(manifest: archive, selection: ids, sourceAccess: model.archiveOrigin?.location)
+        if destination == .documents {
+            preparingOutput = true
+            Task {
+                defer { preparingOutput = false }
+                do {
+                    let target = BrowserFolder.documents.child("Extracted Archives")
+                    try await Task.detached(priority: .utility) {
+                        try FileManager.default.createDirectory(at: target.url, withIntermediateDirectories: true)
+                    }.value
+                    preparingOutput = false
+                    start(pending, at: target)
+                } catch { model.error = error.localizedDescription }
+            }
+        } else {
+            request = pending
+            showPicker = true
+        }
+    }
+
+    private func extractNearby(_ archive: ArchiveManifest, ids: Set<ArchiveEntry.ID>?, action: ArchiveFileAction) {
+        guard let origin = model.archiveOrigin, model.current == nil, !preparingOutput else { return }
+        let pending = Request(manifest: archive, selection: ids, sourceAccess: origin.location)
+        let subfolder = action == .extractToNewFolder
+            ? ArchiveNames.extractionFolder(for: archive.displayName) : nil
+        start(pending, at: origin, subfolder: subfolder)
+    }
+
+    private func openArchive(_ urls: [URL], profile: FormatProfile?, passphrase: String? = nil,
+                             origin: BrowserFolder? = nil, action: ArchiveFileAction = .browse) {
+        page = .archives
+        let previous = model.archiveID
+        model.open(urls, profile: profile, limits: limits, passphrase: passphrase, origin: origin) { failure in
             if let failure {
                 if openingPassword == nil {
-                    openingPassword = OpeningPasswordRequest(urls: urls, profile: profile)
+                    openingPassword = OpeningPasswordRequest(urls: urls, profile: profile, origin: origin, action: action)
                 }
                 openingPassword?.message = failure == .incorrectPassphrase ? failure.localizedDescription : nil
+                if failure == .incorrectPassphrase { openingPassword?.retryCount += 1 }
             } else {
                 openingPassword = nil
+                if action != .browse, model.archiveID != previous, let archive = model.manifest {
+                    extractNearby(archive, ids: nil, action: action)
+                }
             }
         }
     }
@@ -321,6 +486,7 @@ struct WorkspaceView: View {
         request = nil
         archiveProfile = nil
         choosingProfile = false
+        addingLocation = false
         showPicker = true
     }
 
@@ -329,7 +495,34 @@ struct WorkspaceView: View {
         request = nil
         archiveProfile = nil
         choosingProfile = true
+        addingLocation = false
         showPicker = true
+    }
+
+    private func pickLocation() {
+        request = nil
+        archiveProfile = nil
+        choosingProfile = false
+        addingLocation = true
+        showPicker = true
+    }
+
+    private func addFileLocation(_ url: URL) {
+        Task {
+            do {
+                try await files.add(url)
+                model.leaveArchive()
+                page = .archives
+            } catch { model.error = error.localizedDescription }
+        }
+    }
+
+    private func revealOutput() {
+        guard let output = model.lastOutput else { return }
+        model.notice = nil
+        model.leaveArchive()
+        files.show(output)
+        page = .archives
     }
 
     private func loadProfile(_ url: URL) {
@@ -345,22 +538,41 @@ struct WorkspaceView: View {
         }
     }
 
-    private func start(_ request: Request, at url: URL) {
+    private func start(_ request: Request, at directory: BrowserFolder, subfolder: String? = nil) {
         if request.needsPassword {
-            passwordRequest = PasswordRequest(extraction: request, directory: url)
+            passwordRequest = PasswordRequest(extraction: request, directory: directory, subfolder: subfolder)
         } else {
-            run(request, at: url)
+            run(request, at: directory, subfolder: subfolder)
         }
     }
 
-    private func run(_ request: Request, at url: URL, passphrase: String? = nil) {
-        retryPassword = nil
-        model.extract(request.manifest, to: url, ids: request.selection,
-                      options: .init(conflictPolicy: conflict, limits: limits,
-                                     passphrase: passphrase)) {
-            retryPassword = PasswordRequest(extraction: request, directory: url)
+    private func run(_ request: Request, at directory: BrowserFolder, subfolder: String? = nil,
+                     passphrase: String? = nil) {
+        guard model.current == nil, !preparingOutput else { return }
+        if let subfolder {
+            preparingOutput = true
+            Task {
+                defer { preparingOutput = false }
+                do {
+                    let target = try await FileWorkspace().makeUniqueFolder(named: subfolder,
+                        in: directory.url, access: directory.location)
+                    begin(request, at: directory.child(target.lastPathComponent), passphrase: passphrase)
+                } catch { model.error = error.localizedDescription }
+            }
+        } else {
+            begin(request, at: directory, passphrase: passphrase)
         }
     }
+
+    private func begin(_ request: Request, at directory: BrowserFolder, passphrase: String?) {
+        retryPassword = nil
+        model.extract(request.manifest, to: directory, ids: request.selection,
+                      options: .init(conflictPolicy: conflict, limits: limits,
+                                     passphrase: passphrase), sourceAccess: request.sourceAccess) {
+            retryPassword = PasswordRequest(extraction: request, directory: directory)
+        }
+    }
+
 }
 
 private struct PasswordPrompt: View {
@@ -368,27 +580,26 @@ private struct PasswordPrompt: View {
     let actionTitle: LocalizedStringKey
     var errorMessage: String? = nil
     var working = false
+    var retryCount = 0
     var cancel: (() -> Void)? = nil
     let submit: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var passphrase = ""
-    @FocusState private var focused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label("Archive Password", systemImage: "lock")
-                .font(.headline)
-            Text(archiveName).foregroundStyle(.secondary)
+            WorkspaceHeading(title: "Archive Password", symbol: "lock", tint: .orange,
+                             detail: archiveName, singleLine: true)
+            WorkspacePasswordField(title: "Password", password: $passphrase, identifier: "archive-password",
+                                   autoFocus: true, invalid: errorMessage != nil, submit: confirm)
+                .id(retryCount)
+                .disabled(working)
             if let errorMessage {
                 Text(errorMessage)
+                    .font(.footnote)
                     .foregroundStyle(.red)
                     .accessibilityIdentifier("archive-password-error")
             }
-            SecureField("Password", text: $passphrase)
-                .focused($focused)
-                .onSubmit(confirm)
-                .disabled(working)
-                .accessibilityIdentifier("archive-password")
             HStack {
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
@@ -397,7 +608,7 @@ private struct PasswordPrompt: View {
                 }
                     .keyboardShortcut(.cancelAction)
                 Button(actionTitle, action: confirm)
-                    .buttonStyle(.borderedProminent)
+                    .modifier(WorkspaceButton(prominent: true))
                     .disabled(working || passphrase.isEmpty)
                     .accessibilityIdentifier("submit-archive-password")
             }
@@ -406,7 +617,6 @@ private struct PasswordPrompt: View {
         #if os(macOS)
         .frame(minWidth: 360)
         #endif
-        .onAppear { focused = true }
     }
 
     private func confirm() {
@@ -427,22 +637,18 @@ private struct NestedPasswordPrompt: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label("Archive Passwords", systemImage: "lock")
-                .font(.headline)
-            Text(entry).foregroundStyle(.secondary)
-            SecureField(hasParentPassword ? "Containing archive password (optional)"
-                                           : "Containing archive password", text: $parentPassword)
-            SecureField("Nested archive password (if required)", text: $childPassword)
+            WorkspaceHeading(title: "Archive Passwords", symbol: "lock", tint: .orange,
+                             detail: entry, singleLine: true)
+            WorkspacePasswordField(title: hasParentPassword ? "Parent Password (Optional)" : "Parent Password",
+                                   password: $parentPassword, identifier: "parent-archive-password", submit: confirm)
+            WorkspacePasswordField(title: "Nested Archive Password", password: $childPassword,
+                                   identifier: "nested-archive-password", submit: confirm)
             HStack {
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }
-                Button("Open Archive") {
-                    submit(parentPassword.isEmpty ? nil : parentPassword,
-                           childPassword.isEmpty ? nil : childPassword)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled((!hasParentPassword && parentPassword.isEmpty) ||
-                          (parentPassword.isEmpty && childPassword.isEmpty))
+                Button("Open Archive", action: confirm)
+                    .modifier(WorkspaceButton(prominent: true))
+                    .disabled(!canOpen)
             }
         }
         .padding(24)
@@ -450,49 +656,65 @@ private struct NestedPasswordPrompt: View {
         .frame(minWidth: 360)
         #endif
     }
+
+    private var canOpen: Bool {
+        (hasParentPassword || !parentPassword.isEmpty) && (!parentPassword.isEmpty || !childPassword.isEmpty)
+    }
+
+    private func confirm() {
+        guard canOpen else { return }
+        submit(parentPassword.isEmpty ? nil : parentPassword, childPassword.isEmpty ? nil : childPassword)
+    }
 }
 
-struct HomeView: View {
+struct RecentArchivesView: View {
     let recents: [RecentArchive]
-    let open: () -> Void
     let reopen: (RecentArchive) -> Void
     let remove: (RecentArchive) -> Void
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            WorkspaceHeading(title: "Recents",
+                             detail: recents.isEmpty ? nil : (recents.count == 1 ? "1 archive" : "\(recents.count) archives"))
+                .modifier(WorkspaceHeaderLayout())
             if recents.isEmpty {
-                ContentUnavailableView {
-                    Label("Open an archive", systemImage: "archivebox")
-                } description: {
-                    Text("Browse files inside an archive and extract them to a folder you choose.")
-                } actions: {
-                    Button("Open Archive", action: open).buttonStyle(.borderedProminent)
-                }
+                ContentUnavailableView("No Recent Archives", systemImage: "clock")
             } else {
                 List {
-                    Section("Recently opened") {
-                        ForEach(recents) { item in
-                            Button { reopen(item) } label: {
-                                Label {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(item.name).foregroundStyle(.primary)
-                                        Text("\(item.format) · \(formattedBytes(item.size))")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                    }
-                                } icon: {
-                                    Image(systemName: "archivebox").foregroundStyle(.tint)
-                                }
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button("Remove from Recents", role: .destructive) { remove(item) }
-                            }
-                        }
-                    }
+                    ForEach(recents) { item in recentRow(item) }
                 }
+                .modifier(WorkspaceListSurface())
             }
         }
-        .navigationTitle("Archives")
+        .modifier(WorkspaceCanvas())
+        #if os(iOS)
+        .toolbar(.hidden, for: .navigationBar)
+        #endif
+    }
+
+    private func recentRow(_ item: RecentArchive) -> some View {
+        Button { reopen(item) } label: {
+            HStack(spacing: 10) {
+                WorkspaceGlyph(symbol: "doc.zipper", tint: .teal)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.name).font(.body.weight(.medium)).foregroundStyle(.primary)
+                        .lineLimit(2).truncationMode(.middle)
+                    Text("\(item.format) · \(formattedBytes(item.size))")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary).accessibilityHidden(true)
+            }
+            .padding(.vertical, 5)
+            .frame(minHeight: 46)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14))
+        .contextMenu {
+            Button("Remove from Recents", role: .destructive) { remove(item) }
+        }
     }
 }
 

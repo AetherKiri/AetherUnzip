@@ -37,7 +37,6 @@ struct FilePreview: View {
     let request: Request
     let limits: ExtractionOptions.Limits
     @Environment(\.dismiss) private var dismiss
-    @FocusState private var passwordFocused: Bool
     @State private var phase: Phase
     @State private var password = ""
     @State private var passwordTask: Task<Void, Never>?
@@ -53,28 +52,26 @@ struct FilePreview: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
+                WorkspaceGlyph(symbol: "doc.text", tint: .teal)
                 Text(request.name)
                     .font(.headline)
                     .lineLimit(1)
+                    .truncationMode(.middle)
                     .textSelection(.enabled)
                 Spacer()
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.cancelAction)
             }
-            .padding()
-            Divider()
+            .modifier(WorkspaceHeaderLayout())
             switch phase {
             case .password(let error):
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Enter the archive password to preview this file.")
-                    if let error { Text(error).foregroundStyle(.red) }
-                    SecureField("Password", text: $password)
-                        .focused($passwordFocused)
-                        .onSubmit(unlock)
-                        .onAppear { passwordFocused = true }
-                        .accessibilityIdentifier("preview-password")
+                    WorkspacePasswordField(title: "Password", password: $password, identifier: "preview-password",
+                                           autoFocus: true, invalid: error != nil, submit: unlock)
+                    if let error { Text(error).font(.footnote).foregroundStyle(.red) }
                     Button("Preview", action: unlock)
-                        .buttonStyle(.borderedProminent)
+                        .modifier(WorkspaceButton(prominent: true))
                         .disabled(password.isEmpty)
                 }
                 .frame(maxWidth: 340)

@@ -7,6 +7,7 @@ struct AetherUnzipApp: App {
     var body: some Scene {
         WindowGroup {
             WorkspaceView(model: model)
+                .modifier(WorkspaceAccent())
                 #if os(macOS)
                 .frame(minWidth: 700, minHeight: 460)
                 #endif
