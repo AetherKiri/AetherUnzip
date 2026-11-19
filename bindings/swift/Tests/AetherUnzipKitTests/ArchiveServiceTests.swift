@@ -5,6 +5,44 @@ import AetherUnzipKit
 struct ArchiveServiceTests {
     private let service = ArchiveService()
 
+    @Test func managesFilesInACoordinatedWorkspace() async throws {
+        try await temporaryDirectory { root in
+            let files = FileWorkspace()
+            let access = WorkspaceAccess(root)
+            let source = try await files.makeFolder(named: "Source", in: root, access: access)
+            let target = try await files.makeUniqueFolder(named: "Source", in: root, access: access)
+            #expect(target.lastPathComponent == "Source 2")
+            await #expect(throws: ArchiveError.invalidInput) {
+                try await files.makeFolder(named: "../elsewhere", in: root, access: access)
+            }
+            let item = source.appending(path: "note.txt")
+            let data = Data("Workspace note\n".utf8)
+            try data.write(to: item)
+            try FileManager.default.createSymbolicLink(at: source.appending(path: "linked-folder"),
+                                                       withDestinationURL: target)
+            let entries = try await files.contents(of: source, access: access)
+            #expect(entries.first { $0.name == "note.txt" }?.size == UInt64(data.count))
+            #expect(entries.first { $0.name == "linked-folder" }?.kind == .other)
+
+            try await files.rename(item, to: "renamed.txt", access: access)
+            let renamed = source.appending(path: "renamed.txt")
+            try await files.transfer([renamed], to: target, operation: .copy,
+                                     sourceAccess: access, destinationAccess: access)
+            let copy = target.appending(path: "renamed.txt")
+            #expect(try Data(contentsOf: copy) == data)
+            await #expect(throws: CocoaError.self) {
+                try await files.transfer([renamed], to: target, operation: .move,
+                                         sourceAccess: access, destinationAccess: access)
+            }
+            #expect(try Data(contentsOf: renamed) == data)
+            let end = try await files.makeFolder(named: "Moved", in: root, access: access)
+            try await files.transfer([renamed], to: end, operation: .move,
+                                     sourceAccess: access, destinationAccess: access)
+            #expect(!FileManager.default.fileExists(atPath: renamed.path))
+            #expect(try Data(contentsOf: end.appending(path: "renamed.txt")) == data)
+        }
+    }
+
     @Test(arguments: ["rar5-aes-solid", "rar5-aes-solid-header"])
     func extractsLaterEncryptedRAR5SolidEntry(_ name: String) async throws {
         let url = try #require(Bundle.module.url(forResource: name, withExtension: "rar",

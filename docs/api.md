@@ -55,6 +55,10 @@
 
 `ArchiveService.openNested` 根据父清单中的条目 ID 打开内层归档。`passphrase` 用于读取受保护的父条目，`childPassphrase` 用于打开内层归档。返回的清单持有 Core 暂存源，可继续读取、提取和打开下一层。默认 3 层和 256 MiB 上限可由调用方指定，子层继承祖先链的剩余预算。
 
+## Swift 文件工作区
+
+`WorkspaceAccess` 持有系统选择器授予的目录访问权。使用 `bookmark()` 保存位置，使用 `restore(_:)` 恢复访问。`FileWorkspace` 在后台协调目录枚举、新建文件夹、重命名、复制、移动和删除。批量传输会先检查目标重名，传输途中发生 I/O 错误时，已经完成的项目保留。从授权目录访问归档时，调用方应在 `ArchiveService` 操作期间保留对应的 `WorkspaceAccess`。
+
 ## 加密归档
 
 用 `aether_unzip_context_create_with_passphrase` 创建带密码的上下文。密码为非空、NUL 结尾的 UTF-8 字符串，Core 复制输入。读取归档的驱动持有自己的密码副本。资源挂载保留上下文，以便为每个打开的条目创建独立读取游标。结束时关闭这些句柄并释放上下文。
