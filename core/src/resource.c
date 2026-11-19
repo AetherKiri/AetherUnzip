@@ -241,8 +241,8 @@ au_status aether_unzip_resource_mount(const au_context *context, au_source *sour
     au_resource_mount *mount = calloc(1, sizeof(*mount));
     if (!mount) return AU_NOMEM;
     atomic_init(&mount->refs, 1);
-    au_status status = aether_unzip_archive_open(context, source, name_hint, options,
-                                                &mount->archive);
+    au_status status = aether_unzip_archive_open_catalog(context, source, name_hint, options,
+                                                        &mount->archive);
     if (status == AU_OK && name_hint) {
         mount->hint = strdup(name_hint);
         if (!mount->hint) status = AU_NOMEM;
@@ -310,7 +310,8 @@ au_status aether_unzip_resource_build_index(au_resource_mount *mount, size_t max
     if (!mount) return AU_INVALID;
     if (mount->indexed) return AU_OK;
     au_archive *cursor = NULL;
-    au_status status = open_cursor(mount, &cursor);
+    au_status status = aether_unzip_archive_open_catalog(mount->context, mount->source, mount->hint,
+                                                        &mount->archive->options, &cursor);
     if (status != AU_OK) return status;
 
     au_entry *entries = NULL;

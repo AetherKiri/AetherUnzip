@@ -8,7 +8,7 @@ typedef struct au_driver {
                        au_probe_result *, void **);
     au_status (*next)(void *, au_entry *);
     au_status (*read)(void *, void *, size_t, size_t *);
-    au_status (*skip)(void *, int *);
+    au_status (*skip)(void *, int catalog_only, int *skipped);
     void (*close)(void *);
 } au_driver;
 
@@ -25,6 +25,7 @@ struct au_archive {
     int active;
     int eof;
     int has_passphrase;
+    int catalog_only;
     au_status failure;
 };
 

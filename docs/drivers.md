@@ -9,6 +9,7 @@
 | ZIP / ZIP64 | seekable ZIP reader，验证 Deflate、空归档、ZIP64、磁盘编号分卷、ZipCrypto 和 WinZip AES-256 |
 | 7z | 固定版本 liblzma，验证 LZMA2、AES-256 存储、AES-256 固实压缩及加密文件名 |
 | RAR / RAR5 | 单卷、RAR 文件跨卷和固实 RAR5 跨卷样本 |
+| RAR5 AES | 单卷存储和压缩条目、固实字典依赖、加密的文件名索引、CRC-32 和 BLAKE2sp 校验 |
 | TAR | USTAR，可由驱动结构识别 |
 | CAB | 单卷 MSZIP、LZX |
 | ISO 9660 | 标准卷描述符和 Rock Ridge 普通文件样本 |
@@ -17,9 +18,11 @@
 | Brotli | 单个独立流。由于格式没有固定签名，以 `.br` 名称提示启用有界解码验证。解压 `.tar.br` 得到 TAR 文件。 |
 | XP3 | 标准 KiriKiri 容器。支持原始和 zlib 索引、链式索引、UTF-16LE 文件名、原始与 zlib 混合分段、空文件和 Adler-32 校验。 |
 
-每种格式的实际编解码方法取决于构建选项。流条目从提示名称推导输出名，优先移除对应扩展名，未知长度保留为未知。libarchive 驱动要求可随机访问的输入。资源条目按顺序读取。ZIP 和 7z 会报告加密能力，实际解密由条目的加密方法决定。
+每种格式的实际编解码方法取决于构建选项。流条目从提示名称推导输出名，优先移除对应扩展名，未知长度保留为未知。libarchive 驱动要求可随机访问的输入。资源条目按顺序读取。ZIP、7z 和 RAR5 会报告加密能力，实际解密由条目的加密方法决定。
 
 7z AES 支持 AES-256-CBC 和 SHA-256 密钥派生的单输入流。解密后的数据可以直接读取，或进入 LZMA/LZMA2 和可用的单输入过滤器。加密的 BCJ2、多输入布局和缺少校验和的条目或文件名索引会返回不支持。解码接入固定版 libarchive，密钥与属性格式参照 [7-Zip AES 实现](https://github.com/ip7z/7zip/blob/main/CPP/7zip/Crypto/7zAes.cpp)。
+
+RAR5 AES 使用 AES-256-CBC 和 PBKDF2-HMAC-SHA-256。密码校验字段存在时会先检查字段校验和及密码。解码到文件结尾时会检查 CRC-32 或 BLAKE2sp，并按条目标记验证密钥相关的校验值。单卷固实归档按条目恢复字典后读取目标文件。加密分卷和缺少校验和的加密条目会报告不支持。旧版 RAR 加密仍待实现。[RAR 5.0 格式说明](https://www.rarlab.com/technote.htm)
 
 XP3 驱动使用系统 zlib，流式读取文件分段。打开时检查索引块边界、段长度与偏移。索引块最多 256 个，压缩和展开后的索引各有 32 MiB 总预算。文件读取到结尾时核对 Adler-32。带 MZ 前缀的归档在前 16 MiB 内检查 16 字节对齐的 XP3 签名，通过切片解析。已知偏移的其他包装可使用切片源。App 对标记为受保护的条目显示为不可提取，游戏专用变换仍待扩展。[KiriKiri Z 归档工具](https://wamsoft.github.io/krkrz_dev/en/guide/Xp3Tool/) · [KiriKiri Z XP3 读取器](https://github.com/krkrz/krkrz/blob/master/base/XP3Archive.cpp)
 

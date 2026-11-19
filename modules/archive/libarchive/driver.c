@@ -15,6 +15,9 @@
 void aether_archive_read_7zip_set_controls(struct archive *, int (*)(void *),
                                          int (*)(void *, uint64_t), void *);
 int aether_archive_read_7zip_can_skip(struct archive *);
+void aether_archive_read_rar5_cancel(struct archive *, int (*)(void *), void *);
+int aether_archive_read_rar5_can_skip(struct archive *, int catalog_only, int has_passphrase);
+int aether_archive_read_rar5_skip_raw(struct archive *);
 
 typedef struct reader reader;
 typedef struct {
@@ -34,7 +37,7 @@ struct reader {
     au_format format;
     locale_t locale;
     char *stream_name;
-    int first, raw;
+    int first, raw, has_passphrase;
     unsigned char buffer[65536];
 };
 
@@ -195,10 +198,14 @@ static au_status decoder_error(reader *state, au_status fallback) {
             return AU_ENCRYPTED;
         if (strstr(message, "7-Zip key derivation limit exceeded") ||
             strstr(message, "7-Zip encrypted header limit exceeded") ||
-            strstr(message, "7-Zip solid skip exceeds the expansion budget"))
+            strstr(message, "7-Zip solid skip exceeds the expansion budget") ||
+            strstr(message, "RAR5 key derivation limit exceeded") ||
+            strstr(message, "RAR5 AES buffer limit exceeded"))
             return AU_LIMIT;
         if (strstr(message, "Decryption is unsupported") ||
             strstr(message, "encryption support unavailable") ||
+            strstr(message, "RAR5 encryption method is not supported") ||
+            (strstr(message, "Encrypted RAR5") && strstr(message, "not supported")) ||
             (strstr(message, "encrypted") && strstr(message, "not supported")) ||
             strstr(message, "Encrypted file is unsupported"))
             return AU_UNSUPPORTED_ENCRYPTION;
@@ -304,6 +311,7 @@ static au_status probe(au_source *source, const char *hint, const char *passphra
     reader *state = calloc(1, sizeof(*state));
     if (!state) return AU_NOMEM;
     state->options = *options;
+    state->has_passphrase = passphrase != NULL;
     state->source = source;
     au_source_retain(source);
     aether_unzip_source_length(source, &state->length);
@@ -327,7 +335,9 @@ static au_status probe(au_source *source, const char *hint, const char *passphra
     }
     state->sevenzip_remaining = au_expansion_budget(options, state->length);
     aether_archive_read_7zip_set_controls(state->handle, decoder_cancelled, reserve_sevenzip_bytes, state);
+    aether_archive_read_rar5_cancel(state->handle, decoder_cancelled, state);
     if (passphrase && (info->candidate == AU_FORMAT_ZIP || info->candidate == AU_FORMAT_7ZIP ||
+                       info->candidate == AU_FORMAT_RAR5 ||
                        info->candidate == AU_FORMAT_UNKNOWN) &&
         archive_read_add_passphrase(state->handle, passphrase) != ARCHIVE_OK) {
         status = decoder_error(state, AU_INVALID);
@@ -370,7 +380,8 @@ static au_status probe(au_source *source, const char *hint, const char *passphra
     info->kind = state->raw ? AU_KIND_STREAM : AU_KIND_CONTAINER;
     info->evidence |= AU_EVIDENCE_STRUCTURE;
     info->capabilities = BASE_CAPABILITIES | AU_REQUIRES_SEEKABLE_SOURCE;
-    if (state->format == AU_FORMAT_ZIP || state->format == AU_FORMAT_7ZIP)
+    if (state->format == AU_FORMAT_ZIP || state->format == AU_FORMAT_7ZIP ||
+        state->format == AU_FORMAT_RAR5)
         info->capabilities |= AU_SUPPORTS_ENCRYPTION;
     if (state->format == AU_FORMAT_ZIP || state->format == AU_FORMAT_7ZIP ||
         state->format == AU_FORMAT_RAR || state->format == AU_FORMAT_RAR5)
@@ -430,8 +441,14 @@ static au_status read_data(void *data, void *buffer, size_t size, size_t *n) {
     return AU_OK;
 }
 
-static au_status skip_data(void *data, int *skipped) {
+static au_status skip_data(void *data, int catalog_only, int *skipped) {
     reader *state = data;
+    if (state->format == AU_FORMAT_RAR5 &&
+        aether_archive_read_rar5_can_skip(state->handle, catalog_only, state->has_passphrase)) {
+        *skipped = 1;
+        return aether_archive_read_rar5_skip_raw(state->handle) == ARCHIVE_OK
+            ? AU_OK : decoder_error(state, AU_CORRUPT);
+    }
     *skipped = state->format == AU_FORMAT_ZIP || state->raw ||
                (state->format == AU_FORMAT_7ZIP && aether_archive_read_7zip_can_skip(state->handle));
     if (*skipped && !state->raw && archive_read_data_skip(state->handle) != ARCHIVE_OK)

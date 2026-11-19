@@ -901,6 +901,128 @@ static void sevenzip_password_tests(au_context *correct, au_context *incorrect) 
     aether_unzip_context_destroy(unicode);
 }
 
+static int32_t cancel_rar5_derivation(void *user) {
+    unsigned *polls = user;
+    return ++*polls >= 4;
+}
+
+static void rar5_password_tests(au_context *correct, au_context *incorrect) {
+    const char *names[] = {"rar5-aes-stored.rar", "rar5-aes-packed.rar", "rar5-aes-header.rar"};
+    au_context *unicode = NULL;
+    REQUIRE(aether_unzip_context_create_with_passphrase("档案🔑", &unicode) == AU_OK);
+    for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
+        au_context *password = i == 2 ? unicode : correct;
+        au_source *source = fixture(names[i]);
+        au_archive *archive = NULL;
+        const au_entry *entry = NULL;
+        const char *output = directory(names[i]);
+        if (i == 2) {
+            unsigned polls = 0;
+            au_options options = aether_unzip_options_default();
+            options.user = &polls;
+            options.cancel = cancel_rar5_derivation;
+            REQUIRE(aether_unzip_archive_open(password, source, NULL, &options, &archive) == AU_CANCELLED);
+            REQUIRE(!archive && polls >= 4);
+            REQUIRE(aether_unzip_archive_open(context, source, NULL, NULL, &archive) == AU_ENCRYPTED);
+            REQUIRE(aether_unzip_archive_open(incorrect, source, NULL, NULL, &archive) ==
+                    AU_BAD_PASSPHRASE);
+        }
+        REQUIRE(aether_unzip_archive_open(i == 2 ? password : context,
+                                          source, NULL, NULL, &archive) == AU_OK);
+        const au_probe_result *info = aether_unzip_archive_info(archive);
+        REQUIRE(info->format == AU_FORMAT_RAR5 && (info->capabilities & AU_SUPPORTS_ENCRYPTION));
+        REQUIRE(aether_unzip_archive_next_entry(archive, &entry) == AU_OK);
+        REQUIRE(entry->encrypted && !strcmp(entry->name, "private.txt"));
+        if (i) {
+            REQUIRE(aether_unzip_archive_next_entry(archive, &entry) == AU_OK);
+            REQUIRE(entry->encrypted && !strcmp(entry->name, "second.txt"));
+        }
+        uint64_t last = entry->index;
+        REQUIRE(aether_unzip_archive_next_entry(archive, &entry) == AU_END);
+        aether_unzip_archive_close(archive);
+
+        REQUIRE(aether_unzip_extract(context, source, NULL, output, NULL, 0, NULL) == AU_ENCRYPTED);
+        REQUIRE(aether_unzip_extract(incorrect, source, NULL, output, NULL, 0, NULL) ==
+                AU_BAD_PASSPHRASE);
+        no_output(output);
+
+        REQUIRE(aether_unzip_extract(password, source, NULL, output, &last, 1, NULL) == AU_OK);
+        char path[512];
+        snprintf(path, sizeof(path), "%s/private.txt", output);
+        if (i) {
+            REQUIRE(access(path, F_OK) != 0);
+            snprintf(path, sizeof(path), "%s/second.txt", output);
+            content_hash(path, 232500, UINT64_C(0xd790cd71a7d5e019));
+        } else {
+            contents(path, "RAR5 protected document\n");
+        }
+        aether_unzip_source_close(source);
+    }
+    aether_unzip_context_destroy(unicode);
+
+    au_source *damaged = fixture("rar5-aes-damaged.rar");
+    const char *output = directory("rar5-aes-damaged");
+    REQUIRE(aether_unzip_extract(correct, damaged, NULL, output, NULL, 0, NULL) == AU_CORRUPT);
+    no_output(output);
+    aether_unzip_source_close(damaged);
+}
+
+static void rar5_solid_password_tests(au_context *correct, au_context *incorrect) {
+    const char *names[] = {"rar5-aes-solid.rar", "rar5-aes-solid-header.rar"};
+    for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
+        au_source *source = fixture(names[i]);
+        au_options options = aether_unzip_options_default();
+        options.max_entry_bytes = options.max_total_bytes = 1;
+        au_archive *catalog = NULL;
+        const au_entry *entry = NULL;
+        REQUIRE(aether_unzip_archive_open_catalog(i ? correct : context, source, NULL,
+                                                  &options, &catalog) == AU_OK);
+        REQUIRE(aether_unzip_archive_next_entry(catalog, &entry) == AU_OK);
+        REQUIRE(entry->encrypted && !strcmp(entry->name, "private.txt"));
+        size_t count;
+        char byte;
+        REQUIRE(aether_unzip_archive_read(catalog, &byte, 1, &count) == AU_UNSUPPORTED);
+        REQUIRE(count == 0);
+        REQUIRE(aether_unzip_archive_next_entry(catalog, &entry) == AU_OK);
+        REQUIRE(entry->encrypted && !strcmp(entry->name, "second.txt"));
+        REQUIRE(aether_unzip_archive_next_entry(catalog, &entry) == AU_OK);
+        REQUIRE(entry->encrypted && !strcmp(entry->name, "third.txt"));
+        uint64_t index = entry->index;
+        REQUIRE(aether_unzip_archive_next_entry(catalog, &entry) == AU_END);
+        aether_unzip_archive_close(catalog);
+
+        const char *output = directory(names[i]);
+        options = aether_unzip_options_default();
+        options.max_total_bytes = 300000;
+        REQUIRE(aether_unzip_extract(correct, source, NULL, output, &index, 1, &options) == AU_LIMIT);
+        REQUIRE(aether_unzip_extract(context, source, NULL, output, &index, 1, NULL) == AU_ENCRYPTED);
+        REQUIRE(aether_unzip_extract(incorrect, source, NULL, output, &index, 1, NULL) == AU_BAD_PASSPHRASE);
+        no_output(output);
+        REQUIRE(aether_unzip_extract(correct, source, NULL, output, &index, 1, NULL) == AU_OK);
+        char path[512];
+        snprintf(path, sizeof(path), "%s/private.txt", output);
+        REQUIRE(access(path, F_OK) != 0);
+        snprintf(path, sizeof(path), "%s/second.txt", output);
+        REQUIRE(access(path, F_OK) != 0);
+        snprintf(path, sizeof(path), "%s/third.txt", output);
+        content_hash(path, 120409, UINT64_C(0x7dbf8c79fdc9cca8));
+
+        au_resource_mount *mount = NULL;
+        REQUIRE(aether_unzip_resource_mount(correct, source, NULL, NULL, &mount) == AU_OK);
+        REQUIRE(aether_unzip_resource_build_index(mount, 256) == AU_OK);
+        REQUIRE(aether_unzip_resource_lookup(mount, "third.txt", &entry) == AU_OK);
+        REQUIRE(entry->index == index && entry->encrypted);
+        au_resource_file *file = NULL;
+        REQUIRE(aether_unzip_resource_open_path(mount, "third.txt", &file) == AU_OK);
+        unsigned char data[65536];
+        REQUIRE(aether_unzip_resource_read(file, data, sizeof(data), &count) == AU_OK);
+        REQUIRE(count == sizeof(data));
+        aether_unzip_resource_close(file);
+        aether_unzip_resource_unmount(mount);
+        aether_unzip_source_close(source);
+    }
+}
+
 static void password_tests(void) {
     const char *fixtures[] = {"zipcrypto.zip", "aes256.zip"};
     au_context *correct = NULL, *incorrect = NULL;
@@ -962,6 +1084,8 @@ static void password_tests(void) {
         aether_unzip_source_close(source);
     }
     sevenzip_password_tests(correct, incorrect);
+    rar5_password_tests(correct, incorrect);
+    rar5_solid_password_tests(correct, incorrect);
     aether_unzip_context_destroy(incorrect);
     aether_unzip_context_destroy(correct);
 }

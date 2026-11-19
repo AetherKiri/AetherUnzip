@@ -31,9 +31,8 @@ au_status aether_unzip_probe(const au_context *context, au_source *source, const
     return status;
 }
 
-au_status aether_unzip_archive_open(const au_context *context, au_source *source,
-                                    const char *name_hint, const au_options *options,
-                                    au_archive **out) {
+static au_status open_archive(const au_context *context, au_source *source, const char *name_hint,
+                              const au_options *options, int catalog_only, au_archive **out) {
     if (!context || !source || !out) return AU_INVALID;
     *out = NULL;
     au_options resolved;
@@ -43,6 +42,7 @@ au_status aether_unzip_archive_open(const au_context *context, au_source *source
     if (!archive) return AU_NOMEM;
     archive->options = resolved;
     archive->has_passphrase = au_context_passphrase(context) != NULL;
+    archive->catalog_only = catalog_only;
     archive->max_total = resolved.max_total_bytes;
     uint64_t bytes;
     if (aether_unzip_source_length(source, &bytes) == AU_OK)
@@ -57,6 +57,18 @@ au_status aether_unzip_archive_open(const au_context *context, au_source *source
     return AU_OK;
 }
 
+au_status aether_unzip_archive_open(const au_context *context, au_source *source,
+                                    const char *name_hint, const au_options *options,
+                                    au_archive **out) {
+    return open_archive(context, source, name_hint, options, 0, out);
+}
+
+au_status aether_unzip_archive_open_catalog(const au_context *context, au_source *source,
+                                            const char *name_hint, const au_options *options,
+                                            au_archive **out) {
+    return open_archive(context, source, name_hint, options, 1, out);
+}
+
 const au_probe_result *aether_unzip_archive_info(const au_archive *archive) {
     return archive ? &archive->info : NULL;
 }
@@ -67,9 +79,7 @@ au_status au_archive_entry_access(const au_archive *archive) {
     return archive->has_passphrase ? AU_OK : AU_ENCRYPTED;
 }
 
-au_status aether_unzip_archive_read(au_archive *archive, void *buffer, size_t capacity,
-                                    size_t *read_count) {
-    if (!archive || !read_count || (!buffer && capacity) || !archive->active) return AU_INVALID;
+static au_status read_entry(au_archive *archive, void *buffer, size_t capacity, size_t *read_count) {
     *read_count = 0;
     if (archive->failure) return archive->failure;
     if (au_cancelled(&archive->options)) return archive->failure = AU_CANCELLED;
@@ -94,14 +104,26 @@ au_status aether_unzip_archive_read(au_archive *archive, void *buffer, size_t ca
     return AU_OK;
 }
 
+au_status aether_unzip_archive_read(au_archive *archive, void *buffer, size_t capacity,
+                                    size_t *read_count) {
+    if (!archive || !read_count || (!buffer && capacity) || !archive->active) return AU_INVALID;
+    *read_count = 0;
+    if (archive->catalog_only) return AU_UNSUPPORTED;
+    return read_entry(archive, buffer, capacity, read_count);
+}
+
 au_status au_archive_discard(au_archive *archive) {
     if (!archive->active || archive->eof) return AU_OK;
     int skipped;
-    au_status status = archive->driver->skip(archive->reader, &skipped);
+    au_status status = archive->driver->skip(archive->reader, archive->catalog_only, &skipped);
     if (status != AU_OK || skipped) return status;
+    if (archive->entry.kind == AU_ENTRY_FILE && archive->entry.size_known &&
+        (archive->entry.size > archive->options.max_entry_bytes ||
+         archive->entry.size - archive->entry_bytes > archive->max_total - archive->total_bytes))
+        return archive->failure = AU_LIMIT;
     unsigned char buffer[16384];
     size_t amount;
-    do { status = aether_unzip_archive_read(archive, buffer, sizeof(buffer), &amount); }
+    do { status = read_entry(archive, buffer, sizeof(buffer), &amount); }
     while (status == AU_OK && amount);
     return status;
 }

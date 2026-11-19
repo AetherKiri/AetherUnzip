@@ -69,7 +69,8 @@ find_package(BZip2 REQUIRED)
 find_program(AETHER_UNZIP_PATCH_PROGRAM patch REQUIRED)
 # A changed patch set needs a fresh copy of the original upstream source.
 set(libarchive_patch_hashes "")
-foreach(patch IN ITEMS libarchive-split-zip.patch libarchive-gzip-trailer.patch libarchive-7z-aes.patch)
+foreach(patch IN ITEMS libarchive-split-zip.patch libarchive-gzip-trailer.patch
+    libarchive-7z-aes.patch libarchive-rar5-aes.patch)
     set(patch_path "${CMAKE_CURRENT_LIST_DIR}/patches/${patch}")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${patch_path}")
     file(SHA256 "${patch_path}" patch_hash)

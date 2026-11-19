@@ -12,8 +12,8 @@ CMake uses SHA-256-checked source downloads defined in [Dependencies.cmake](../c
 | [zlib](https://zlib.net/) | Platform SDK/system package | zlib | Deflate and GZIP; >= 1.2.1 |
 | [bzip2](https://sourceware.org/bzip2/) | Platform SDK/system package | bzip2 | BZIP2 streams and compressed archive entries |
 | iconv / charset | Platform SDK/system package | Platform distribution | Filename encoding conversion |
-| CommonCrypto / OpenSSL Crypto | Apple system library / Linux system package | Platform distribution | WinZip AES password derivation, decryption and authentication, plus 7z AES-256-CBC and SHA-256 |
+| CommonCrypto / OpenSSL Crypto | Apple system library / Linux system package | Platform distribution | WinZip AES, 7z AES-256-CBC and SHA-256, RAR5 AES-256-CBC and HMAC-SHA-256 |
 
 libarchive tools, tests, ACL, xattr and optional XML and regex dependencies are disabled. Apple uses CommonCrypto, while the Linux build links system OpenSSL Crypto. The driver registers only the readers and filters exercised by this project. When updating a library, update the source URL and hash together, check upstream release notes and notices, rebuild all Apple slices, and rerun format and security fixtures on Apple and Linux.
 
-The fixed libarchive source receives three local patches before compilation. They handle ZIP disk-relative offsets, validate GZIP trailer CRC-32 and ISIZE, and add 7z AES-256 decryption. [libarchive patches](../cmake/patches)
+The fixed libarchive source receives local patches for ZIP disk-relative offsets, GZIP trailer CRC-32 and ISIZE, and AES-256 decryption in 7z and RAR5. RARLAB's command-line RAR 7.23 was used to generate the synthetic RAR5 test archives. [libarchive patches](../cmake/patches)

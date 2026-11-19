@@ -90,6 +90,11 @@ au_status aether_unzip_probe(const au_context *context, au_source *source, const
 au_status aether_unzip_archive_open(const au_context *context, au_source *source,
                                     const char *name_hint, const au_options *options,
                                     au_archive **out);
+/* Opens an entry catalog. Drivers may skip file data without decoding it.
+ * Use a separate archive cursor for reading or verifying file contents. */
+au_status aether_unzip_archive_open_catalog(const au_context *context, au_source *source,
+                                            const char *name_hint, const au_options *options,
+                                            au_archive **out);
 const au_probe_result *aether_unzip_archive_info(const au_archive *archive);
 /* Entry view is valid until next_entry or close. AU_END indicates enumeration is done. */
 au_status aether_unzip_archive_next_entry(au_archive *archive, const au_entry **entry);

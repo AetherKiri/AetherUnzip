@@ -132,7 +132,8 @@ static au_status read(void *data, void *buffer, size_t size, size_t *n) {
     return decode(reader, buffer, size, UINT64_MAX, n);
 }
 
-static au_status skip(void *data, int *skipped) {
+static au_status skip(void *data, int catalog_only, int *skipped) {
+    (void)catalog_only;
     (void)data;
     *skipped = 1;
     return AU_OK;

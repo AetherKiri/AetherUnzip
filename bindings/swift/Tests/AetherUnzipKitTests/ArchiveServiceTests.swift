@@ -5,6 +5,62 @@ import AetherUnzipKit
 struct ArchiveServiceTests {
     private let service = ArchiveService()
 
+    @Test(arguments: ["rar5-aes-solid", "rar5-aes-solid-header"])
+    func extractsLaterEncryptedRAR5SolidEntry(_ name: String) async throws {
+        let url = try #require(Bundle.module.url(forResource: name, withExtension: "rar",
+                                                subdirectory: "Fixtures"))
+        let openingPassphrase = name.hasSuffix("-header") ? "fixture-pass" : nil
+        var catalogLimits = ExtractionOptions.Limits()
+        catalogLimits.maxEntryBytes = 1
+        catalogLimits.maxTotalBytes = 1
+        let archive = try await service.open(url, limits: catalogLimits, passphrase: openingPassphrase)
+        #expect(archive.entries.map(\.path) == ["private.txt", "second.txt", "third.txt"])
+        let entry = try #require(archive.entries.last)
+        let passphrase = openingPassphrase == nil ? "fixture-pass" : nil
+        let data = try await service.readEntry(entry.id, from: archive, maximumBytes: 130_000,
+                                              passphrase: passphrase)
+        #expect(data.count == 120_409)
+        #expect(data.suffix(9) == Data("tertiary\n".utf8))
+        try await temporaryDirectory { output in
+            let task = service.extract(archive, to: output, selecting: [entry.id],
+                                       options: .init(passphrase: passphrase))
+            try await task.value()
+            #expect(try FileManager.default.contentsOfDirectory(atPath: output.path) == [entry.path])
+            #expect(try Data(contentsOf: output.appending(path: entry.path)) == data)
+        }
+    }
+
+    @Test(arguments: ["rar5-aes-stored", "rar5-aes-packed", "rar5-aes-header"])
+    func readsAndExtractsEncryptedRAR5(_ name: String) async throws {
+        let url = try #require(Bundle.module.url(forResource: name, withExtension: "rar",
+                                                subdirectory: "Fixtures"))
+        let lockedNames = name == "rar5-aes-header"
+        let passphrase = lockedNames ? "档案🔑" : "fixture-pass"
+        if lockedNames {
+            await #expect(throws: ArchiveError.encrypted) { try await service.open(url) }
+            await #expect(throws: ArchiveError.incorrectPassphrase) {
+                try await service.open(url, passphrase: "wrong-password")
+            }
+        }
+        let archive = try await service.open(url, passphrase: lockedNames ? passphrase : nil)
+        #expect(archive.format == .rar5 && archive.capabilities.contains(.encryption))
+        let entry = try #require(archive.entries.first { $0.path == "private.txt" })
+        #expect(entry.isEncrypted)
+        await #expect(throws: ArchiveError.incorrectPassphrase) {
+            try await service.readEntry(entry.id, from: archive, maximumBytes: 64,
+                                        passphrase: "wrong-password")
+        }
+        let bytes = Data("RAR5 protected document\n".utf8)
+        #expect(try await service.readEntry(entry.id, from: archive, maximumBytes: 64,
+                                           passphrase: lockedNames ? nil : passphrase) == bytes)
+        try await temporaryDirectory { output in
+            let task = service.extract(archive, to: output, selecting: [entry.id],
+                                       options: .init(passphrase: lockedNames ? nil : passphrase))
+            try await task.value()
+            #expect(try Data(contentsOf: output.appending(path: entry.path)) == bytes)
+        }
+    }
+
     @Test func opensSevenZipWithEncryptedNamesAndReusesThePassword() async throws {
         let url = try #require(Bundle.module.url(forResource: "7z-aes-header", withExtension: "7z",
                                                 subdirectory: "Fixtures"))

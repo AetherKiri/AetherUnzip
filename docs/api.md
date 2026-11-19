@@ -11,6 +11,8 @@
 5. `aether_unzip_extract` 重新打开输入游标。传入 `NULL, 0` 提取全部，或传入严格递增的条目索引提取选定项。索引绑定于当前输入内容。
 6. 关闭各自拥有的句柄。归档和切片保留底层源，可在打开后释放调用方的引用。资源文件可在卸载原挂载后继续读。
 
+`aether_unzip_archive_open_catalog` 打开仅用于枚举的游标，允许驱动跳过文件数据。对目录游标调用 `aether_unzip_archive_read` 会返回 `AU_UNSUPPORTED`。读取或验证内容时用相同参数另开普通游标，条目编号保持一致。Swift 归档清单和 Core 资源索引使用目录游标。
+
 `AU_OK` 表示成功，`AU_END` 表示枚举结束，负值为错误。使用 `aether_unzip_error_message` 获取静态消息。严重的条目读取错误会终止当前游标。文件和内存 sink 支持顺序、偏移写入与 flush。内存视图由 sink 所有，在下一次写入或关闭前有效。
 
 ## 格式配置
@@ -57,7 +59,7 @@
 
 用 `aether_unzip_context_create_with_passphrase` 创建带密码的上下文。密码为非空、NUL 结尾的 UTF-8 字符串，Core 复制输入。读取归档的驱动持有自己的密码副本。资源挂载保留上下文，以便为每个打开的条目创建独立读取游标。结束时关闭这些句柄并释放上下文。
 
-ZIP 条目和文件名可见的 7z 条目可以无密码枚举。7z 文件名索引加密时，探测和打开归档也需要密码。`AU_ENCRYPTED` 表示需要密码，`AU_BAD_PASSPHRASE` 表示密码校验失败或加密数据损坏，`AU_UNSUPPORTED_ENCRYPTION` 表示加密布局或方法不支持。
+ZIP 条目和文件名可见的 7z、RAR5 条目可以无密码枚举。7z 或 RAR5 文件名加密时，探测和打开归档也需要密码。`AU_ENCRYPTED` 表示需要密码，`AU_BAD_PASSPHRASE` 表示密码校验失败或加密数据损坏，`AU_UNSUPPORTED_ENCRYPTION` 表示加密布局或方法不支持。
 
 Swift 通过 `ArchiveService.open(..., passphrase:)` 提供打开密码，生成的清单在内存中保留该密码供后续操作使用。也可以通过 `ExtractionOptions.passphrase` 或读取 API 为单次操作提供密码。
 

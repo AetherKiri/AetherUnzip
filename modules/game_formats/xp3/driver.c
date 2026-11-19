@@ -443,7 +443,8 @@ static au_status read_data(void *opaque, void *buffer, size_t capacity, size_t *
     return state->digest == entry->digest ? AU_OK : AU_CORRUPT;
 }
 
-static au_status skip(void *opaque, int *skipped) {
+static au_status skip(void *opaque, int catalog_only, int *skipped) {
+    (void)catalog_only;
     reader *state = opaque;
     reset_stream(&state->bytes);
     *skipped = 1;

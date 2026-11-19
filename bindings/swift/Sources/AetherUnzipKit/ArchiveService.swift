@@ -359,7 +359,7 @@ public struct ArchiveService: Sendable {
 }
 
 private func validatePassphrase(_ handle: OpaquePointer, format: ArchiveFormat) throws {
-    let checksAtEnd = format == .sevenZip
+    let checksAtEnd = format == .sevenZip || format == .rar5
     var buffer = [UInt8](repeating: 0, count: checksAtEnd ? 65536 : 1)
     var count = 0
     repeat {
@@ -711,24 +711,33 @@ private func withOpenedInput<T>(_ context: OpaquePointer, _ source: OpaquePointe
                                 _ profile: FormatProfile?, _ options: inout au_options,
                                 _ body: (OpaquePointer, OpaquePointer) throws -> T) throws -> T {
     guard let profile else {
-        return try withArchive(context, source, name, &options) { archive in try body(source, archive) }
+        return try withArchive(context, source, name, &options, catalog: true) { archive in
+            try body(source, archive)
+        }
     }
-    var payload: OpaquePointer?, archive: OpaquePointer?
+    var payload: OpaquePointer?
     try profile.withCore(name: name) {
-        try check(aether_unzip_profile_open(context, source, &$0, &options, &payload, &archive))
+        try check(aether_unzip_profile_slice(source, &$0, &payload))
     }
-    defer {
-        aether_unzip_archive_close(archive)
-        aether_unzip_source_close(payload)
+    guard let payload else { throw ArchiveError.invalidInput }
+    defer { aether_unzip_source_close(payload) }
+    return try withArchive(context, payload, profile.payloadName ?? name, &options, catalog: true) { archive in
+        guard aether_unzip_archive_info(archive)?.pointee.format == profile.expectedFormat.rawValue else {
+            throw ArchiveError.profileMismatch
+        }
+        return try body(payload, archive)
     }
-    guard let payload, let archive else { throw ArchiveError.invalidInput }
-    return try body(payload, archive)
 }
 
 private func withArchive<T>(_ context: OpaquePointer, _ source: OpaquePointer, _ name: String,
-                            _ options: inout au_options, _ body: (OpaquePointer) throws -> T) throws -> T {
+                            _ options: inout au_options, catalog: Bool = false,
+                            _ body: (OpaquePointer) throws -> T) throws -> T {
     var archive: OpaquePointer?
-    try check(aether_unzip_archive_open(context, source, name, &options, &archive))
+    if catalog {
+        try check(aether_unzip_archive_open_catalog(context, source, name, &options, &archive))
+    } else {
+        try check(aether_unzip_archive_open(context, source, name, &options, &archive))
+    }
     guard let archive else { throw ArchiveError.invalidInput }
     defer { aether_unzip_archive_close(archive) }
     return try body(archive)

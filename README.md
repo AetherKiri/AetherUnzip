@@ -6,7 +6,7 @@ AetherUnzip 是一个跨平台归档与资源处理框架。原生 SwiftUI App �
 | --- | --- |
 | ZIP / ZIP64 | Deflate、空归档、UTF-8 路径、ZipCrypto、WinZip AES-256、磁盘编号分卷及带前缀 ZIP |
 | 7z | LZMA2、AES-256，含固实归档和加密文件名 |
-| RAR / RAR5 | 单卷样本、跨卷文件和固实跨卷样本 |
+| RAR / RAR5 | 单卷样本、跨卷文件和固实跨卷样本。RAR5 单卷支持 AES-256 内容和文件名加密，含固实归档 |
 | TAR | USTAR |
 | CAB | 单卷，MSZIP 和 LZX |
 | ISO 9660 | 标准卷描述符，Rock Ridge 样本 |
@@ -27,7 +27,7 @@ AetherUnzip 是一个跨平台归档与资源处理框架。原生 SwiftUI App �
 
 ## 构建 Core
 
-需要 CMake 3.24+、C17/C++17 工具链、`patch`，以及系统 zlib 和 bzip2 开发文件。ZIP 和 7z 的 AES 在 Apple 使用系统 CommonCrypto，在 Linux 使用系统 OpenSSL Crypto 开发库。首次构建下载并校验固定版本的开源依赖。Core 使用 POSIX 文件接口，Apple 与 Linux 共用实现。
+需要 CMake 3.24+、C17/C++17 工具链、`patch`，以及系统 zlib 和 bzip2 开发文件。ZIP、7z 和 RAR5 的 AES 在 Apple 使用系统 CommonCrypto，在 Linux 使用系统 OpenSSL Crypto 开发库。首次构建下载并校验固定版本的开源依赖。Core 使用 POSIX 文件接口，Apple 与 Linux 共用实现。
 
 ```sh
 cmake -S . -B build/core -DCMAKE_BUILD_TYPE=Release
