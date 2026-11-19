@@ -179,6 +179,162 @@ final class ArchiveWorkflowTests: XCTestCase {
 
 @MainActor
 final class ArchiveWorkflowTests: XCTestCase {
+    func testSettingsEditsAndRestoresSafetyLimits() {
+        let app = XCUIApplication()
+        app.launch()
+        openSettings(in: app, title: "Settings")
+
+        let conflict = app.buttons["settings-conflict"].firstMatch
+        XCTAssertTrue(conflict.waitForExistence(timeout: 8), app.debugDescription)
+        let originalConflict = conflict.value as? String ?? "Stop on conflict"
+        let newConflict = originalConflict == "Keep existing" ? "Stop on conflict" : "Keep existing"
+        conflict.tap()
+        XCTAssertTrue(app.buttons[newConflict].firstMatch.waitForExistence(timeout: 8))
+        capture("Conflict Preferences", in: app)
+        app.buttons[newConflict].firstMatch.tap()
+        XCTAssertEqual(conflict.value as? String, newConflict)
+
+        let safety = app.buttons["settings-safety"].firstMatch
+        let originalPreset = safety.value as? String ?? "Default"
+        safety.tap()
+        let field = app.textFields["settings-limit-file"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 8))
+        let originalLimit = field.value as? String ?? "4"
+        let save = app.buttons["settings-safety-save"].firstMatch
+        replaceLimit(field, in: app, with: "65")
+        XCTAssertTrue(app.staticTexts["settings-limit-error-file"].firstMatch.waitForExistence(timeout: 8))
+        XCTAssertFalse(save.isEnabled)
+        capture("Safety Validation", in: app)
+        replaceLimit(field, in: app, with: originalLimit == "12" ? "8" : "12")
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+        XCTAssertTrue(safety.waitForExistence(timeout: 8))
+        XCTAssertEqual(safety.value as? String, "Custom")
+
+        app.terminate()
+        app.launch()
+        openSettings(in: app, title: "Settings")
+        XCTAssertEqual(conflict.value as? String, newConflict)
+        XCTAssertEqual(safety.value as? String, "Custom")
+        safety.tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 8))
+        let savedLimit = field.value as? String
+        XCTAssertEqual(savedLimit, originalLimit == "12" ? "8" : "12")
+        app.buttons["settings-safety-reset"].firstMatch.tap()
+        XCTAssertEqual(field.value as? String, "4")
+        app.buttons["Cancel"].firstMatch.tap()
+        XCTAssertTrue(safety.waitForExistence(timeout: 8))
+        safety.tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 8))
+        XCTAssertEqual(field.value as? String, savedLimit)
+        replaceLimit(field, in: app, with: originalLimit)
+        save.tap()
+        XCTAssertTrue(safety.waitForExistence(timeout: 8))
+        XCTAssertEqual(safety.value as? String, originalPreset)
+        conflict.tap()
+        app.buttons[originalConflict].firstMatch.tap()
+    }
+
+    func testSettingsDestinationAndLicenses() {
+        let app = XCUIApplication()
+        app.launch()
+        openSettings(in: app, title: "Settings")
+        let destination = app.buttons["settings-destination"].firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 8), app.debugDescription)
+        let original = destination.value as? String ?? "Ask each time"
+        let other = original == "App Documents" ? "Ask each time" : "App Documents"
+        capture("Settings Overview", in: app)
+        destination.tap()
+        XCTAssertTrue(app.buttons[other].firstMatch.waitForExistence(timeout: 8))
+        capture("Destination Preferences", in: app)
+        app.buttons[other].firstMatch.tap()
+        XCTAssertEqual(destination.value as? String, other)
+        destination.tap()
+        app.buttons[original].firstMatch.tap()
+
+        app.buttons["settings-licenses"].firstMatch.tap()
+        let project = app.buttons["AetherUnzip"].firstMatch
+        XCTAssertTrue(project.waitForExistence(timeout: 8), app.debugDescription)
+        project.tap()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Permission is hereby granted"))
+            .firstMatch.waitForExistence(timeout: 8), app.debugDescription)
+    }
+
+    func testSettingsAskDestinationUsesNativeFolderPicker() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-conflictPolicy", "2"]
+        app.launch()
+        openSettings(in: app, title: "Settings")
+        let destination = app.buttons["settings-destination"].firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 8), app.debugDescription)
+        let original = destination.value as? String
+        destination.tap()
+        app.buttons["Ask each time"].firstMatch.tap()
+        XCTAssertEqual(destination.value as? String, "Ask each time")
+
+        app.tabBars.firstMatch.buttons["Files"].tap()
+        let search = app.textFields["workspace-search"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 8))
+        search.tap()
+        search.typeText("MobileSample.zip")
+        app.buttons["workspace-file-MobileSample.zip"].firstMatch.tap()
+        let extract = app.buttons["extract-all"].firstMatch
+        XCTAssertTrue(extract.waitForExistence(timeout: 8))
+        extract.tap()
+        pickFromFiles("AetherUnzip Settings Output", in: app)
+        XCTAssertTrue(app.staticTexts["Extraction completed in AetherUnzip Settings Output."].firstMatch
+            .waitForExistence(timeout: 12), app.debugDescription)
+
+        if original == "App Documents" {
+            openSettings(in: app, title: "Settings")
+            destination.tap()
+            app.buttons["App Documents"].firstMatch.tap()
+        }
+    }
+
+    private func openSettings(in app: XCUIApplication, title: String) {
+        let tabs = app.tabBars.firstMatch
+        if tabs.exists {
+            tabs.buttons[title].tap()
+        } else {
+            let settings = app.descendants(matching: .any)["workspace-sidebar-settings"].firstMatch
+            let sidebar = app.buttons["Show Sidebar"].firstMatch
+            if !settings.exists && sidebar.waitForExistence(timeout: 5) { sidebar.tap() }
+            XCTAssertTrue(settings.waitForExistence(timeout: 8), app.debugDescription)
+            settings.tap()
+        }
+    }
+
+    private func replaceLimit(_ field: XCUIElement, in app: XCUIApplication, with value: String) {
+        field.tap()
+        app.buttons["settings-limit-clear-file"].firstMatch.tap()
+        field.typeText(value)
+    }
+
+    func testSimplifiedChineseSettings() {
+        checkSettings(language: "zh-Hans", locale: "zh_CN", settings: "设置", safety: "安全限制", file: "单个文件")
+    }
+
+    func testJapaneseSettings() {
+        checkSettings(language: "ja", locale: "ja_JP", settings: "設定", safety: "安全上限", file: "ファイル単位")
+    }
+
+    private func checkSettings(language: String, locale: String, settings: String, safety: String, file: String) {
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", locale]
+        app.launch()
+        openSettings(in: app, title: settings)
+        let row = app.buttons["settings-safety"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertEqual(row.label, safety)
+        capture("Settings \(language)", in: app)
+        row.tap()
+        let field = app.textFields["settings-limit-file"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(app.staticTexts[file].firstMatch.exists)
+        capture("Safety Limits \(language)", in: app)
+    }
+
     func testEnglishLocalization() {
         checkLocalization(language: "en", locale: "en_US", filesTitle: "My Files", searchTitle: "Search this folder",
                           sortTitle: "Sort By", dateTitle: "Date Modified", itemCount: "1 item",
@@ -263,12 +419,11 @@ final class ArchiveWorkflowTests: XCTestCase {
             XCTAssertTrue(app.staticTexts["Tasks"].firstMatch.waitForExistence(timeout: 8))
             capture("Tasks", in: app)
             tabs.buttons["Settings"].tap()
-            let limits = app.buttons["Safety Limits"].firstMatch
+            let limits = app.buttons["settings-safety"].firstMatch
             XCTAssertTrue(limits.waitForExistence(timeout: 8), app.debugDescription)
             capture("Settings", in: app)
             limits.tap()
-            XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label BEGINSWITH %@", "Per file:")).firstMatch
-                .waitForExistence(timeout: 8), app.debugDescription)
+            XCTAssertTrue(app.textFields["settings-limit-file"].firstMatch.waitForExistence(timeout: 8), app.debugDescription)
         }
     }
 

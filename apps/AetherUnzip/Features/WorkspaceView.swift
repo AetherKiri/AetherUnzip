@@ -95,11 +95,11 @@ struct WorkspaceView: View {
     @State private var retryNested: NestedPasswordRequest?
     @AppStorage("conflictPolicy") private var conflict = ExtractionOptions.ConflictPolicy.fail
     @AppStorage("destinationPolicy") private var destination = DestinationPolicy.choose
-    @AppStorage("entryLimitGiB") private var entryLimitGiB = 4
-    @AppStorage("totalLimitGiB") private var totalLimitGiB = 16
-    @AppStorage("entryCountLimit") private var entryCountLimit = 10000
-    @AppStorage("depthLimit") private var depthLimit = 32
-    @AppStorage("expansionLimit") private var expansionLimit = 1000
+    @AppStorage("entryLimitGiB") private var entryLimitGiB = AppSafetyLimits.defaults.entryGiB
+    @AppStorage("totalLimitGiB") private var totalLimitGiB = AppSafetyLimits.defaults.totalGiB
+    @AppStorage("entryCountLimit") private var entryCountLimit = AppSafetyLimits.defaults.entries
+    @AppStorage("depthLimit") private var depthLimit = AppSafetyLimits.defaults.depth
+    @AppStorage("expansionLimit") private var expansionLimit = AppSafetyLimits.defaults.expansion
 
     private struct ProfileConfirmation: Identifiable {
         let id = UUID()
@@ -268,6 +268,7 @@ struct WorkspaceView: View {
                 Section {
                     ForEach(Page.allCases) { item in
                         NavigationLink(value: item) { Label(item.title, systemImage: item.icon) }
+                            .accessibilityIdentifier("workspace-sidebar-\(item)")
                     }
                 }
                 Section("Locations") {
@@ -346,9 +347,15 @@ struct WorkspaceView: View {
 
     private var settingsPage: some View {
         SettingsView(conflict: $conflict, destination: $destination,
-                     entryLimitGiB: $entryLimitGiB, totalLimitGiB: $totalLimitGiB,
-                     entryCountLimit: $entryCountLimit, depthLimit: $depthLimit,
-                     expansionLimit: $expansionLimit)
+                     safetyLimits: AppSafetyLimits(entryGiB: entryLimitGiB, totalGiB: totalLimitGiB,
+                                                  entries: entryCountLimit, depth: depthLimit,
+                                                  expansion: expansionLimit)) { values in
+            entryLimitGiB = values.entryGiB
+            totalLimitGiB = values.totalGiB
+            entryCountLimit = values.entries
+            depthLimit = values.depth
+            expansionLimit = values.expansion
+        }
     }
 
     #if os(iOS)

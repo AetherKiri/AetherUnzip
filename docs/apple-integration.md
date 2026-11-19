@@ -35,6 +35,7 @@ xcrun simctl install "$destination_id" build/app-ios-ui/Build/Products/Debug-iph
 app_data=$(xcrun simctl get_app_container "$destination_id" org.aetherunzip.app data)
 mkdir -p "$app_data/Documents"
 cp tests/fixtures/sample.zip "$app_data/Documents/MobileSample.zip"
+mkdir -p "$app_data/Documents/AetherUnzip Settings Output"
 cp tests/fixtures/nested.zip "$app_data/Documents/MobileNested.zip"
 cp tests/fixtures/sample.xp3 "$app_data/Documents/MobileResources.xp3"
 cp tests/fixtures/format-profile.json "$app_data/Documents/MobileFormatProfile.json"

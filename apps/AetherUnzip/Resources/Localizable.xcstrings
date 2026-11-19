@@ -327,6 +327,22 @@
         }
       }
     },
+    "App Version": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリのバージョン"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用版本"
+          }
+        }
+      }
+    },
     "Archive": {
       "localizations": {
         "ja": {
@@ -567,6 +583,22 @@
         }
       }
     },
+    "Choose where to save files when you tap Extract.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「展開」をタップしたときに保存先を選びます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点击“解压”时选择文件的保存位置。"
+          }
+        }
+      }
+    },
     "Clear Name": {
       "localizations": {
         "ja": {
@@ -611,6 +643,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "取消选择"
+          }
+        }
+      }
+    },
+    "Clear Value": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "値を消去"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清空数值"
           }
         }
       }
@@ -711,6 +759,22 @@
         }
       }
     },
+    "Custom": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カスタム"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义"
+          }
+        }
+      }
+    },
     "Date": {
       "localizations": {
         "ja": {
@@ -739,6 +803,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "修改日期"
+          }
+        }
+      }
+    },
+    "Default": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルト"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认"
           }
         }
       }
@@ -889,6 +969,22 @@
         }
       }
     },
+    "Enter a whole number from %@ to %@.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ から %@ までの整数を入力してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入 %@ 到 %@ 之间的整数。"
+          }
+        }
+      }
+    },
     "Enter the archive password to preview this file.": {
       "localizations": {
         "ja": {
@@ -905,18 +1001,18 @@
         }
       }
     },
-    "Entries: %@": {
+    "Entries": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "項目数：%@"
+            "value": "項目数"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "条目数：%@"
+            "value": "条目数"
           }
         }
       }
@@ -937,18 +1033,18 @@
         }
       }
     },
-    "Expansion ratio: %@:1": {
+    "Expansion Ratio": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "展開倍率：%@:1"
+            "value": "展開倍率"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "解压倍率：%@∶1"
+            "value": "解压倍率"
           }
         }
       }
@@ -1401,6 +1497,22 @@
         }
       }
     },
+    "Keep the existing file and continue extracting the remaining files.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既存のファイルを保持し、残りのファイルの展開を続けます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留现有文件，继续解压其余文件。"
+          }
+        }
+      }
+    },
     "Kind": {
       "localizations": {
         "ja": {
@@ -1493,6 +1605,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "位置"
+          }
+        }
+      }
+    },
+    "Maximum combined size of extracted data.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開されるデータの合計サイズの上限です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有解压数据的大小上限。"
+          }
+        }
+      }
+    },
+    "Maximum number of archive entries.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブ内の項目数の上限です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包中的条目数量上限。"
+          }
+        }
+      }
+    },
+    "Maximum number of components in an extracted path.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開先の相対パスの階層数の上限です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压路径的层级上限。"
+          }
+        }
+      }
+    },
+    "Maximum ratio of extracted to compressed data.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圧縮サイズに対する展開サイズの比率の上限です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压后大小与压缩数据大小的比值上限。"
+          }
+        }
+      }
+    },
+    "Maximum size of one extracted file.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開するファイル 1 件あたりのサイズの上限です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单个解压文件的大小上限。"
           }
         }
       }
@@ -1801,22 +1993,6 @@
         }
       }
     },
-    "Open-source licenses": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オープンソースライセンス"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开源许可证"
-          }
-        }
-      }
-    },
     "Other Destinations": {
       "localizations": {
         "ja": {
@@ -1929,6 +2105,22 @@
         }
       }
     },
+    "Path Depth": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスの深さ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "路径深度"
+          }
+        }
+      }
+    },
     "Path and saved locations": {
       "localizations": {
         "ja": {
@@ -1941,22 +2133,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "查看路径和已保存的位置"
-          }
-        }
-      }
-    },
-    "Path depth: %lld": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "パスの深さ：%lld"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "路径深度：%lld"
           }
         }
       }
@@ -1977,18 +2153,18 @@
         }
       }
     },
-    "Per file: %lld GiB": {
+    "Per File": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ファイル単位：%lld GiB"
+            "value": "ファイル単位"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "单文件上限：%lld GiB"
+            "value": "单个文件"
           }
         }
       }
@@ -2201,6 +2377,22 @@
         }
       }
     },
+    "Replace existing files with files of the same name from the archive.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既存のファイルをアーカイブ内の同名ファイルで置き換えます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用压缩包中的同名文件替换现有文件。"
+          }
+        }
+      }
+    },
     "Replace files": {
       "localizations": {
         "ja": {
@@ -2213,6 +2405,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "替换文件"
+          }
+        }
+      }
+    },
+    "Restore Defaults": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デフォルトに戻す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复默认值"
           }
         }
       }
@@ -2277,6 +2485,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "安全限制"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
+          }
+        }
+      }
+    },
+    "Save to Extracted Archives in My Files.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「マイファイル」の Extracted Archives フォルダに保存します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存到“我的文件”下的 Extracted Archives 文件夹。"
           }
         }
       }
@@ -2505,6 +2745,22 @@
         }
       }
     },
+    "Stop when a file already exists. Files already extracted are kept.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同名のファイルがあると停止します。展開済みのファイルは保持されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "遇到同名文件时停止。已解压的文件会保留。"
+          }
+        }
+      }
+    },
     "Tasks": {
       "localizations": {
         "ja": {
@@ -2585,6 +2841,22 @@
         }
       }
     },
+    "These limits apply to new archive operations.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これ以降に開始するアーカイブ操作に適用されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些限制适用于之后开始的压缩包操作。"
+          }
+        }
+      }
+    },
     "This Folder Is Empty": {
       "localizations": {
         "ja": {
@@ -2633,18 +2905,18 @@
         }
       }
     },
-    "Total: %lld GiB": {
+    "Total Output": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "合計：%lld GiB"
+            "value": "展開データの合計"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "总大小上限：%lld GiB"
+            "value": "解压总量"
           }
         }
       }
