@@ -1,0 +1,52 @@
+--- a/libarchive/archive_read_support_filter_gzip.c
++++ b/libarchive/archive_read_support_filter_gzip.c
+@@ -57,6 +57,7 @@
+ 	unsigned char	*out_block;
+ 	size_t		 out_block_size;
+ 	unsigned long	 crc;
++	uint32_t	 member_size;
+ 	uint32_t	 mtime;
+ 	char		*name;
+ 	char		 eof; /* True = found end of compressed data. */
+@@ -345,6 +346,7 @@
+ 
+ 	/* Initialize CRC accumulator. */
+ 	gzip->crc = __archive_crc32(0L, NULL, 0);
++	gzip->member_size = 0;
+ 
+ 	/* Initialize compression library. */
+ 	gzip->stream.next_in = (unsigned char *)(uintptr_t)
+@@ -423,9 +425,13 @@
+ 		return (ARCHIVE_FATAL);
+ 	}
+ 
+-	/* XXX TODO: Verify the length and CRC. */
++	if (archive_le32dec(p) != gzip->crc ||
++	    archive_le32dec(p + 4) != gzip->member_size) {
++		archive_set_error(&f->archive->archive, ARCHIVE_ERRNO_FILE_FORMAT,
++		    "Invalid gzip member checksum or size");
++		return (ARCHIVE_FATAL);
++	}
+ 
+-	/* We've verified the trailer, so consume it now. */
+ 	__archive_read_filter_consume(f->upstream, 8);
+ 
+ 	return (ARCHIVE_OK);
+@@ -476,8 +482,16 @@
+ 			avail_in = max_in;
+ 		gzip->stream.avail_in = (uInt)avail_in;
+ 
+-		/* Decompress and consume some of that data. */
++		/* Accumulate the trailer fields for each member separately.
++		 * ISIZE is the uncompressed size modulo 2^32. */
++		unsigned char *start = gzip->stream.next_out;
+ 		ret = inflate(&(gzip->stream), 0);
++		if (ret == Z_OK || ret == Z_STREAM_END) {
++			size_t produced = (size_t)(gzip->stream.next_out - start);
++			gzip->crc = __archive_crc32(gzip->crc, start, produced);
++			gzip->member_size += (uint32_t)produced;
++		}
++
+ 		switch (ret) {
+ 		case Z_OK: /* Decompressor made some progress. */
+ 			__archive_read_filter_consume(f->upstream,

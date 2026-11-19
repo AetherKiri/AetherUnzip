@@ -1,0 +1,42 @@
+name: CI
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - run: sudo apt-get update && sudo apt-get install -y patch zlib1g-dev libbz2-dev libssl-dev
+      - run: cmake -S . -B build/core -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build/core --parallel 4
+      - run: ctest --test-dir build/core --output-on-failure
+
+  apple:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - run: xcodebuild -version
+      - run: cmake -S . -B build/core -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build/core --parallel 4
+      - run: ctest --test-dir build/core --output-on-failure
+      - run: ./scripts/build-apple.sh
+      - run: swift test --package-path bindings/swift
+      - run: >-
+          xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip
+          -destination 'platform=macOS,arch=arm64' -derivedDataPath build/app-macos build
+      - run: >-
+          xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip
+          -destination 'generic/platform=iOS Simulator' -derivedDataPath build/app-sim
+          CODE_SIGNING_ALLOWED=NO build
+      - run: >-
+          xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip
+          -destination 'generic/platform=iOS' -derivedDataPath build/app-device
+          CODE_SIGNING_ALLOWED=NO build

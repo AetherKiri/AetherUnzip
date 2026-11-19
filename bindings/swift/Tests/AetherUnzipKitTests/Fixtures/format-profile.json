@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "signatureOffset": 2,
+  "signatureHex": "504b4731",
+  "payloadOffset": 8,
+  "payloadLength": 370,
+  "payloadName": "payload.zip",
+  "expectedFormat": "zip"
+}

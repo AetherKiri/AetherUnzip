@@ -1,0 +1,8 @@
+/build/
+/bindings/swift/Artifacts/
+/bindings/swift/.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+.DS_Store

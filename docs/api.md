@@ -1,0 +1,68 @@
+# C ABI
+
+公共入口为 `#include <aetherunzip/api.h>`。可直接编译的完整 C 示例在 [examples/cli/main.c](../examples/cli/main.c)。调用方使用 CMake 的 `aetherunzip` 目标可获得头文件和静态依赖传递。Apple 用构建脚本生成的 XCFramework 和系统 zlib、bzip2、iconv、charset。
+
+## 生命周期
+
+1. `aether_unzip_context_create` 创建静态驱动注册上下文。
+2. `aether_unzip_source_file`、`aether_unzip_source_memory` 或 `aether_unzip_source_slice` 创建输入。`aether_unzip_source_concat` 依调用方给出的顺序拼接多个源的字节视图，并保留子源引用。调用方可立即释放各子源。磁盘编号 ZIP 需要为每个物理卷传入一个子源，并把末卷 `.zip` 放在最后。
+3. `aether_unzip_probe` 返回候选、扩展名提示、验证出的格式、外层滤镜和能力。可直接调用 `archive_open` 省去独立识别流程。
+4. `aether_unzip_archive_next_entry` 返回当前条目。用 `archive_read` 分块读取，返回 0 字节表示当前条目结尾。推进游标会丢弃当前条目未读内容。
+5. `aether_unzip_extract` 重新打开输入游标。传入 `NULL, 0` 提取全部，或传入严格递增的条目索引提取选定项。索引绑定于当前输入内容。
+6. 关闭各自拥有的句柄。归档和切片保留底层源，可在打开后释放调用方的引用。资源文件可在卸载原挂载后继续读。
+
+`AU_OK` 表示成功，`AU_END` 表示枚举结束，负值为错误。使用 `aether_unzip_error_message` 获取静态消息。严重的条目读取错误会终止当前游标。文件和内存 sink 支持顺序、偏移写入与 flush。内存视图由 sink 所有，在下一次写入或关闭前有效。
+
+## 格式配置
+
+公共定义位于 `aetherunzip/profile.h`。配置验证包装文件的固定签名并提供有界切片。`aether_unzip_profile_open` 还会验证内层归档的实际格式。调用方可保留返回的切片用于归档枚举、资源挂载与安全提取。[格式配置](format-profiles.md)
+
+## 回调 I/O
+
+- `aether_unzip_source_callback` 接受顺序读取 `read`、偏移读取 `read_at` 或两者。通过 `length` 参数提供可选的固定长度。Core 复制回调表及长度。成功读到源尾时返回 `AU_OK` 和 0 字节。已知长度的源提前返回 0 会产生 `AU_IO`。偏移读取自动合并短读。Core 报告的能力以实际提供的回调和长度为准。
+- 当前归档驱动、切片和拼接需要可随机访问且长度已知的源。缺少任一能力时，调用返回 `AU_UNSUPPORTED`，顺序游标保持原位置。回调的 `read_at` 不改变顺序位置。跨归档并发使用同一回调源时，由提供者保证该回调的并发安全。
+- `aether_unzip_sink_callback` 接受 `write`、`write_at` 或两者。成功状态表示整个传入缓冲区已被接收。偏移写入不改变顺序位置。可选 `flush` 和 `close` 返回的错误会传回调用方。
+- 调用方为回调表设置 `struct_size`，并管理 `user` 及其数据。成功创建源后，`close` 在最后一个引用释放时调用一次。成功创建 sink 后，`aether_unzip_sink_close` 调用可选的 `close` 并释放句柄。缓冲区仅在当次回调中有效。
+
+## 资源挂载与路径索引
+
+- `aether_unzip_resource_mount` 创建资源挂载，`resource_next` 按归档顺序枚举。`resource_build_index` 按需建立路径索引，使用独立的归档游标。调用方指定名称字节预算，预算包含每个 UTF-8 名称的终止符。扫描同时使用挂载的条目数、路径深度、解码和取消设置。失败后可重试，成功后重复调用返回 `AU_OK`。
+- `resource_lookup` 返回正规化路径对应的文件或显式目录元数据。它按 UTF-8 字节精确匹配，去掉开头的 `./` 和目录末尾的 `/`。路径越界项、链接、特殊条目和根目录标记从索引中排除。正规化后有重名时返回 `AU_EXISTS`，没有匹配时返回 `AU_NOT_FOUND`。索引元数据由挂载持有，直到卸载时释放。
+- `resource_open_path` 根据索引打开普通文件。`resource_open` 也可直接使用归档条目编号。两者均创建独立的顺序读取游标，访问固实归档中的条目可能需要从头解码。输入源内容必须在挂载和衍生读取期间保持稳定。
+- `resource_directory_open` 打开显式目录或由子条目推导出的目录。空路径打开根目录。`resource_directory_next` 每次返回一个直接子条目。推导出的目录使用 `UINT64_MAX` 作为条目编号，调用方可按路径继续打开。重名或文件占用目录位置时返回 `AU_EXISTS`，随后可继续枚举其他子条目。目录游标保留挂载，关闭前可继续枚举。条目视图有效期到下一次枚举或关闭为止。
+- 建立索引与卸载由调用方串行执行。成功建立索引后，可并发查找。每个目录游标由调用方串行推进。独立打开文件时，回调源及应用提供的取消回调须支持相应的并发访问。
+
+### 组合挂载
+
+- `aether_unzip_resource_compose` 将多个已索引的挂载合并到一个命名空间。调用方按顺序传入 `au_resource_layer`，为每层设置 `struct_size`，并可指定相对 UTF-8 前缀。空前缀挂到根目录。构建过程执行条目数、名称字节数和路径深度限制，名称和条目预算在合并同名项前计算。
+- 各层目录可以合并。`AU_RESOURCE_STRICT` 报告同名文件冲突。`AU_RESOURCE_PREFER_LAST` 选择最后一层的同名文件，该层内部的重名仍报告冲突。文件与目录占用同一路径时，两种策略都返回 `AU_EXISTS`。路径冲突通过查找和目录枚举报告。可用组合挂载分配的条目编号明确打开某个文件。
+- `resource_next` 按路径枚举组合索引中的条目。`resource_index_size` 返回索引的条目数和名称存储量。组合挂载汇集多个源，`resource_info` 返回 `NULL`，`resource_source` 返回 `AU_UNSUPPORTED`。组合挂载保留实际文件所需的底层挂载。组合挂载和原始挂载都关闭后，已打开的文件和目录仍可读。嵌套打开沿用提供目标文件的归档层所设置的限制与密码。
+- Swift 通过 `ResourceLayer` 传入归档清单、前缀和可选密码。`ArchiveService.listResources` 返回直接子项，`streamResource` 以数据块交付指定路径。Swift 在后台协调所有输入，重新核对文件版本，并对初始索引应用累计预算。严格模式发现重名会抛出 `ArchiveError.ambiguousResource`。
+
+### 嵌套归档
+
+`aether_unzip_resource_mount_nested` 在已建立索引的父挂载中选择一个普通文件，完整读取并校验后按内容识别归档。调用方提供可信的可写暂存目录，并设置 `au_nested_limits.struct_size`、`max_depth` 和 `max_staged_bytes`。根挂载深度为 0。字节预算累计同一祖先链中各层暂存的归档大小，各层还执行父挂载的归档读取限制。子层可以收紧上限，兄弟挂载分别计费。
+
+暂存使用独占创建的文件。Core 在写入归档字节前移除目录项，并通过文件描述符持有数据。子挂载可在父挂载卸载后独立使用。建立子索引后可继续按路径读取或再打开一层。`child_context` 可为内层提供不同的密码，传入 `NULL` 时复用父上下文。父选项的回调数据需一直有效，直至所有衍生挂载和资源关闭。
+
+`aether_unzip_resource_source` 返回拥有独立引用的源，可将同一暂存数据交给常规归档 API。调用方用 `aether_unzip_source_close` 释放该引用。
+
+## Swift 条目读取
+
+`ArchiveService.readEntry` 将单个普通文件读入 `Data`。`streamEntry` 在后台文件访问队列按顺序交付数据块，等待消费方返回后再继续读取。两者都检查清单的输入版本、所选条目、取消和调用方指定的字节上限，也接受当前读取所需的 ZIP 密码。消费方抛出的错误原样传播。流式消费方可先暂存数据，等待操作成功返回后再发布，以处理末尾校验失败的情况。
+
+`ArchiveService.openNested` 根据父清单中的条目 ID 打开内层归档，密码参数用于读取受保护的父条目。返回的清单持有 Core 暂存源，可继续读取、提取和打开下一层。默认 3 层和 256 MiB 上限可由调用方指定，子层继承祖先链的剩余预算。
+
+## 加密归档
+
+用 `aether_unzip_context_create_with_passphrase` 创建带密码的上下文。密码为非空、NUL 结尾的 UTF-8 字符串，Core 复制输入。读取归档的驱动持有自己的密码副本。资源挂载保留上下文，以便为每个打开的条目创建独立读取游标。结束时关闭这些句柄并释放上下文。
+
+ZIP 条目可在无密码时枚举。读取或提取受保护的条目分别通过 `AU_ENCRYPTED`、`AU_BAD_PASSPHRASE` 或 `AU_UNSUPPORTED_ENCRYPTION` 报告需要密码、密码错误或加密方法不支持。Swift 通过 `ExtractionOptions.passphrase` 为单次任务传入密码。
+
+## ABI 与并发
+
+- 当前版本为 0.1.0，仍可调整 ABI。检查 `aether_unzip_abi_version`，使用 `aether_unzip_options_default()` 并初始化探测结果的 `struct_size`。较小的输入结构会返回 `AU_INVALID`。
+- 文件系统路径、提示和静态名称为 NUL 结尾的 UTF-8。条目名还有 `name_length` 字段，长度按字节计。视图属于归档，推进游标或关闭前复制需要保留的数据。驱动元数据和错误消息为静态存储。
+- 输入源的随机读与长度查询可以跨独立归档并行使用，使用期间需要持有有效引用。文件源在使用期间应保持内容稳定。顺序源位置、sink、归档游标和资源挂载枚举均由调用方串行访问。
+- Core 同步调用进度与取消回调。回调数据由调用方持有，覆盖同步操作或归档、挂载及衍生资源文件的完整寿命。回调应快速返回，且不能重入同一游标。
+- 解压进度传递条目视图、累计写入字节、本条目暂存字节、已处理条目数。完成某条目时，本条目暂存字节归零。跳过的冲突计入已处理条目数。
