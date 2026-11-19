@@ -37,7 +37,7 @@ docs: document the Apple build workflow
 
 ## 按变更验证
 
-- Core 或驱动变更运行 CMake 构建与 CTest。格式变更验证识别、枚举和提取内容，提取安全变更验证对应防护路径。
+- Core、驱动或 CLI 变更运行 CMake 构建与 CTest。用 `aether-unzip --probe`、`--verify` 和实际提取对照样本，验证识别、流式解码、校验和输出。安全变更覆盖对应限制和失败路径。
 - Swift SDK 或 C ABI 变更先重新生成 Core XCFramework，再运行 `swift test --package-path bindings/swift`。
-- App 或 Apple 构建变更验证受影响的平台目标。涉及导入或提取流程时，使用系统选择器走一遍实际流程。
+- App 或 Apple 构建变更验证受影响的平台目标。只有 UI 层或用户交互发生变化时才运行 UI 测试，按受影响的界面或流程选取用例。更改文件导入或目标选择时，通过系统选择器实测。
 - 仅文档变更核对本地链接、命令和实现描述即可。[Apple 集成文档](docs/apple-integration.md) 包含完整构建命令。

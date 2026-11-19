@@ -33,13 +33,36 @@ AetherUnzip 是一个跨平台归档与资源处理框架。原生 SwiftUI App �
 cmake -S . -B build/core -DCMAKE_BUILD_TYPE=Release
 cmake --build build/core --parallel
 ctest --test-dir build/core --output-on-failure
+```
 
+## 使用 CLI 验证 Core
+
+`aether-unzip` 只依赖 Core 和其第三方库，可以在 macOS 或 Linux 上独立运行。原有列表、按路径读取和提取命令仍可用。
+
+```sh
+build/core/aether-unzip --probe tests/fixtures/sample.tar.gz
 build/core/aether-unzip tests/fixtures/sample.zip
 build/core/aether-unzip --ls tests/fixtures/sample.zip docs
 build/core/aether-unzip --cat tests/fixtures/sample.zip docs/readme.txt
+build/core/aether-unzip --verify tests/fixtures/sample.zip
 mkdir -p build/output
 build/core/aether-unzip tests/fixtures/sample.zip build/output
 ```
+
+`--probe` 报告识别依据、容器和外层压缩。列表第一列是从零开始的条目编号。`--verify` 将普通文件流式读取至结尾并执行驱动支持的内容校验，输出通过校验的文件数及其字节数，不写入解压文件。用 `--entry INDEX` 限定校验或提取的条目，多个编号按升序传入。用 `--max-total-bytes N` 测试总解码预算。命令退出码为 0 表示成功，1 表示操作失败，2 表示用法错误。失败时在标准错误输出中附上 Core 状态码。
+
+```sh
+# 使用测试样本的公开密码验证固实 RAR5 中的第三个条目
+printf '%s\n' fixture-pass | build/core/aether-unzip --verify --entry 2 --password-stdin \
+  tests/fixtures/rar5-aes-solid-header.rar
+
+build/core/aether-unzip --verify \
+  --volume tests/fixtures/volumes/sample.7z.002 \
+  --volume tests/fixtures/volumes/sample.7z.003 \
+  tests/fixtures/volumes/sample.7z.001
+```
+
+传入真实密码时，通过管道或重定向提供一行 UTF-8，不把密码写进命令行参数。分卷按照主路径在前、`--volume` 按解码顺序追加的规则传入。磁盘编号 ZIP 以 `.z01` 开始，最后追加 `.zip`。单独运行 CLI 回归可使用 `ctest --test-dir build/core -R '^cli[.]verify$' --output-on-failure`。
 
 ## 构建 Swift SDK 和 App
 
