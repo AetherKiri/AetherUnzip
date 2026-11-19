@@ -240,34 +240,40 @@ public enum ArchiveError: LocalizedError, Equatable, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidInput: message(AU_INVALID)
-        case .inputOutput: message(AU_IO)
-        case .outOfMemory: message(AU_NOMEM)
-        case .unknownFormat: message(AU_UNKNOWN_FORMAT)
-        case .corrupt: message(AU_CORRUPT)
-        case .unsupported: message(AU_UNSUPPORTED)
-        case .unsafePath: message(AU_UNSAFE_PATH)
-        case .limitExceeded: message(AU_LIMIT)
-        case .cancelled: message(AU_CANCELLED)
-        case .conflict: message(AU_EXISTS)
-        case .ambiguousResource: "Several resource entries use the same path."
-        case .invalidProfile: "The format profile contains invalid or unsupported settings."
-        case .profileMismatch: message(AU_PROFILE_MISMATCH)
-        case .missingEntry: message(AU_NOT_FOUND)
-        case .encrypted: message(AU_ENCRYPTED)
-        case .incorrectPassphrase: message(AU_BAD_PASSPHRASE)
-        case .unsupportedEncryption: message(AU_UNSUPPORTED_ENCRYPTION)
-        case .changed: "The archive changed. Open it again before extracting."
-        case .invalidVolumeSet: "Select all parts of one ZIP, 7z or RAR archive."
+        case .invalidInput: String(localized: "Invalid argument", bundle: .module)
+        case .inputOutput: String(localized: "File or storage I/O failed", bundle: .module)
+        case .outOfMemory: String(localized: "Out of memory", bundle: .module)
+        case .unknownFormat: String(localized: "Archive format could not be identified", bundle: .module)
+        case .corrupt: String(localized: "Archive is incomplete, corrupt, or uses an unreadable encoding", bundle: .module)
+        case .unsupported: String(localized: "Archive feature or entry type is unsupported", bundle: .module)
+        case .unsafePath: String(localized: "Unsafe archive or destination path", bundle: .module)
+        case .limitExceeded: String(localized: "Configured archive safety limit exceeded", bundle: .module)
+        case .cancelled: String(localized: "Operation cancelled", bundle: .module)
+        case .conflict: String(localized: "A destination item already exists", bundle: .module)
+        case .ambiguousResource: String(localized: "Several resource entries use the same path.", bundle: .module)
+        case .invalidProfile: String(localized: "The format profile contains invalid or unsupported settings.", bundle: .module)
+        case .profileMismatch: String(localized: "The file does not match the format profile", bundle: .module)
+        case .missingEntry: String(localized: "Archive entry no longer exists", bundle: .module)
+        case .encrypted: String(localized: "This archive requires a password", bundle: .module)
+        case .incorrectPassphrase: String(localized: "The password is incorrect or the encrypted data is damaged", bundle: .module)
+        case .unsupportedEncryption: String(localized: "This archive uses an unsupported encryption method", bundle: .module)
+        case .changed: String(localized: "The archive changed. Open it again before extracting.", bundle: .module)
+        case .invalidVolumeSet: String(localized: "Select all parts of one ZIP, 7z or RAR archive.", bundle: .module)
         case .missingVolume(let index):
-            "Archive part \(String(format: "%03d", index)) is missing."
-        case .missingVolumeFile(let name): "Archive volume \(name) is missing."
+            String(localized: "Archive part \(String(format: "%03d", index)) is missing.", bundle: .module)
+        case .missingVolumeFile(let name): String(localized: "Archive volume \(name) is missing.", bundle: .module)
         case .fileAccess(let details): details
-        case .core(let code): message(Int(code))
+        case .core(let code):
+            switch Int(code) {
+            case AU_OK: String(localized: "Success", bundle: .module)
+            case AU_END: String(localized: "End of archive", bundle: .module)
+            default:
+                if case .core = ArchiveError(code) {
+                    String(localized: "Unknown archive error", bundle: .module)
+                } else {
+                    ArchiveError(code).errorDescription
+                }
+            }
         }
-    }
-
-    private func message(_ code: Int) -> String {
-        String(cString: aether_unzip_error_message(au_status(code)))
     }
 }

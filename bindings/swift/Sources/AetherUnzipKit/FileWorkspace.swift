@@ -177,7 +177,7 @@ public struct FileWorkspace: Sendable {
     private static func requireDirectory(_ url: URL) throws {
         let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
         guard values.isDirectory == true, values.isSymbolicLink != true else {
-            throw ArchiveError.fileAccess("The folder is no longer available.")
+            throw ArchiveError.fileAccess(String(localized: "The folder is no longer available.", bundle: .module))
         }
     }
 

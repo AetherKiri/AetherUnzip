@@ -1,0 +1,406 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "A destination item already exists": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存先に同名の項目がすでにあります"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标位置已存在同名项目"
+          }
+        }
+      }
+    },
+    "Archive entry no longer exists": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブ内の項目が見つかりません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包中的条目已不存在"
+          }
+        }
+      }
+    },
+    "Archive feature or entry type is unsupported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアーカイブの機能または項目の種類には対応していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持此压缩包功能或条目类型"
+          }
+        }
+      }
+    },
+    "Archive format could not be identified": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブの形式を識別できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法识别压缩包格式"
+          }
+        }
+      }
+    },
+    "Archive is incomplete, corrupt, or uses an unreadable encoding": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブが不完全か破損しているか、読み取れないエンコーディングが使用されています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包不完整、已损坏或使用了无法读取的编码"
+          }
+        }
+      }
+    },
+    "Archive part %@ is missing.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブのパート %@ が見つかりません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少编号为 %@ 的分卷。"
+          }
+        }
+      }
+    },
+    "Archive volume %@ is missing.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分割ファイル「%@」が見つかりません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少分卷“%@”。"
+          }
+        }
+      }
+    },
+    "Configured archive safety limit exceeded": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定したアーカイブの安全上限を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已超出配置的压缩包安全限制"
+          }
+        }
+      }
+    },
+    "End of archive": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブの末尾に達しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已到压缩包末尾"
+          }
+        }
+      }
+    },
+    "File or storage I/O failed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルまたはストレージの読み書きに失敗しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件或存储读写失败"
+          }
+        }
+      }
+    },
+    "Invalid argument": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無効な引数です"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "参数无效"
+          }
+        }
+      }
+    },
+    "Operation cancelled": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作をキャンセルしました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作已取消"
+          }
+        }
+      }
+    },
+    "Out of memory": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモリが不足しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内存不足"
+          }
+        }
+      }
+    },
+    "Select all parts of one ZIP, 7z or RAR archive.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ ZIP、7z、または RAR アーカイブの分割ファイルをすべて選択してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择同一个 ZIP、7z 或 RAR 压缩包的全部分卷。"
+          }
+        }
+      }
+    },
+    "Several resource entries use the same path.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じパスを使用するリソース項目が複数あります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多个资源条目使用相同的路径。"
+          }
+        }
+      }
+    },
+    "Success": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "成功"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "成功"
+          }
+        }
+      }
+    },
+    "The archive changed. Open it again before extracting.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブが変更されました。展開する前に開き直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包已更改。请重新打开后再解压。"
+          }
+        }
+      }
+    },
+    "The file does not match the format profile": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルがフォーマットプロファイルと一致しません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件与格式配置不匹配"
+          }
+        }
+      }
+    },
+    "The folder is no longer available.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このフォルダにはアクセスできなくなりました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此文件夹已无法访问。"
+          }
+        }
+      }
+    },
+    "The format profile contains invalid or unsupported settings.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォーマットプロファイルに無効な設定か未対応の設定が含まれています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "格式配置包含无效或不受支持的设置。"
+          }
+        }
+      }
+    },
+    "The password is incorrect or the encrypted data is damaged": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードが違うか、暗号化データが破損しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码不正确，或加密数据已损坏"
+          }
+        }
+      }
+    },
+    "This archive requires a password": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアーカイブにはパスワードが必要です"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此压缩包需要密码"
+          }
+        }
+      }
+    },
+    "This archive uses an unsupported encryption method": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアーカイブの暗号化方式には対応していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此压缩包使用了不受支持的加密方式"
+          }
+        }
+      }
+    },
+    "Unknown archive error": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不明なアーカイブエラーです"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知的压缩包错误"
+          }
+        }
+      }
+    },
+    "Unsafe archive or destination path": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブまたは保存先のパスが安全ではありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包或目标位置的路径不安全"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
