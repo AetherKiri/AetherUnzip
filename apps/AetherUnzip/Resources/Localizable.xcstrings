@@ -181,6 +181,22 @@
         }
       }
     },
+    "About AetherUnzip": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AetherUnzip について"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关于 AetherUnzip"
+          }
+        }
+      }
+    },
     "Access to this archive has expired. Select it again with Open Archive.": {
       "localizations": {
         "ja": {
@@ -293,6 +309,22 @@
         }
       }
     },
+    "AetherUnzip Core %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AetherUnzip Core %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AetherUnzip Core %@"
+          }
+        }
+      }
+    },
     "App Documents": {
       "localizations": {
         "ja": {
@@ -321,6 +353,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "应用版本"
+          }
+        }
+      }
+    },
+    "Application": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用"
           }
         }
       }
@@ -385,6 +433,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "压缩包预览"
+          }
+        }
+      }
+    },
+    "Archive and File Manager": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブとファイルの管理"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "压缩包与文件管理"
           }
         }
       }
@@ -465,6 +529,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "每次询问"
+          }
+        }
+      }
+    },
+    "BSD and bundled notices": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BSD と同梱の通知"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "BSD 及随附声明"
+          }
+        }
+      }
+    },
+    "Build Number": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ビルド番号"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "构建编号"
           }
         }
       }
@@ -577,6 +673,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法打开文件夹"
+          }
+        }
+      }
+    },
+    "Can’t Open License": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライセンスを開けません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开许可证"
           }
         }
       }
@@ -769,6 +881,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "包含使用不受支持的加密方式的文件"
+          }
+        }
+      }
+    },
+    "Copied": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーしました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
+          }
+        }
+      }
+    },
+    "Copy Version Info": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バージョン情報をコピー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制版本信息"
           }
         }
       }
@@ -3319,6 +3463,22 @@
         }
       }
     },
+    "Third-party Libraries": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サードパーティライブラリ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第三方库"
+          }
+        }
+      }
+    },
     "This Folder Is Empty": {
       "localizations": {
         "ja": {
@@ -3475,6 +3635,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "后缀的每一段仅可使用字母、数字、连字符或下划线。"
+          }
+        }
+      }
+    },
+    "Version %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バージョン %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %@"
+          }
+        }
+      }
+    },
+    "Version %@ (Build %@)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バージョン %1$@（ビルド %2$@）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %1$@（构建 %2$@）"
           }
         }
       }

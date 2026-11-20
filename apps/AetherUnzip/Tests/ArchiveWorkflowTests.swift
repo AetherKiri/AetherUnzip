@@ -235,7 +235,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         app.buttons[originalConflict].firstMatch.tap()
     }
 
-    func testSettingsDestinationAndLicenses() {
+    func testSettingsDestination() {
         let app = XCUIApplication()
         app.launch()
         openSettings(in: app, title: "Settings")
@@ -251,12 +251,41 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertEqual(destination.value as? String, other)
         destination.tap()
         app.buttons[original].firstMatch.tap()
+    }
 
-        app.buttons["settings-licenses"].firstMatch.tap()
-        let project = app.buttons["AetherUnzip"].firstMatch
+    func testAboutShowsBuildInformationAndLicenseNotices() {
+        let app = XCUIApplication()
+        app.launch()
+        openSettings(in: app, title: "Settings")
+        let about = app.buttons["settings-about"].firstMatch
+        XCTAssertTrue(about.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue((about.value as? String)?.hasPrefix("Version ") == true)
+        about.tap()
+
+        for id in ["about-app-version", "about-build", "about-core-version"] {
+            let value = app.staticTexts[id].firstMatch
+            XCTAssertTrue(value.waitForExistence(timeout: 8), app.debugDescription)
+            let announcement = value.label + (value.value as? String ?? "")
+            XCTAssertTrue(announcement.contains(where: \.isNumber), value.debugDescription)
+        }
+        capture("About AetherUnzip", in: app)
+        let copy = app.buttons["about-copy-versions"].firstMatch
+        copy.tap()
+        XCTAssertEqual(copy.label, "Copied")
+
+        app.buttons["about-licenses"].firstMatch.tap()
+        let project = app.buttons["license-LICENSE"].firstMatch
         XCTAssertTrue(project.waitForExistence(timeout: 8), app.debugDescription)
+        let library = app.buttons["license-liblzma"].firstMatch
+        XCTAssertTrue(library.exists)
+        capture("License Notices", in: app)
         project.tap()
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Permission is hereby granted"))
+            .firstMatch.waitForExistence(timeout: 8), app.debugDescription)
+        app.navigationBars["AetherUnzip"].buttons.firstMatch.tap()
+        XCTAssertTrue(library.waitForExistence(timeout: 8), app.debugDescription)
+        library.tap()
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Permission to use, copy, modify"))
             .firstMatch.waitForExistence(timeout: 8), app.debugDescription)
     }
 
@@ -316,14 +345,17 @@ final class ArchiveWorkflowTests: XCTestCase {
     }
 
     func testSimplifiedChineseSettings() {
-        checkSettings(language: "zh-Hans", locale: "zh_CN", settings: "设置", safety: "安全限制", file: "单个文件")
+        checkSettings(language: "zh-Hans", locale: "zh_CN", settings: "设置", safety: "安全限制", file: "单个文件",
+                      about: "关于 AetherUnzip", build: "构建编号", licenses: "开源许可证")
     }
 
     func testJapaneseSettings() {
-        checkSettings(language: "ja", locale: "ja_JP", settings: "設定", safety: "安全上限", file: "ファイル単位")
+        checkSettings(language: "ja", locale: "ja_JP", settings: "設定", safety: "安全上限", file: "ファイル単位",
+                      about: "AetherUnzip について", build: "ビルド番号", licenses: "オープンソースライセンス")
     }
 
-    private func checkSettings(language: String, locale: String, settings: String, safety: String, file: String) {
+    private func checkSettings(language: String, locale: String, settings: String, safety: String, file: String,
+                               about: String, build: String, licenses: String) {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         app.launch()
@@ -337,6 +369,16 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 8), app.debugDescription)
         XCTAssertTrue(app.staticTexts[file].firstMatch.exists)
         capture("Safety Limits \(language)", in: app)
+        app.buttons[language == "ja" ? "キャンセル" : "取消"].firstMatch.tap()
+        let aboutRow = app.buttons["settings-about"].firstMatch
+        XCTAssertTrue(aboutRow.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertEqual(aboutRow.label, about)
+        aboutRow.tap()
+        let buildRow = app.staticTexts["about-build"].firstMatch
+        XCTAssertTrue(buildRow.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(buildRow.label.contains(build), buildRow.debugDescription)
+        XCTAssertEqual(app.buttons["about-licenses"].firstMatch.label, licenses)
+        capture("About \(language)", in: app)
     }
 
     func testEnglishLocalization() {

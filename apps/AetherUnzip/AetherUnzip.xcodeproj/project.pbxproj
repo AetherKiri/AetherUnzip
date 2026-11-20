@@ -33,6 +33,7 @@
 		CBE777362F4881B627FA2E46 /* FilePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1961AB93B86415BB78EA77D /* FilePreview.swift */; };
 		CD07864FF17C1DF1A07FB4D3 /* lz4.txt in Resources */ = {isa = PBXBuildFile; fileRef = C9C73F90FB3F9D2B922FC920 /* lz4.txt */; };
 		D37E608D8CAB0569DD86935A /* WorkspaceChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4715C78D9BA108C26DE39E1A /* WorkspaceChrome.swift */; };
+		DACECE03A8E6E3BAAFAFEE21 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 012EB1C236EFAE8850D5B165 /* AboutView.swift */; };
 		DB0F7FF7563953DFCBE64551 /* ArchivePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94AA2548B9D3F8822210CC54 /* ArchivePreview.swift */; };
 		E895E90768F3442E162B4882 /* WorkspaceTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12A63F06D48D9162AC84D95 /* WorkspaceTextEditor.swift */; };
 		F3EE9C0BF966DBAD808D271C /* PasswordLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B1248155BC9337F0337AF4 /* PasswordLibraryView.swift */; };
@@ -49,6 +50,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		012EB1C236EFAE8850D5B165 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		0BF62C2CB0C36535DE2DC1DD /* ArchiveWorkflowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveWorkflowTests.swift; sourceTree = "<group>"; };
 		127EEF050BB87B3AAC9065C7 /* ArchiveTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveTree.swift; sourceTree = "<group>"; };
 		21B1248155BC9337F0337AF4 /* PasswordLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordLibraryView.swift; sourceTree = "<group>"; };
@@ -193,6 +195,7 @@
 		C90D5A9DFD0EEA5F7A801704 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				012EB1C236EFAE8850D5B165 /* AboutView.swift */,
 				74316D504A60E427C9D49F05 /* ActivityView.swift */,
 				94AA2548B9D3F8822210CC54 /* ArchivePreview.swift */,
 				91A79A67D2262FE1E8960939 /* FileBrowserView.swift */,
@@ -334,6 +337,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DACECE03A8E6E3BAAFAFEE21 /* AboutView.swift in Sources */,
 				9E7FD50F338F1A8910C37A4E /* ActivityView.swift in Sources */,
 				6147D3B40C70CCC3A1196811 /* AetherUnzipApp.swift in Sources */,
 				58677CCF1B17D21DCBEC9569 /* AppModel.swift in Sources */,

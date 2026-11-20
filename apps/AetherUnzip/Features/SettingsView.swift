@@ -8,7 +8,7 @@ struct SettingsView: View {
     let saveSafetyLimits: (AppSafetyLimits) -> Void
 
     private enum Page: Hashable, Identifiable {
-        case conflict, destination, safety, licenses
+        case conflict, destination, safety, about
         var id: Self { self }
     }
 
@@ -34,8 +34,8 @@ struct SettingsView: View {
                            selection: $destination, title: \.title, detail: \.settingsDetail)
             case .safety:
                 SafetyLimitsEditor(limits: safetyLimits, save: saveSafetyLimits)
-            case .licenses:
-                licenses
+            case .about:
+                AboutView()
             }
         }
     }
@@ -53,18 +53,9 @@ struct SettingsView: View {
                         value: safetyLimits == .defaults ? String(localized: "Default") : String(localized: "Custom"),
                         route: .safety, identifier: "settings-safety")
             }
-            Section("About") {
-                LabeledContent {
-                    Text(appVersion).monospacedDigit()
-                } label: {
-                    Label("App Version", systemImage: "info.circle")
-                }
-                LabeledContent {
-                    Text(ArchiveService.coreVersion).monospacedDigit()
-                } label: {
-                    Label("AetherUnzip Core", systemImage: "shippingbox")
-                }
-                setting("Open-source Licenses", symbol: "doc.text", route: .licenses, identifier: "settings-licenses")
+            Section {
+                setting("About AetherUnzip", symbol: "info.circle", value: AboutView.versionSummary,
+                        route: .about, identifier: "settings-about")
             }
         }
         .modifier(WorkspaceListSurface())
@@ -136,27 +127,6 @@ struct SettingsView: View {
         #else
         .frame(minWidth: 420, minHeight: 280)
         #endif
-    }
-
-    private var licenses: some View {
-        NavigationStack {
-            List {
-                ForEach(["AetherUnzip", "libarchive", "liblzma", "lz4", "zstd", "brotli"], id: \.self) { name in
-                    NavigationLink(name) { LicenseDocument(name: name) }
-                }
-            }
-            .modifier(WorkspaceListSurface())
-            .navigationTitle("Open-source Licenses")
-            .toolbar { Button("Done") { page = nil }.keyboardShortcut(.cancelAction) }
-        }
-        #if os(macOS)
-        .frame(minWidth: 560, minHeight: 460)
-        #endif
-    }
-
-    private var appVersion: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        return version ?? "—"
     }
 }
 
@@ -380,34 +350,5 @@ private struct SafetyLimitsEditor: View {
         guard let editedLimits else { return }
         save(editedLimits)
         dismiss()
-    }
-}
-
-private struct LicenseDocument: View {
-    let name: String
-    @State private var text: String?
-
-    var body: some View {
-        Group {
-            if let text {
-                ScrollView {
-                    Text(text)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: 680, alignment: .leading)
-                        .padding(20)
-                        .frame(maxWidth: .infinity)
-                }
-            } else {
-                ProgressView()
-            }
-        }
-        .navigationTitle(name)
-        .task {
-            let main = name == "AetherUnzip"
-            let url = Bundle.main.url(forResource: main ? "LICENSE" : name, withExtension: main ? nil : "txt")
-            text = await Task.detached(priority: .utility) {
-                url.flatMap { try? String(contentsOf: $0, encoding: .utf8) }
-            }.value ?? String(localized: "License text is unavailable.")
-        }
     }
 }
