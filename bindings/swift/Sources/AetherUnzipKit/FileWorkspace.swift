@@ -313,18 +313,25 @@ public struct FileWorkspace: Sendable {
         nonisolated(unsafe) let coordinator = NSFileCoordinator()
         let queue = OperationQueue()
         queue.qualityOfService = .userInitiated
-        let result: T = try await withCheckedThrowingContinuation { continuation in
-            coordinator.coordinate(with: intents, queue: queue) { error in
-                continuation.resume(with: Result {
-                    do {
-                        if let error { throw error }
-                        return try work(intents.map(\.url), coordinator)
-                    } catch where ArchiveError.isOutOfSpace(error) {
-                        throw ArchiveError.insufficientSpace
-                    }
-                })
+        return try await withTaskCancellationHandler {
+            try Task.checkCancellation()
+            let result: T = try await withCheckedThrowingContinuation { continuation in
+                coordinator.coordinate(with: intents, queue: queue) { error in
+                    continuation.resume(with: Result {
+                        do {
+                            if let error { throw error }
+                            return try work(intents.map(\.url), coordinator)
+                        } catch let error as CocoaError where error.code == .userCancelled {
+                            throw ArchiveError.cancelled
+                        } catch where ArchiveError.isOutOfSpace(error) {
+                            throw ArchiveError.insufficientSpace
+                        }
+                    })
+                }
             }
+            return withExtendedLifetime((coordinator, accesses)) { result }
+        } onCancel: {
+            coordinator.cancel()
         }
-        return withExtendedLifetime((coordinator, accesses)) { result }
     }
 }

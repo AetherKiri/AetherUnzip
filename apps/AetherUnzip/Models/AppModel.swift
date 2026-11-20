@@ -1,6 +1,9 @@
 import AetherUnzipKit
 import Foundation
 import Observation
+#if os(iOS)
+import UIKit
+#endif
 
 struct RecentArchive: Identifiable, Codable {
     let id: String
@@ -21,6 +24,7 @@ struct TaskRecord: Identifiable, Codable {
         case failed = "Failed"
         case skipped = "Skipped"
         case cancelled = "Cancelled"
+        case interrupted = "Interrupted"
     }
 
     let id: UUID
@@ -66,6 +70,11 @@ final class AppModel {
     let passwords = PasswordLibrary()
     private(set) var passwordLibraryVersion = 0
     private var extraction: Task<Void, Never>?
+    private var backgroundExpired = false
+    #if os(iOS)
+    @ObservationIgnored private var extractionBackgroundTask: UIBackgroundTaskIdentifier = .invalid
+    @ObservationIgnored private var extractionBackgroundToken: UUID?
+    #endif
     private var opening: Task<Void, Never>?
     private var parents: [ParentArchive] = []
     private(set) var archiveID = UUID()
@@ -78,6 +87,16 @@ final class AppModel {
         if let data = defaults.data(forKey: "taskHistory") {
             history = (try? JSONDecoder().decode([TaskRecord].self, from: data)) ?? []
         }
+        if let data = defaults.data(forKey: "activeExtraction"),
+           var pending = try? JSONDecoder().decode(TaskRecord.self, from: data),
+           !history.contains(where: { $0.id == pending.id && $0.started == pending.started }) {
+            pending.state = .interrupted
+            pending.details = String(localized: "Extraction did not finish. Check the destination for completed files.")
+            recordResult(pending)
+            notice = pending.details
+            noticeIsPartial = true
+        }
+        defaults.removeObject(forKey: "activeExtraction")
     }
 
     func open(_ urls: [URL], profile: FormatProfile? = nil, limits: ExtractionOptions.Limits,
@@ -314,9 +333,11 @@ final class AppModel {
         guard extraction == nil,
               let name = retry?.record.archive ?? run.items.first?.archive.displayName ?? run.issues.first?.name
         else { return }
-        current = record(for: name, at: run.destination)
+        let firstRecord = record(for: name, at: run.destination, id: retry?.id)
+        trackExtraction(firstRecord)
         progress = nil
         cancelling = false
+        backgroundExpired = false
         notice = nil
         noticeIsPartial = false
         noticeIsBatch = run.isBatch
@@ -329,6 +350,10 @@ final class AppModel {
 
         extraction = Task {
             defer {
+                #if os(iOS)
+                endExtractionBackgroundTask()
+                #endif
+                UserDefaults.standard.removeObject(forKey: "activeExtraction")
                 extraction = nil
                 current = nil
                 batchPosition = nil
@@ -352,13 +377,13 @@ final class AppModel {
                     let layout = try await service.extractionLayout(for: archive, limits: limits)
                     items = [.init(archive: archive, selection: nil, access: retry.access, layout: layout)]
                 } catch {
-                    if !Task.isCancelled {
-                        var record = retry.record
-                        record.state = .failed
-                        record.details = error.localizedDescription
+                    if !Task.isCancelled || backgroundExpired {
+                        var record = firstRecord
+                        record.state = backgroundExpired ? .interrupted : .failed
+                        record.details = backgroundExpired ? interruptionMessage : error.localizedDescription
                         saveBatchEntry(.init(record: record, urls: retry.urls, access: retry.access,
                                              output: retry.output,
-                                             needsPassword: isPasswordFailure(error),
+                                             needsPassword: backgroundExpired ? retry.needsPassword : isPasswordFailure(error),
                                              reservedOutput: retry.reservedOutput))
                     }
                     showBatchOutcome(cancelled: Task.isCancelled)
@@ -378,10 +403,8 @@ final class AppModel {
                                      output: nil, needsPassword: issue.needsPassword))
             }
             for (index, item) in items.enumerated() {
-                var record = retry?.record ?? self.record(for: item.archive.displayName, at: run.destination)
-                record.state = .running
-                record.details = nil
-                current = record
+                var record = index == 0 ? firstRecord : self.record(for: item.archive.displayName, at: run.destination)
+                trackExtraction(record)
                 progress = nil
                 if run.isBatch { batchPosition = (index + 1, items.count) }
                 var output = existingOutput
@@ -416,8 +439,8 @@ final class AppModel {
                     if output == nil { output = try await outputFolder(for: placement, in: run.destination) }
                     if placement.folderName != nil { reservedOutput = output }
                     guard let output else { throw ArchiveError.invalidInput }
-                    record.destination = output.name
-                    current = record
+                    record.destination = output.breadcrumb
+                    trackExtraction(record)
                     let options = ExtractionOptions(conflictPolicy: policy, limits: limits, stripRoot: placement.stripRoot)
                     try await performExtraction(item, to: output, options: options, password: candidate)
                     record.state = .success
@@ -431,8 +454,10 @@ final class AppModel {
                         lastOutput = output
                         notice = String(localized: "Extraction completed in \(output.name).")
                     }
-                } catch let error where error is CancellationError || (error as? ArchiveError) == .cancelled {
-                    record.state = .cancelled
+                } catch let error where Task.isCancelled || error is CancellationError ||
+                            (error as? ArchiveError) == .cancelled {
+                    record.state = backgroundExpired ? .interrupted : .cancelled
+                    if backgroundExpired { record.details = interruptionMessage }
                     cancelled = true
                 } catch {
                     record.state = .failed
@@ -469,9 +494,11 @@ final class AppModel {
                     if run.isBatch {
                         for pending in items.dropFirst(index + 1) {
                             var skipped = self.record(for: pending.archive.displayName, at: run.destination)
-                            skipped.state = outOfSpace ? .skipped : .cancelled
+                            skipped.state = outOfSpace || backgroundExpired ? .skipped : .cancelled
                             if outOfSpace {
                                 skipped.details = String(localized: "Skipped because the destination ran out of space.")
+                            } else if backgroundExpired {
+                                skipped.details = String(localized: "Skipped after background time expired.")
                             }
                             saveBatchEntry(.init(record: skipped, urls: pending.archive.sourceURLs,
                                                  access: pending.access, output: nil, needsPassword: false))
@@ -488,12 +515,30 @@ final class AppModel {
                     ? String(localized: "Not enough space. Completed output is kept.")
                     : String(localized: "Not enough space. Free up space or choose another destination.")
             } else if cancelled {
-                notice = String(localized: "Extraction cancelled. Files already extracted are kept.")
+                notice = backgroundExpired ? interruptionMessage
+                    : String(localized: "Extraction cancelled. Files already extracted are kept.")
                 finished(nil, nil)
             } else if completed > 0 {
                 finished(nil, nil)
             }
         }
+        #if os(iOS)
+        let backgroundToken = UUID()
+        extractionBackgroundToken = backgroundToken
+        let identifier = UIApplication.shared.beginBackgroundTask(withName: "Archive extraction") { [weak self] in
+            guard let self, self.extractionBackgroundToken == backgroundToken else { return }
+            if UIApplication.shared.applicationState == .background {
+                self.backgroundExpired = true
+                self.cancelExtraction()
+            }
+            self.endExtractionBackgroundTask()
+        }
+        if extractionBackgroundToken == backgroundToken {
+            extractionBackgroundTask = identifier
+        } else if identifier != .invalid {
+            UIApplication.shared.endBackgroundTask(identifier)
+        }
+        #endif
     }
 
     func retryBatchEntry(_ id: UUID, limits: ExtractionOptions.Limits, password: PasswordChoice,
@@ -529,6 +574,8 @@ final class AppModel {
         noticeIsPartial = completed != total
         if outOfSpace {
             notice = String(localized: "Not enough space. \(completed) of \(total) archives extracted.")
+        } else if backgroundExpired && cancelled {
+            notice = String(localized: "Background time expired. \(completed) of \(total) archives extracted.")
         } else if cancelled {
             notice = String(localized: "Batch cancelled. \(completed) of \(total) archives extracted.")
         } else {
@@ -567,9 +614,27 @@ final class AppModel {
         if let accepted { await remember(candidates[accepted], for: item.archive) }
     }
 
-    private func record(for name: String, at directory: BrowserFolder) -> TaskRecord {
-        TaskRecord(id: UUID(), archive: name, destination: directory.name, started: .now, state: .running)
+    private var interruptionMessage: String {
+        String(localized: "Background time expired. Completed files are kept.")
     }
+
+    private func record(for name: String, at directory: BrowserFolder, id: UUID? = nil) -> TaskRecord {
+        TaskRecord(id: id ?? UUID(), archive: name, destination: directory.breadcrumb, started: .now, state: .running)
+    }
+
+    private func trackExtraction(_ record: TaskRecord) {
+        current = record
+        persist(record, for: "activeExtraction")
+    }
+
+    #if os(iOS)
+    private func endExtractionBackgroundTask() {
+        let identifier = extractionBackgroundTask
+        extractionBackgroundToken = nil
+        extractionBackgroundTask = .invalid
+        if identifier != .invalid { UIApplication.shared.endBackgroundTask(identifier) }
+    }
+    #endif
 
     private func recordResult(_ record: TaskRecord) {
         history.removeAll { $0.id == record.id }

@@ -22,6 +22,8 @@ xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
 
 在 iOS/iPadOS 26 的「文件」或 macOS 的 Finder 中，长按或右键点按 ZIP、7z、RAR、TAR、TGZ 或 GZIP 文件，在「打开方式」选择以太解压。App 会读取文件内容后打开预览。收到的是单个文件的访问授权时，解压仍由用户选择目标或使用 App 文档目录。打开分卷归档时，在 App 的文件选择器中一次选中同组分卷。
 
+iOS/iPadOS 解压开始时会向系统申请有限的后台处理时间。时间耗尽会取消当前操作，已完成的文件可以在目标文件夹查看。App 重新启动时，会在「活动」中标记上一进程未结束的解压。首发前请用真机覆盖锁屏、切后台、低空间和 iCloud 尚未下载文件的场景。
+
 在 macOS App 的系统文件面板中打开 `tests/fixtures/7z-aes-picker.7z` 可以验证加密文件名的 7z。先输入 `wrong-password` 确认显示错误，再输入 `fixture-pass` 打开归档。选择 **Extract All** 并在系统面板选定空目录，核对 `private.txt` 和 `second.txt` 与样本说明一致。[样本说明](../tests/fixtures/README.md)
 
 RAR5 文件名加密使用 `tests/fixtures/rar5-aes-picker.rar`，密码同为 `fixture-pass`，提取后核对 `rar5-picker-note.txt`。[样本说明](../tests/fixtures/README.md)

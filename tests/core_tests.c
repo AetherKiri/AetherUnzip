@@ -1224,6 +1224,31 @@ static void security_tests(void) {
     aether_unzip_source_close(source);
 }
 
+static void cancel_after_first_file(void *user, const au_entry *entry, uint64_t bytes_written,
+                                   uint64_t entry_bytes_written, uint64_t entries_done) {
+    (void)entry;
+    (void)bytes_written;
+    if (entries_done && entry_bytes_written) *(int *)user = 1;
+}
+
+static void extraction_cancellation_test(void) {
+    const char *output = directory("partial-cancellation");
+    au_source *source = fixture("sample.zip");
+    int cancel = 0;
+    au_options options = aether_unzip_options_default();
+    options.user = &cancel;
+    options.cancel = cancelled;
+    options.progress = cancel_after_first_file;
+    REQUIRE(aether_unzip_extract(context, source, "sample.zip", output, NULL, 0, &options) == AU_CANCELLED);
+    REQUIRE(cancel);
+    char path[512];
+    snprintf(path, sizeof(path), "%s/notes.txt", output);
+    contents(path, message);
+    snprintf(path, sizeof(path), "%s/docs", output);
+    no_output(path);
+    aether_unzip_source_close(source);
+}
+
 static void extraction_layout_tests(void) {
     const char *fixtures[] = {"layout.zip", "layout.tar.gz"};
     char path[512];
@@ -1290,7 +1315,11 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[1], "io")) io_test();
     else if (!strcmp(argv[1], "formats")) format_tests();
     else if (!strcmp(argv[1], "password")) password_tests();
-    else if (!strcmp(argv[1], "security")) { security_tests(); extraction_layout_tests(); }
+    else if (!strcmp(argv[1], "security")) {
+        security_tests();
+        extraction_layout_tests();
+        extraction_cancellation_test();
+    }
     else if (!strcmp(argv[1], "resource")) resource_tests();
     else if (!strcmp(argv[1], "profile")) profile_tests();
     else REQUIRE(0);

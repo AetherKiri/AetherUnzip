@@ -9,6 +9,7 @@ private extension TaskRecord.State {
         case .failed: String(localized: "Failed")
         case .skipped: String(localized: "Skipped")
         case .cancelled: String(localized: "Cancelled")
+        case .interrupted: String(localized: "Interrupted")
         }
     }
 
@@ -19,6 +20,7 @@ private extension TaskRecord.State {
         case .failed: "exclamationmark.triangle"
         case .skipped: "arrow.turn.down.right"
         case .cancelled: "stop"
+        case .interrupted: "pause.circle"
         }
     }
 
@@ -27,7 +29,7 @@ private extension TaskRecord.State {
         case .running: .accentColor
         case .success: .green
         case .failed: .red
-        case .cancelled, .skipped: .orange
+        case .cancelled, .skipped, .interrupted: .orange
         }
     }
 }
@@ -124,6 +126,8 @@ private struct TaskProgress: View {
                 if progress.totalEntries > 0 {
                     ProgressView(value: progress.fractionCompleted)
                         .accessibilityLabel("Extraction progress")
+                    Text("\(progress.entriesDone) of \(progress.totalEntries) entries processed")
+                        .font(.caption).foregroundStyle(.secondary)
                 } else {
                     ProgressView().progressViewStyle(.linear)
                 }
@@ -135,8 +139,8 @@ private struct TaskProgress: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             } else {
-                ProgressView().progressViewStyle(.linear)
-                    .accessibilityLabel("Preparing extraction")
+                ProgressView("Preparing files…")
+                    .progressViewStyle(.linear)
             }
         }
     }
@@ -313,7 +317,7 @@ struct BatchResultsView: View {
                     }
                 }
                 let entries = model.batchResult?.entries ?? []
-                ForEach([TaskRecord.State.failed, .skipped, .cancelled, .success], id: \.self) { state in
+                ForEach([TaskRecord.State.failed, .interrupted, .skipped, .cancelled, .success], id: \.self) { state in
                     let matching = entries.filter { $0.record.state == state }
                     if !matching.isEmpty {
                         Section(state.title) {

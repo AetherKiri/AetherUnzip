@@ -929,25 +929,31 @@ private func coordinated<T: Sendable>(reading inputs: [URL], writing output: URL
     defer { scopedURLs.forEach { $0.stopAccessingSecurityScopedResource() } }
     let reads = inputs.map { NSFileAccessIntent.readingIntent(with: $0, options: []) }
     let write = output.map { NSFileAccessIntent.writingIntent(with: $0, options: []) }
-    let coordinator = NSFileCoordinator()
+    nonisolated(unsafe) let coordinator = NSFileCoordinator()
     let queue = OperationQueue()
     queue.qualityOfService = .userInitiated
-    let result: T = try await withCheckedThrowingContinuation { continuation in
-        let accessor: @Sendable (Error?) -> Void = { error in
-            do {
-                if control.isCancelled { throw ArchiveError.cancelled }
-                if let error {
-                    if ArchiveError.isOutOfSpace(error) { throw ArchiveError.insufficientSpace }
-                    throw ArchiveError.fileAccess(error.localizedDescription)
+    return try await withTaskCancellationHandler {
+        let result: T = try await withCheckedThrowingContinuation { continuation in
+            let accessor: @Sendable (Error?) -> Void = { error in
+                do {
+                    if control.isCancelled { throw ArchiveError.cancelled }
+                    if let error {
+                        if (error as? CocoaError)?.code == .userCancelled { throw ArchiveError.cancelled }
+                        if ArchiveError.isOutOfSpace(error) { throw ArchiveError.insufficientSpace }
+                        throw ArchiveError.fileAccess(error.localizedDescription)
+                    }
+                    continuation.resume(returning: try body(reads.map(\.url), write?.url))
+                } catch {
+                    continuation.resume(throwing: error)
                 }
-                continuation.resume(returning: try body(reads.map(\.url), write?.url))
-            } catch {
-                continuation.resume(throwing: error)
             }
+            let intents = reads + [write].compactMap { $0 }
+            if intents.isEmpty || control.isCancelled { queue.addOperation { accessor(nil) } }
+            else { coordinator.coordinate(with: intents, queue: queue, byAccessor: accessor) }
         }
-        let intents = reads + [write].compactMap { $0 }
-        if intents.isEmpty { queue.addOperation { accessor(nil) } }
-        else { coordinator.coordinate(with: intents, queue: queue, byAccessor: accessor) }
+        return withExtendedLifetime(coordinator) { result }
+    } onCancel: {
+        control.cancel()
+        coordinator.cancel()
     }
-    return withExtendedLifetime(coordinator) { result }
 }

@@ -81,7 +81,7 @@ struct BatchResult {
         let needsPassword: Bool
         var reservedOutput: BrowserFolder? = nil
         var id: UUID { record.id }
-        var canRetry: Bool { record.state == .failed || record.state == .skipped }
+        var canRetry: Bool { record.state == .failed || record.state == .skipped || record.state == .interrupted }
     }
 
     let inputs: [URL]
