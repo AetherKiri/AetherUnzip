@@ -45,6 +45,8 @@ cp tests/fixtures/rar5-aes-solid-header.rar "$app_data/Documents/MobileSolidRAR.
 cp tests/fixtures/rar5-aes-picker.rar "$app_data/Documents/Library Locked.rar"
 cp tests/fixtures/rar5-aes-picker.rar "$app_data/Documents/Library Renamed.rar"
 cp tests/fixtures/aes256.zip "$app_data/Documents/Library Payload.zip"
+cp tests/fixtures/chinese-gbk-aes256.zip "$app_data/Documents/Chinese Vault.zip"
+cp tests/fixtures/chinese-gbk-aes256.zip "$app_data/Documents/Chinese Vault Renamed.zip"
 cp tests/fixtures/workspace-photo.jpg "$app_data/Documents/Recognition Photo.jpg"
 cat tests/fixtures/workspace-photo.jpg tests/fixtures/sample.zip > "$app_data/Documents/Recognition Hybrid.jpg"
 cp tests/fixtures/sample.zip "$app_data/Documents/Recognition Copy.mp3"
@@ -63,12 +65,15 @@ mkdir -p "$workspace/Guides"
 cp tests/fixtures/sample.zip "$workspace/Project Assets.zip"
 cp tests/fixtures/sample.tar.gz "$workspace/Release Backup.tar.gz"
 unzip -p tests/fixtures/sample.zip notes.txt > "$workspace/Release Notes.txt"
+printf '%s' ' 资源密碼！Ａ1 ' | xcrun simctl pbcopy "$destination_id"
 xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
   -destination "platform=iOS Simulator,id=$destination_id" -derivedDataPath build/app-ios-ui \
   -parallel-testing-enabled NO -testLanguage en -testRegion US test-without-building
 ```
 
 归档识别用例覆盖 Quick Look、手动确认更名、保留原名打开和密码提示。更名用例会将测试文件 `Recognition Hybrid.jpg` 更名为 `Recognition Hybrid.zip`。重新运行前，清理该用例生成的 ZIP 并重新导入原测试文件。
+
+中文密码用例会粘贴含全角字符和首尾空格的公开样本密码，验证 CP936 ZIP 解压及改名后的密码关联。重复运行前，从测试容器的 `Extracted Archives` 中清理本用例生成的 `Chinese Vault` 和 `Chinese Vault Renamed` 文件夹。
 
 布局用例在 `Layout Workflow` 去除顶层目录并保留两个同名文件，核对 `notes.txt` 和 `notes (2).txt`。批量用例在 `Batch Workflow` 保留归档内已有的 `Layout` 目录，为散落条目创建 `Batch First` 目录，并在活动中记录损坏的归档。重复运行前，从这两个测试目录清理旧的测试输出。
 

@@ -1001,6 +1001,42 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(completion.waitForExistence(timeout: 12), app.debugDescription)
     }
 
+    func testPastesExactChinesePasswordAndRemembersItAfterRename() {
+        let app = launchWithIsolatedPasswordLibrary()
+        let password = " 资源密碼！Ａ1 "
+
+        openWorkspaceArchive("Chinese Vault.zip", in: app)
+        app.buttons["extract-all"].firstMatch.tap()
+        confirmExtraction(in: app, layout: "Separate Folder")
+
+        let masked = app.secureTextFields["archive-password"].firstMatch
+        XCTAssertTrue(masked.waitForExistence(timeout: 8), app.debugDescription)
+        let paste = app.buttons["archive-password-paste"].firstMatch
+        XCTAssertTrue(paste.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(paste.isEnabled, "Seed the simulator pasteboard with the fixture password.")
+        paste.tap()
+
+        let eye = app.buttons["archive-password-visibility"].firstMatch
+        eye.tap()
+        let visible = app.textFields["archive-password"].firstMatch
+        XCTAssertTrue(visible.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertEqual(visible.value as? String, password)
+        eye.tap()
+        XCTAssertTrue(masked.waitForExistence(timeout: 8))
+        app.buttons["submit-archive-password"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Extraction completed in Chinese Vault."].firstMatch
+            .waitForExistence(timeout: 12), app.debugDescription)
+
+        app.terminate()
+        app.launch()
+        openWorkspaceArchive("Chinese Vault Renamed.zip", in: app)
+        app.buttons["extract-all"].firstMatch.tap()
+        confirmExtraction(in: app, layout: "Separate Folder")
+        XCTAssertTrue(app.staticTexts["Extraction completed in Chinese Vault Renamed."].firstMatch
+            .waitForExistence(timeout: 12), app.debugDescription)
+        XCTAssertFalse(masked.exists)
+    }
+
     private func launchWithIsolatedPasswordLibrary() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = passwordLibraryArguments + ["-destinationPolicy", "1", "-conflictPolicy", "2"]

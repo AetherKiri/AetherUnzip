@@ -3223,6 +3223,22 @@
         }
       }
     },
+    "Paste Password": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードをペースト"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘贴密码"
+          }
+        }
+      }
+    },
     "Path": {
       "localizations": {
         "ja": {

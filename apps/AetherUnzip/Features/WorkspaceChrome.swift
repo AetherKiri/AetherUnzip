@@ -259,13 +259,21 @@ struct WorkspacePasswordField: View {
                     }
                 }
                 .textFieldStyle(.plain)
-                #if os(iOS)
                 .autocorrectionDisabled()
+                #if os(iOS)
                 .textInputAutocapitalization(.never)
                 .submitLabel(.go)
                 #endif
                 .onSubmit(submit)
                 .accessibilityIdentifier(identifier)
+                PasteButton(payloadType: String.self) { values in
+                    if let value = values.first { password = value }
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Paste Password")
+                .help("Paste Password")
+                .accessibilityIdentifier("\(identifier)-paste")
                 Button {
                     let wasFocused = focus != nil
                     isVisible.toggle()
