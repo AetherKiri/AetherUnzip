@@ -1,6 +1,6 @@
 # Third-party dependencies
 
-CMake uses SHA-256-checked source downloads defined in [Dependencies.cmake](../cmake/Dependencies.cmake). The Apple script packages the same static libraries per architecture. Sources and binary build products stay outside the tracked tree.
+CMake uses SHA-256-checked source archives pinned in [source-archives.tsv](../cmake/source-archives.tsv). The Apple script packages the same static libraries per architecture. [Corresponding Source bundles](../docs/app-store.md) include those source archives for offline builds. Binary build products stay outside the tracked tree.
 
 | Component | Pin | License | Enabled in the shipped build |
 | --- | --- | --- | --- |

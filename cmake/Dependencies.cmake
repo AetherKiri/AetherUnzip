@@ -1,4 +1,24 @@
 include(FetchContent)
+
+set(aether_source_pins "${CMAKE_CURRENT_LIST_DIR}/source-archives.tsv")
+set(aether_source_archives "${CMAKE_CURRENT_LIST_DIR}/../third_party/source-archives")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${aether_source_pins}")
+file(STRINGS "${aether_source_pins}" aether_source_rows REGEX "^[a-z0-9]+	")
+foreach(row IN LISTS aether_source_rows)
+    string(REPLACE "	" ";" fields "${row}")
+    list(GET fields 0 dependency)
+    list(GET fields 1 filename)
+    list(GET fields 2 url)
+    list(GET fields 3 sha256)
+    if(IS_DIRECTORY "${aether_source_archives}")
+        set(url "${aether_source_archives}/${filename}")
+        if(NOT EXISTS "${url}")
+            message(FATAL_ERROR "Missing bundled source archive: ${filename}")
+        endif()
+    endif()
+    set("aether_${dependency}_url" "${url}")
+    set("aether_${dependency}_sha256" "${sha256}")
+endforeach()
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(BUILD_TESTING OFF)
 set(XZ_NLS OFF)
@@ -18,23 +38,23 @@ set(ZSTD_LEGACY_SUPPORT OFF)
 set(ZSTD_MULTITHREAD_SUPPORT OFF)
 
 FetchContent_Declare(xz
-    URL https://codeload.github.com/tukaani-project/xz/tar.gz/refs/tags/v5.8.2
-    URL_HASH SHA256=f21fdf2c1ee004de30ca40377a273e3369186e6b7ab7b50a410eaa2e2bbefafb)
+    URL "${aether_xz_url}"
+    URL_HASH "SHA256=${aether_xz_sha256}")
 FetchContent_Declare(lz4
-    URL https://codeload.github.com/lz4/lz4/tar.gz/refs/tags/v1.10.0
-    URL_HASH SHA256=537512904744b35e232912055ccf8ec66d768639ff3abe5788d90d792ec5f48b
+    URL "${aether_lz4_url}"
+    URL_HASH "SHA256=${aether_lz4_sha256}"
     SOURCE_SUBDIR build/cmake)
 FetchContent_Declare(zstd
-    URL https://codeload.github.com/facebook/zstd/tar.gz/refs/tags/v1.5.7
-    URL_HASH SHA256=37d7284556b20954e56e1ca85b80226768902e2edabd3b649e9e72c0c9012ee3
+    URL "${aether_zstd_url}"
+    URL_HASH "SHA256=${aether_zstd_sha256}"
     SOURCE_SUBDIR build/cmake)
 FetchContent_MakeAvailable(xz lz4 zstd)
 
 set(BROTLI_BUNDLED_MODE ON)
 set(BROTLI_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(brotli
-    URL https://codeload.github.com/google/brotli/tar.gz/refs/tags/v1.2.1
-    URL_HASH SHA256=98d35d11a78dc453aebb7d10c3748f3f73ff78c8267c0dc697b8631f67bf7e8f)
+    URL "${aether_brotli_url}"
+    URL_HASH "SHA256=${aether_brotli_sha256}")
 FetchContent_MakeAvailable(brotli)
 set_target_properties(brotlienc PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
@@ -79,8 +99,8 @@ endforeach()
 string(SHA256 libarchive_patch_set "${libarchive_patch_hashes}")
 string(SUBSTRING "${libarchive_patch_set}" 0 12 libarchive_patch_set)
 FetchContent_Declare(libarchive
-    URL https://www.libarchive.org/downloads/libarchive-3.8.11.tar.xz
-    URL_HASH SHA256=a3dc0872b1b39da34dc18ef1b944f0f11ffd37425d70ae04be679279f1cf43d2
+    URL "${aether_libarchive_url}"
+    URL_HASH "SHA256=${aether_libarchive_sha256}"
     SOURCE_DIR "${FETCHCONTENT_BASE_DIR}/libarchive-${libarchive_patch_set}-src"
     PATCH_COMMAND "${CMAKE_COMMAND}"
         "-DPATCH_PROGRAM=${AETHER_UNZIP_PATCH_PROGRAM}"

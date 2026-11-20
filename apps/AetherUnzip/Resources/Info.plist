@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>AetherUnzipSourceRevision</key>
+    <string>$(AETHER_UNZIP_SOURCE_REVISION)</string>
+    <key>AetherUnzipSourceURL</key>
+    <string>$(AETHER_UNZIP_SOURCE_URL)</string>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>

@@ -14,6 +14,8 @@ struct AboutView: View {
     private static let version = bundleValue("CFBundleShortVersionString")
     private static let build = bundleValue("CFBundleVersion")
     private static let core = ArchiveService.coreVersion
+    private static let sourceURL = bundleValue("AetherUnzipSourceURL").flatMap { URL(string: $0) }
+        ?? URL(string: "https://github.com/AetherKiri/AetherUnzip")!
 
     static var versionSummary: String? {
         version.map { String(localized: "Version \($0)") }
@@ -61,6 +63,10 @@ struct AboutView: View {
                         Label("Open-source Licenses", systemImage: "doc.text")
                     }
                     .accessibilityIdentifier("about-licenses")
+                    Link(destination: Self.sourceURL) {
+                        Label("Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                    }
+                    .accessibilityIdentifier("about-source")
                     Link(destination: URL(string: "https://github.com/AetherKiri/AetherUnzip/blob/main/PRIVACY.md")!) {
                         Label("Privacy Policy", systemImage: "hand.raised")
                     }

@@ -349,6 +349,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         }
         capture("About AetherUnzip", in: app)
         XCTAssertTrue(app.descendants(matching: .any)["about-privacy"].firstMatch.exists, app.debugDescription)
+        XCTAssertTrue(app.descendants(matching: .any)["about-source"].firstMatch.exists, app.debugDescription)
         let copy = app.buttons["about-copy-versions"].firstMatch
         copy.tap()
         XCTAssertEqual(copy.label, "Copied")
