@@ -77,6 +77,7 @@ struct WorkspaceView: View {
 
     @Bindable var model: AppModel
     @State private var files = FileBrowserModel()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
@@ -234,10 +235,15 @@ struct WorkspaceView: View {
         #endif
     }
 
-    @ViewBuilder private var taskBanner: some View {
-        if model.current != nil || model.notice != nil {
-            TaskBanner(model: model, openOutput: revealOutput)
+    private var taskBanner: some View {
+        let visible = model.current != nil || model.notice != nil
+        return ZStack {
+            if visible {
+                TaskBanner(model: model, openOutput: revealOutput)
+                    .transition(reduceMotion ? .identity : WorkspaceMotion.bottomInset)
+            }
         }
+        .animation(reduceMotion ? nil : WorkspaceMotion.layout, value: visible)
     }
 
     @ViewBuilder private var workspace: some View {

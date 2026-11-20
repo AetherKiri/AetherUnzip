@@ -32,39 +32,19 @@ private extension TaskRecord.State {
 struct TaskBanner: View {
     @Bindable var model: AppModel
     var openOutput: (() -> Void)? = nil
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        ZStack(alignment: .bottomLeading) {
             if let current = model.current {
-                HStack(spacing: 8) {
-                    WorkspaceGlyph(symbol: "arrow.down.to.line", tint: .accentColor)
-                    Text(model.cancelling ? "Cancelling…" : "Extracting \(current.archive)")
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                    Button("Cancel", action: model.cancelExtraction)
-                        .disabled(model.cancelling)
-                }
-                TaskProgress(model: model)
+                inProgress(current)
+                    .transition(reduceMotion ? .identity : .opacity)
             } else if let notice = model.notice {
-                HStack(spacing: 8) {
-                    WorkspaceGlyph(symbol: model.lastOutput == nil ? "stop" : "checkmark",
-                                   tint: model.lastOutput == nil ? .orange : .green)
-                    Text(notice).font(.subheadline)
-                    Spacer(minLength: 0)
-                    if let openOutput, model.lastOutput != nil {
-                        Button("View Folder", action: openOutput)
-                            .font(.subheadline.weight(.semibold))
-                            .accessibilityIdentifier("view-extraction-folder")
-                    }
-                    Button { model.notice = nil } label: {
-                        Label("Dismiss", systemImage: "xmark").labelStyle(.iconOnly)
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-                }
+                result(notice)
+                    .transition(reduceMotion ? .identity : .opacity)
             }
         }
+        .animation(reduceMotion ? nil : WorkspaceMotion.layout, value: model.current != nil)
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
@@ -74,6 +54,40 @@ struct TaskBanner: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 5)
+    }
+
+    private func inProgress(_ current: TaskRecord) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                WorkspaceGlyph(symbol: "arrow.down.to.line", tint: .accentColor)
+                Text(model.cancelling ? "Cancelling…" : "Extracting \(current.archive)")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                Button("Cancel", action: model.cancelExtraction)
+                    .disabled(model.cancelling)
+            }
+            TaskProgress(model: model)
+        }
+    }
+
+    private func result(_ notice: String) -> some View {
+        HStack(spacing: 8) {
+            WorkspaceGlyph(symbol: model.lastOutput == nil ? "stop" : "checkmark",
+                           tint: model.lastOutput == nil ? .orange : .green)
+            Text(notice).font(.subheadline)
+            Spacer(minLength: 0)
+            if let openOutput, model.lastOutput != nil {
+                Button("View Folder", action: openOutput)
+                    .font(.subheadline.weight(.semibold))
+                    .accessibilityIdentifier("view-extraction-folder")
+            }
+            Button { model.notice = nil } label: {
+                Label("Dismiss", systemImage: "xmark").labelStyle(.iconOnly)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+        }
     }
 }
 
@@ -107,6 +121,7 @@ private struct TaskProgress: View {
 struct ActivityView: View {
     let model: AppModel
     let reopen: (RecentArchive) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var details: TaskRecord?
     @State private var showAllRecents = false
     private let recentPreviewCount = 4
@@ -139,11 +154,18 @@ struct ActivityView: View {
                             ForEach(model.recents.prefix(count)) { item in recentRow(item) }
                             if model.recents.count > recentPreviewCount {
                                 Button {
-                                    showAllRecents.toggle()
+                                    withAnimation(reduceMotion ? nil : WorkspaceMotion.layout) {
+                                        showAllRecents.toggle()
+                                    }
                                 } label: {
-                                    Label(showAllRecents ? "Show Fewer Recent Archives" : "Show All Recent Archives",
-                                          systemImage: showAllRecents ? "chevron.up" : "chevron.down")
-                                        .font(.subheadline)
+                                    Label {
+                                        Text(showAllRecents ? "Show Fewer Recent Archives" : "Show All Recent Archives")
+                                            .contentTransition(reduceMotion ? .identity : .opacity)
+                                    } icon: {
+                                        Image(systemName: "chevron.down")
+                                            .rotationEffect(.degrees(showAllRecents ? 180 : 0))
+                                    }
+                                    .font(.subheadline)
                                 }
                                 .accessibilityIdentifier("activity-toggle-recents")
                             }

@@ -8,6 +8,7 @@ import UIKit
 
 struct AboutView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var copied = false
 
     private static let version = bundleValue("CFBundleShortVersionString")
@@ -32,8 +33,14 @@ struct AboutView: View {
                 }
                 Section {
                     Button(action: copyVersions) {
-                        Label(copied ? "Copied" : "Copy Version Info",
-                              systemImage: copied ? "checkmark" : "doc.on.doc")
+                        Label {
+                            Text(copied ? "Copied" : "Copy Version Info")
+                                .contentTransition(reduceMotion ? .identity : .opacity)
+                        } icon: {
+                            Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                                .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                        }
+                        .animation(reduceMotion ? nil : WorkspaceMotion.feedback, value: copied)
                     }
                     .accessibilityIdentifier("about-copy-versions")
                     NavigationLink {

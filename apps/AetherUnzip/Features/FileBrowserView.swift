@@ -89,6 +89,7 @@ struct FileBrowserView: View {
     @AppStorage("fileBrowserSort") private var sort: Sort = .name
     @AppStorage("fileBrowserReverseSort") private var reverseSort = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingSort = false
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -393,11 +394,16 @@ struct FileBrowserView: View {
         HStack(spacing: 5) {
             Image(systemName: ascending ? "arrow.up" : "arrow.down")
                 .foregroundStyle(.secondary)
-            Text(sort.shortTitle).foregroundStyle(.primary)
+                .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+            Text(sort.shortTitle)
+                .foregroundStyle(.primary)
+                .contentTransition(reduceMotion ? .identity : .opacity)
         }
         .font(.subheadline.weight(.medium))
         .fixedSize(horizontal: true, vertical: false)
         .frame(minHeight: 28)
+        .animation(reduceMotion ? nil : WorkspaceMotion.feedback, value: sort)
+        .animation(reduceMotion ? nil : WorkspaceMotion.feedback, value: ascending)
     }
 
     private var ascending: Bool { sort.defaultsToAscending != reverseSort }
@@ -496,7 +502,12 @@ struct FileBrowserView: View {
         .accessibilityIdentifier("workspace-files")
         .refreshable { model.reload() }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if selecting { selectionBar }
+            ZStack {
+                if selecting {
+                    selectionBar.transition(reduceMotion ? .identity : WorkspaceMotion.bottomInset)
+                }
+            }
+            .animation(reduceMotion ? nil : WorkspaceMotion.layout, value: selecting)
         }
     }
 
@@ -508,8 +519,7 @@ struct FileBrowserView: View {
         return Button { activate(file) } label: {
             HStack(spacing: 10) {
                 if selecting {
-                    Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(selected ? Color.accentColor : .secondary)
+                    WorkspaceSelectionMark(selected: selected)
                         .accessibilityHidden(true)
                 }
                 WorkspaceGlyph(symbol: icon(file), tint: tint)
@@ -572,7 +582,10 @@ struct FileBrowserView: View {
 
     private var selectionBar: some View {
         HStack {
-            Text("\(selection.count) selected").font(.subheadline.weight(.medium))
+            Text("\(selection.count) selected")
+                .font(.subheadline.weight(.medium))
+                .contentTransition(reduceMotion ? .identity : .numericText(value: Double(selection.count)))
+                .animation(reduceMotion ? nil : WorkspaceMotion.feedback, value: selection.count)
             Spacer()
             Menu("Actions", systemImage: "ellipsis.circle") {
                 if selectedArchives {
@@ -651,8 +664,10 @@ struct FileBrowserView: View {
 
     private func activate(_ file: WorkspaceFile) {
         if selecting {
-            if selection.contains(file.id) { selection.remove(file.id) }
-            else { selection.insert(file.id) }
+            withAnimation(reduceMotion ? nil : WorkspaceMotion.feedback) {
+                if selection.contains(file.id) { selection.remove(file.id) }
+                else { selection.insert(file.id) }
+            }
         } else if file.kind == .folder {
             model.show(model.folder.child(file.name))
         } else if file.kind == .file {

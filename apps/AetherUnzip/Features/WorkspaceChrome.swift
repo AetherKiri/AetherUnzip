@@ -5,6 +5,13 @@ enum WorkspacePalette {
     static let archive = Color.teal
 }
 
+enum WorkspaceMotion {
+    static let feedback = Animation.smooth(duration: 0.18)
+    static let layout = Animation.smooth(duration: 0.26)
+
+    static var bottomInset: AnyTransition { .offset(y: 8).combined(with: .opacity) }
+}
+
 struct WorkspaceAccent: ViewModifier {
     @Environment(\.colorScheme) private var scheme
 
@@ -53,6 +60,19 @@ struct WorkspaceGlyph: View {
             .frame(width: size, height: size)
             .background(tint.opacity(0.11), in: RoundedRectangle(cornerRadius: size * 0.25))
             .accessibilityHidden(true)
+    }
+}
+
+struct WorkspaceSelectionMark: View {
+    let selected: Bool
+    var unselectedTint: Color = .secondary
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(selected ? Color.accentColor : unselectedTint)
+            .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+            .animation(reduceMotion ? nil : WorkspaceMotion.feedback, value: selected)
     }
 }
 
@@ -120,6 +140,7 @@ struct WorkspaceButton: ViewModifier {
 
     private struct ToolbarActionStyle: ButtonStyle {
         @Environment(\.isEnabled) private var isEnabled
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         func makeBody(configuration: Configuration) -> some View {
             #if os(iOS)
@@ -127,10 +148,13 @@ struct WorkspaceButton: ViewModifier {
             #else
             let target: CGFloat = 32
             #endif
+            let pressed = isEnabled && configuration.isPressed
             return configuration.label
+                .scaleEffect(pressed && !reduceMotion ? 0.94 : 1)
+                .opacity(isEnabled ? (pressed ? 0.68 : 1) : 0.48)
+                .animation(reduceMotion ? nil : WorkspaceMotion.feedback, value: pressed)
                 .frame(minWidth: target, minHeight: target)
                 .contentShape(Rectangle())
-                .opacity(configuration.isPressed || !isEnabled ? 0.48 : 1)
         }
     }
 }
@@ -138,6 +162,7 @@ struct WorkspaceButton: ViewModifier {
 struct WorkspaceInputWell: ViewModifier {
     let focused: Bool
     var invalid = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
@@ -148,6 +173,8 @@ struct WorkspaceInputWell: ViewModifier {
                 RoundedRectangle(cornerRadius: 11)
                     .strokeBorder(invalid ? Color.red.opacity(0.7) : (focused ? Color.accentColor.opacity(0.65) : .clear),
                                   lineWidth: 1)
+                    .animation(reduceMotion ? nil : WorkspaceMotion.feedback, value: focused)
+                    .animation(reduceMotion ? nil : WorkspaceMotion.feedback, value: invalid)
                     .allowsHitTesting(false)
             }
     }

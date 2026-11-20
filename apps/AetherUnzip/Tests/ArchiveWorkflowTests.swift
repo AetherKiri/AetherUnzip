@@ -556,6 +556,13 @@ final class ArchiveWorkflowTests: XCTestCase {
         screenshot.name = "Extracted folder in Files"
         screenshot.lifetime = .keepAlways
         add(screenshot)
+        app.buttons["file-actions"].firstMatch.tap()
+        app.buttons["select-workspace-files"].firstMatch.tap()
+        let selectionCount = app.staticTexts["1 selected"].firstMatch
+        note.tap()
+        XCTAssertTrue(selectionCount.waitForExistence(timeout: 8), app.debugDescription)
+        app.buttons["finish-file-selection"].firstMatch.tap()
+        XCTAssertTrue(selectionCount.waitForNonExistence(timeout: 8), app.debugDescription)
         let parent = app.buttons["parent-file-folder"].firstMatch
         XCTAssertTrue(parent.exists)
         parent.tap()
@@ -685,7 +692,7 @@ final class ArchiveWorkflowTests: XCTestCase {
     func testBrowseAndSelectAcrossFolders() {
         let app = XCUIApplication()
         app.launch()
-        openFromFiles("MobileSample.zip", in: app)
+        openWorkspaceArchive("MobileSample.zip", in: app)
 
         let select = app.buttons["select-entries"].firstMatch
         XCTAssertTrue(select.waitForExistence(timeout: 10), app.debugDescription)

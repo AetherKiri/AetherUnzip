@@ -15,6 +15,7 @@ struct ArchivePreview: View {
     let extractWithPassword: (Set<ArchiveEntry.ID>?) -> Void
     let nearbyDestination: String?
     let extractNearby: (Set<ArchiveEntry.ID>?, ArchiveFileAction) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var browserIndex: ArchiveBrowserIndex?
     #if os(macOS)
     @State private var search = ""
@@ -108,6 +109,13 @@ struct ArchivePreview: View {
         index.files.filter { $0.entry?.path.localizedStandardContains(query) == true }
     }
 
+    private func toggleSelection(_ id: ArchiveEntry.ID) {
+        withAnimation(reduceMotion ? nil : WorkspaceMotion.feedback) {
+            if selection.contains(id) { selection.remove(id) }
+            else { selection.insert(id) }
+        }
+    }
+
     private var closeButton: some View {
         Button(action: close) {
             Label(archive.isNested ? "Parent Archive" : "Close Archive",
@@ -197,12 +205,10 @@ struct ArchivePreview: View {
         } else if let entry = node.entry {
             if browsing.selecting, isSelectable(entry) {
                 Button {
-                    if selection.contains(entry.id) { selection.remove(entry.id) }
-                    else { selection.insert(entry.id) }
+                    toggleSelection(entry.id)
                 } label: {
                     HStack {
-                        Image(systemName: selection.contains(entry.id) ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(Color.accentColor)
+                        WorkspaceSelectionMark(selected: selection.contains(entry.id), unselectedTint: .accentColor)
                             .accessibilityHidden(true)
                         mobileLabel(node, searching: searching)
                     }
@@ -311,10 +317,14 @@ struct ArchivePreview: View {
                         searchFocused = false
                         extract(selected ? selection : nil)
                     } label: {
-                        Label(selected ? "Extract \(selection.count)" : "Extract All",
-                              systemImage: "arrow.down.to.line")
-                            .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
+                        Label {
+                            Text(selected ? "Extract \(selection.count)" : "Extract All")
+                                .contentTransition(reduceMotion ? .identity : .numericText(value: Double(selection.count)))
+                        } icon: {
+                            Image(systemName: "arrow.down.to.line")
+                        }
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
                     }
                     .modifier(WorkspaceButton(prominent: true))
                     .disabled(busy || (!selected && blocked))
@@ -323,9 +333,14 @@ struct ArchivePreview: View {
                     nearbyMenu(selected ? selection : nil)
                         .disabled(busy || (!selected && blocked))
                     if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
-                    Button(browsing.selecting ? "Done" : "Select") {
-                        browsing.selecting.toggle()
-                        if !browsing.selecting { selection.removeAll() }
+                    Button {
+                        withAnimation(reduceMotion ? nil : WorkspaceMotion.feedback) {
+                            browsing.selecting.toggle()
+                            if !browsing.selecting { selection.removeAll() }
+                        }
+                    } label: {
+                        Text(browsing.selecting ? "Done" : "Select")
+                            .contentTransition(reduceMotion ? .identity : .opacity)
                     }
                     .font(.subheadline.weight(.semibold))
                     .modifier(WorkspaceButton())
@@ -365,11 +380,9 @@ struct ArchivePreview: View {
             if let entry = node.entry, entry.isExtractable(supporting: archive.capabilities),
                entry.kind == .file {
                 Button {
-                    if selection.contains(entry.id) { selection.remove(entry.id) }
-                    else { selection.insert(entry.id) }
+                    toggleSelection(entry.id)
                 } label: {
-                    Image(systemName: selection.contains(entry.id) ? "checkmark.circle.fill" : "circle")
-                        .foregroundStyle(selection.contains(entry.id) ? Color.accentColor : .secondary)
+                    WorkspaceSelectionMark(selected: selection.contains(entry.id))
                         .frame(minWidth: 24, minHeight: 32)
                 }
                 .buttonStyle(.borderless)
