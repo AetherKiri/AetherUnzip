@@ -1,41 +1,43 @@
 <p align="center">
-  <img src="apps/AetherUnzip/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-Mac-256.png" width="132" alt="以太解压应用图标">
+  <img src="apps/AetherUnzip/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-Mac-256.png" width="132" alt="AetherUnzip app icon">
 </p>
 
-<h1 align="center">AetherUnzip · 以太解压</h1>
+<h1 align="center">AetherUnzip</h1>
 
-<p align="center">面向 Mac、iPhone 和 iPad 的原生解压工具<br>支持简体中文、English、日本語</p>
+<p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
+
+<p align="center">A native archive extractor and file manager for Mac, iPhone, and iPad<br>Available in English, Simplified Chinese, and Japanese</p>
 
 <p align="center">
   macOS 14+ · iOS 17+ · iPadOS 17+ · <a href="LICENSE">GPL-3.0-only</a>
 </p>
 
 <p align="center">
-  <a href="#功能一览">功能一览</a> ·
-  <a href="#快速开始">快速开始</a> ·
-  <a href="#已验证格式">已验证格式</a> ·
-  <a href="#参与贡献">参与贡献</a>
+  <a href="#features">Features</a> ·
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#tested-formats">Tested Formats</a> ·
+  <a href="#contributing">Contributing</a>
 </p>
 
-## 功能一览
+## Features
 
-| 智能解压 | 按内容识别 |
+| Smart Extraction | Archive Identification |
 | :---: | :---: |
-| <img src="docs/images/smart-extraction.png" width="240" alt="iPhone 解压确认页，显示智能解压、重名策略和预计输出路径"> | <img src="docs/images/archive-identification.png" width="240" alt="iPhone 将 JPG 文件识别为 ZIP，并提供按原名打开或确认更名两个选项"> |
-| 确认前看清目标位置。保留已有顶层目录，或给散落的文件建一个文件夹。 | 长按或右键识别实际格式。即使 ZIP 附在可正常打开的 JPEG 后面，也能识别并打开。 |
+| <img src="docs/images/smart-extraction.png" width="240" alt="iPhone extraction sheet showing Smart Extraction, the conflict policy, and the expected output path"> | <img src="docs/images/archive-identification.png" width="240" alt="iPhone identifying a JPG as ZIP and offering to open it as is or rename it first"> |
+| See the output path before you extract. Smart Extraction keeps an existing top-level folder or groups loose files into a new one. | Identify archives by their contents from the context menu. AetherUnzip can open a valid ZIP appended to a viewable JPEG. |
 
-- **文件管理与预览** 浏览系统授权目录，搜索、排序、复制、移动或编辑文件。归档内可按目录浏览、进入嵌套包，或用 Quick Look 查看常见文档和图片。超出预览上限时，可以直接解压该文件。
-- **批量解压与重试** 共用目标目录和重名策略，逐包查看结果。可以打开成功项的输出目录，也可以为失败项补输密码后单独重试。
-- **密码库** 通过系统钥匙串保存密码，归档改名后仍可匹配已记住的密码。解压时可选择一条或尝试整个密码库。ZIP 的中文密码编码兼容范围见 [驱动文档](docs/drivers.md)。
-- **缓存管理** 在设置中查看占用、清理闲置预览，或调整单文件预览和嵌套归档的暂存上限。
+- **File management and previews.** Browse folders you have granted access to. Search, sort, copy, move, or edit files. Browse archive folders, open nested archives, and preview common documents and images with Quick Look. If a file is too large to preview, you can extract it on its own.
+- **Batch extraction and retries.** Choose one destination and conflict policy for the batch. Open the output folder for any successful archive, or retry a failed archive on its own and enter a password if needed.
+- **Password library.** Store passwords in the system Keychain. A remembered password remains associated with its archive after a rename. During extraction, choose a saved password or try the entire library. The driver documentation covers Chinese password encodings for ZIP. [Archive drivers](docs/drivers.md)
+- **Cache controls.** Check disk usage, clear unused previews, and set separate limits for single-file previews and nested archive staging.
 
-## 快速开始
+## Quick Start
 
-从仓库首页获取源码，在仓库根目录运行下面的命令。App 通过 Swift SDK 调用与 CLI 相同的 Core。Core 可在 macOS 和 Linux 上独立构建，也可通过 C ABI 集成到其他程序中。
+Get the source from this repository and run the commands below from the repository root. The app calls the same Core as the CLI through the Swift SDK. Core builds independently on macOS and Linux and exposes a C ABI for integration into other programs.
 
-### Apple App 与 Swift SDK
+### Apple App and Swift SDK
 
-需要 macOS 上的 Xcode 16 或更新版本（Swift 6）以及 CMake 3.24 或更新版本。App 支持 **macOS 14+、iOS 17+ 和 iPadOS 17+**。
+On macOS, install Xcode 16 or later with Swift 6 and CMake 3.24 or later. The app runs on **macOS 14+, iOS 17+, and iPadOS 17+**.
 
 ```sh
 ./scripts/build-apple.sh
@@ -43,18 +45,18 @@ swift test --package-path bindings/swift
 open apps/AetherUnzip/AetherUnzip.xcodeproj
 ```
 
-在 Xcode 选择 **AetherUnzip** scheme 和 Mac、iPhone 或 iPad 模拟器，然后运行。真机安装需要配置开发团队和签名。构建脚本会生成 App 和 SDK 使用的本地 XCFramework。命令行构建、签名和 UI 测试见 [Apple 集成文档](docs/apple-integration.md)。
+In Xcode, select the **AetherUnzip** scheme and run it on a Mac or an iPhone or iPad simulator. To install on a physical device, configure a development team and signing. The build script generates the local XCFramework used by the app and SDK. See the integration guide for command-line builds, signing, and UI tests. [Apple integration guide](docs/apple-integration.md)
 
-### Core 与 CLI
+### Core and CLI
 
-需要 CMake 3.24+、C17/C++17 工具链、`patch`、zlib 和 bzip2 开发库。macOS 使用 Apple SDK 提供的系统库。Ubuntu 24.04 可安装以下依赖，系统 OpenSSL 3 提供加密归档所需的 Crypto 库。
+You need CMake 3.24+, a C17/C++17 toolchain, `patch`, and the zlib and bzip2 development libraries. On macOS, the Apple SDK provides the system libraries. On Ubuntu 24.04, install the dependencies below. The system OpenSSL 3 Crypto library handles encrypted archives.
 
 ```sh
 sudo apt-get update
 sudo apt-get install -y build-essential cmake patch zlib1g-dev libbz2-dev libssl-dev
 ```
 
-在 macOS 或 Linux 上构建 Core 并运行 CTest。首次配置会下载依赖源码并验证 SHA-256。
+Build Core and run CTest on macOS or Linux. The first configuration downloads dependency sources and checks their SHA-256 hashes.
 
 ```sh
 cmake -S . -B build/core -DCMAKE_BUILD_TYPE=Release
@@ -62,39 +64,39 @@ cmake --build build/core --parallel
 ctest --test-dir build/core --output-on-failure
 ```
 
-## 解压布局
+## Extraction Layouts
 
-解压前可用系统选择器选择目标，也可以切换到已授权的归档目录或 App 文档。确认按钮旁会显示预计输出位置。
+Use the system folder picker to choose a destination, or switch to the archive's folder if you have granted access, or to App Documents. The expected output path appears next to the confirmation button.
 
-| 方式 | 输出行为 |
+| Layout | Where files go |
 | --- | --- |
-| 智能解压（默认） | 保留单一顶层目录。多个顶层项目收进与归档同名的文件夹。单个文件直接放入目标。 |
-| 直接解压 | 将内容释放到目标，保留归档原有目录结构。 |
-| 解压到独立文件夹 | 创建与归档同名的文件夹，在其中保留归档原有目录结构。 |
-| 去除顶层目录 | 所选内容位于同一个顶层目录时，把该目录的内容直接放入目标。 |
+| Smart Extraction (default) | Keeps a single top-level folder. Groups multiple top-level items into a folder named after the archive. Writes a single file directly to the destination. |
+| Extract Directly | Writes into the destination and preserves the archive's directory structure. |
+| Separate Folder | Creates a folder named after the archive and preserves the directory structure inside it. |
+| Remove Top Folder | When all selected items share a top-level folder, extracts that folder's contents directly to the destination. |
 
-新建的解压文件夹遇到重名会加编号。普通文件重名时默认保留两个版本，也可以跳过、停止或替换。
+New output folders get a numeric suffix when a name is already taken. For file conflicts, AetherUnzip keeps both versions by default. You can also skip, stop, or replace.
 
-## 已验证格式
+## Tested Formats
 
-| 读取范围 | 样本覆盖 |
+| Format | Tested coverage |
 | --- | --- |
-| ZIP / ZIP64 | Deflate、空归档、UTF-8 路径、ZipCrypto、WinZip AES-256、磁盘编号分卷及带前缀 ZIP |
-| 7z | LZMA2、AES-256，含固实归档和加密文件名 |
-| RAR / RAR5 | 单卷、跨卷文件和固实跨卷样本。RAR5 单卷支持 AES-256 内容和文件名加密，含固实归档 |
+| ZIP / ZIP64 | Deflate, empty archives, UTF-8 paths, ZipCrypto, WinZip AES-256, disk-numbered volumes, and ZIP with a prepended payload |
+| 7z | LZMA2 and AES-256, including solid archives and encrypted filenames |
+| RAR / RAR5 | Single volumes, files spanning multiple volumes, and solid multi-volume samples. Single-volume RAR5 supports AES-256 content and filename encryption, including solid archives. |
 | TAR | USTAR |
-| CAB | 单卷，MSZIP 和 LZX |
-| ISO 9660 | 标准卷描述符和 Rock Ridge |
+| CAB | Single-volume MSZIP and LZX |
+| ISO 9660 | Standard volume descriptors and Rock Ridge |
 | LHA / LZH | LH7 |
-| GZIP、LZ4、Zstandard、XZ、BZIP2 | 独立压缩流及与 TAR 的组合 |
-| Brotli | 独立 `.br` 压缩流 |
-| XP3 | KiriKiri 标准容器、原始或 zlib 索引、混合分段及 Adler-32 校验 |
+| GZIP, LZ4, Zstandard, XZ, BZIP2 | Standalone compressed streams and TAR combinations |
+| Brotli | Standalone `.br` streams |
+| XP3 | Standard KiriKiri containers, raw or zlib indexes, mixed segments, and Adler-32 verification |
 
-打开分卷归档时，在文件选择器中一次选中同组所有分卷，例如 `name.7z.001`、`name.zip.001`、`name.z01` 与末卷 `name.zip`、`name.part1.rar`，或 `name.rar` 与 `name.r00`。带固定签名和偏移的包装文件可通过[格式配置](docs/format-profiles.md)显式打开。完整支持范围见[驱动文档](docs/drivers.md)，当前 App 构建也可在「设置 → 关于 → 解压支持」查看。
+Select all parts of a multi-volume archive together in the file picker. Supported naming includes `name.7z.001`, `name.zip.001`, `name.z01` with a final `name.zip`, `name.part1.rar`, and `name.rar` with `name.r00`. Format profiles can open wrapper files with a fixed signature and offset. In the app, **Settings → About → Extraction Support** lists the capabilities of the current build. [Archive drivers](docs/drivers.md) · [Format profiles](docs/format-profiles.md)
 
-## CLI 验证示例
+## CLI Verification Examples
 
-CLI 适合独立验证识别、解码和输出结果。以下命令使用仓库自带的样本。
+Use the CLI to verify detection, decoding, and extracted files independently of the app. These commands use fixtures supplied with the repository.
 
 ```sh
 build/core/aether-unzip --probe tests/fixtures/sample.tar.gz
@@ -106,10 +108,10 @@ output="$(mktemp -d "$PWD/build/sample-output.XXXXXX")"
 build/core/aether-unzip tests/fixtures/sample.zip "$output"
 ```
 
-`--verify` 流式读取普通文件并执行驱动支持的内容校验，输出文件数和字节数。列表第一列是从零开始的条目编号。使用 `--entry INDEX` 限定校验或提取的条目，多个编号按升序传入。使用 `--max-total-bytes N` 测试解码预算。完整参数见 `aether-unzip --help`。退出码 0 表示成功，1 表示操作失败，2 表示用法错误。
+`--verify` streams regular files through the driver's integrity checks and reports the file and byte counts. The first column of a listing is the zero-based entry index. Repeat `--entry INDEX` in ascending order to select entries for verification or extraction. Use `--max-total-bytes N` to test the decoding budget. Run `aether-unzip --help` for all options. Exit codes are 0 for success, 1 for failure, and 2 for incorrect usage.
 
 ```sh
-# 使用公开的样本密码验证固实 RAR5 中的第三个条目
+# Verify the third entry in a solid RAR5 archive with the public fixture password
 printf '%s\n' fixture-pass | build/core/aether-unzip --verify --entry 2 --password-stdin \
   tests/fixtures/rar5-aes-solid-header.rar
 
@@ -121,22 +123,22 @@ build/core/aether-unzip --verify \
 ctest --test-dir build/core -R '^cli[.]verify$' --output-on-failure
 ```
 
-通过 `--password-stdin` 从标准输入读取一行 UTF-8 密码。CLI 分卷以首卷作为主路径，其余卷按顺序用 `--volume` 追加。磁盘编号 ZIP 以 `.z01` 开始，以 `.zip` 结束。解压时，`--strip-root Layout` 可移除共同的顶层目录，`--keep-both` 会为传入的同名文件编号。
+`--password-stdin` reads one UTF-8 line from standard input. Pass the first volume as the main archive path and add the remaining volumes in order with `--volume`. For disk-numbered ZIP, begin with `.z01` and finish with `.zip`. When extracting, `--strip-root Layout` removes the shared top-level folder named `Layout`, and `--keep-both` adds a numeric suffix to an incoming file when its name is already taken.
 
-## 参与贡献
+## Contributing
 
-报告问题时，请注明系统版本、App 或 CLI 版本、归档格式和复现步骤。涉及某个压缩包时，优先提供可公开的最小样本和预期输出。贡献代码时，请在 PR 中说明改动范围和已运行的验证。新增格式请附上来源明确的[测试样本](tests/fixtures/README.md)，并更新实际能力说明。
+When reporting an issue, include the OS version, app or CLI version, archive format, and steps to reproduce. For archive-specific issues, share a minimal sample that can be made public and describe the expected output. In pull requests, explain what changed and which checks you ran. For new formats, include a fixture with a documented source and update the supported capabilities. [Test fixtures](tests/fixtures/README.md)
 
-| 开发入口 | 说明 |
+| Developer resources | What they cover |
 | --- | --- |
-| [项目规格](docs/spec.md) · [开发与提交规范](AGENTS.md) | 平台、验收标准和各层的验证要求 |
-| [架构](docs/architecture.md) · [路线图](docs/roadmap.md) | App、Swift SDK、Core 和驱动之间的关系 |
-| [C ABI](docs/api.md) · [安全策略](docs/security.md) | 集成、对象生命周期、资源预算和安全提取 |
-| [Apple 集成](docs/apple-integration.md) · [CI 配置](.github/workflows/ci.yml) | 构建、签名和测试命令 |
-| [依赖与许可声明](third_party/README.md) | 依赖版本、构建特性和第三方许可 |
+| [Project spec](docs/spec.md) · [Development and commit guidelines](AGENTS.md) | Platforms, acceptance criteria, and verification by layer |
+| [Architecture](docs/architecture.md) · [Roadmap](docs/roadmap.md) | How the app, Swift SDK, Core, and drivers fit together |
+| [C ABI](docs/api.md) · [Security](docs/security.md) | Integration, object lifetimes, resource budgets, and safe extraction |
+| [Apple integration](docs/apple-integration.md) · [CI configuration](.github/workflows/ci.yml) | Build, signing, and test commands |
+| [Dependencies and notices](third_party/README.md) | Dependency versions, enabled features, and third-party licenses |
 
-## 许可证
+## License
 
 Copyright © 2026 AetherUnzip contributors.
 
-App、Swift SDK、Core 和 CLI 采用 [GNU General Public License v3.0 only（GPL-3.0-only）](LICENSE)。分发二进制时，请依照许可证第 6 节提供对应源码。第三方组件及已单独标注的 libarchive AES 辅助代码适用各自的许可。[依赖与许可声明](third_party/README.md)
+The app, Swift SDK, Core, and CLI are licensed under the GNU General Public License v3.0 only (GPL-3.0-only). When distributing binaries, provide the Corresponding Source as required by Section 6. Third-party components and the separately marked libarchive AES helpers retain their own licenses. [License](LICENSE) · [Third-party notices](third_party/README.md)
