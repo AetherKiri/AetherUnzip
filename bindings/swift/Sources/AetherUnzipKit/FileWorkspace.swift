@@ -169,6 +169,18 @@ public struct FileWorkspace: Sendable {
     }
 
     public func rename(_ url: URL, to name: String, access: WorkspaceAccess) async throws {
+        try await rename(url, to: name, access: access, expectedRevision: nil)
+    }
+
+    /// Renames an inspected single-file archive only if the file still matches its manifest.
+    public func rename(_ archive: ArchiveManifest, to name: String, access: WorkspaceAccess) async throws {
+        guard !archive.isNested, archive.profile == nil, archive.sourceURLs.count == 1,
+              let revision = archive.revisions.first else { throw ArchiveError.invalidInput }
+        try await rename(archive.url, to: name, access: access, expectedRevision: revision)
+    }
+
+    private func rename(_ url: URL, to name: String, access: WorkspaceAccess,
+                        expectedRevision: FileRevision?) async throws {
         try Self.checkName(name)
         if name == url.lastPathComponent { return }
         let folder = url.deletingLastPathComponent()
@@ -176,6 +188,11 @@ public struct FileWorkspace: Sendable {
         let parent = NSFileAccessIntent.writingIntent(with: folder, options: [])
         try await coordinate([item, parent], accesses: [access]) { urls, coordinator in
             try Self.requireDirectory(urls[1])
+            if let expectedRevision {
+                let attributes = try? urls[0].resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+                guard attributes?.isRegularFile == true, attributes?.isSymbolicLink != true,
+                      (try? FileRevision(urls[0])) == expectedRevision else { throw ArchiveError.changed }
+            }
             let target = urls[1].appending(path: name)
             coordinator.item(at: urls[0], willMoveTo: target)
             try FileManager.default.moveItem(at: urls[0], to: target)

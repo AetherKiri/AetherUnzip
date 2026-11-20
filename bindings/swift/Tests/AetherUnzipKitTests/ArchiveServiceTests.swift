@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 import Testing
 import AetherUnzipKit
 
@@ -682,6 +683,50 @@ struct ArchiveServiceTests {
             try await service.extract(archive, to: destination, selecting: [notes.id]).value()
             #expect(try Data(contentsOf: destination.appending(path: "notes.txt")) ==
                     Data("AetherUnzip fixture\n".utf8))
+        }
+    }
+
+    @Test func identifiesAndRenamesAnImageWithZIPDataOnlyWhileUnchanged() async throws {
+        let photo = try #require(Bundle.module.url(forResource: "workspace-photo", withExtension: "jpg",
+                                                   subdirectory: "Fixtures"))
+        let workspace = FileWorkspace()
+        let photoBytes = try Data(contentsOf: photo)
+        var combined = photoBytes
+        combined.append(try Data(contentsOf: fixture()))
+        let image = try #require(CGImageSourceCreateWithData(combined as CFData, nil))
+        #expect(CGImageSourceCreateImageAtIndex(image, 0, nil)?.width == 96)
+        await #expect(throws: ArchiveError.unknownFormat) { try await service.open(photo) }
+
+        try await temporaryDirectory { directory in
+            let access = WorkspaceAccess(directory)
+            let source = directory.appending(path: "Resources.jpg")
+            let target = directory.appending(path: "Resources.zip")
+            try combined.write(to: source)
+            let archive = try await service.open(source)
+            #expect(archive.format == .zip)
+
+            try photoBytes.write(to: target)
+            await #expect(throws: CocoaError.self) {
+                try await workspace.rename(archive, to: target.lastPathComponent, access: access)
+            }
+            #expect(try Data(contentsOf: source) == combined)
+            #expect(try Data(contentsOf: target) == photoBytes)
+            try FileManager.default.removeItem(at: target)
+
+            try photoBytes.write(to: source, options: .atomic)
+            await #expect(throws: ArchiveError.changed) {
+                try await workspace.rename(archive, to: target.lastPathComponent, access: access)
+            }
+            #expect(try Data(contentsOf: source) == photoBytes)
+
+            try combined.write(to: source, options: .atomic)
+            let current = try await service.open(source)
+            try await workspace.rename(current, to: target.lastPathComponent, access: access)
+            #expect(!FileManager.default.fileExists(atPath: source.path))
+            #expect(try Data(contentsOf: target) == combined)
+            let renamed = try await service.open(target)
+            try await service.extract(renamed, to: directory).value()
+            #expect(try Data(contentsOf: directory.appending(path: "notes.txt")) == Data("AetherUnzip fixture\n".utf8))
         }
     }
 

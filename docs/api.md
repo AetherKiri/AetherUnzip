@@ -63,6 +63,8 @@
 
 `FileWorkspace.makeTextFile` 独占创建一个 UTF-8 文件。`readText` 返回文本和用于保存的 `WorkspaceTextFile` 快照，快照保留目录授权。`saveText` 在协调写入中核对文件版本和原始字节，匹配时原子替换，并返回可供下次编辑使用的新快照。读写上限为 1 MiB。编辑会保留已有的 UTF-8 BOM。二进制数据、符号链接和其他非普通文件无法作为文本打开。文件发生外部变更时，`WorkspaceTextError.changed` 保留磁盘上的内容。
 
+`FileWorkspace.rename(_:to:access:)` 接受已打开的单文件 `ArchiveManifest` 时，会在协调写入中核对归档的文件版本。文件已被修改或替换时抛出 `ArchiveError.changed`。目标名称已存在时保留两个文件。调用方应提供归档所在目录的 `WorkspaceAccess`。
+
 ## 加密归档
 
 用 `aether_unzip_context_create_with_passphrase` 创建带密码的上下文。密码为非空、NUL 结尾的 UTF-8 字符串，Core 复制输入。读取归档的驱动持有自己的密码副本。资源挂载保留上下文，以便为每个打开的条目创建独立读取游标。结束时关闭这些句柄并释放上下文。
