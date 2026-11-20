@@ -70,6 +70,7 @@ struct WorkspaceView: View {
 
     @Bindable var model: AppModel
     @State private var files = FileBrowserModel()
+    @AppStorage(CachePreferences.nestedLimitKey) private var nestedLimit = CachePreferences.defaultNestedLimit
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -561,7 +562,10 @@ struct WorkspaceView: View {
             nestedPassword = NestedPasswordRequest(entry: entry, retrying: false, parentPassphrase: nil)
             return
         }
-        model.openNested(entry, limits: limits, passphrase: passphrase, childPassphrase: childPassphrase) {
+        let maximumStagedBytes = CachePreferences.bytes(for: nestedLimit, choices: CachePreferences.nestedLimits,
+                                                       fallback: CachePreferences.defaultNestedLimit)
+        model.openNested(entry, limits: limits, maximumStagedBytes: maximumStagedBytes,
+                         passphrase: passphrase, childPassphrase: childPassphrase) {
             retryNested = NestedPasswordRequest(entry: entry, retrying: true, parentPassphrase: passphrase)
         }
     }

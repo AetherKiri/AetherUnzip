@@ -8,11 +8,6 @@ import QuickLook
 
 struct FilePreview: View {
     struct Request: Identifiable, Sendable {
-        private static let extensions: Set<String> = [
-            "txt", "md", "log", "csv", "tsv", "json", "yaml", "yml", "ini",
-            "pdf", "png", "jpg", "jpeg", "gif", "bmp", "tif", "tiff", "heic", "webp"
-        ]
-
         let entry: ArchiveEntry
         let name: String
         let suffix: String
@@ -21,7 +16,7 @@ struct FilePreview: View {
         init?(entry: ArchiveEntry, name: String, capabilities: ArchiveCapabilities) {
             guard entry.kind == .file, entry.isExtractable(supporting: capabilities) else { return nil }
             let suffix = URL(fileURLWithPath: name).pathExtension.lowercased()
-            guard Self.extensions.contains(suffix) else { return nil }
+            guard PreviewCache.supports(suffix) else { return nil }
             self.entry = entry
             self.name = name
             self.suffix = suffix
@@ -32,11 +27,11 @@ struct FilePreview: View {
         case password(String?), loading, loaded(PreviewFile), failed(String)
     }
 
-    private static let maximumBytes: UInt64 = 32 * 1024 * 1024
     let archive: ArchiveManifest
     let request: Request
     let limits: ExtractionOptions.Limits
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(CachePreferences.previewLimitKey) private var previewLimit = CachePreferences.defaultPreviewLimit
     @State private var phase: Phase
     @State private var password = ""
     @State private var passwordTask: Task<Void, Never>?
@@ -111,13 +106,15 @@ struct FilePreview: View {
     }
 
     private func load(passphrase: String?) async {
+        let maximumBytes = CachePreferences.bytes(for: previewLimit, choices: CachePreferences.previewLimits,
+                                                  fallback: CachePreferences.defaultPreviewLimit)
         let worker = Task.detached(priority: .userInitiated) { [archive, request, limits] in
             try Task.checkCancellation()
-            let file = try PreviewFile(suffix: request.suffix)
+            let file = try await PreviewCache.shared.create(suffix: request.suffix)
             let handle = try FileHandle(forWritingTo: file.url)
             do {
                 try await ArchiveService().streamEntry(request.entry.id, from: archive,
-                    maximumBytes: Self.maximumBytes, passphrase: passphrase, limits: limits) { bytes in
+                    maximumBytes: maximumBytes, passphrase: passphrase, limits: limits) { bytes in
                     try handle.write(contentsOf: bytes)
                 }
                 try handle.close()
@@ -148,28 +145,6 @@ struct FilePreview: View {
             }
         }
     }
-}
-
-private final class PreviewFile: Sendable {
-    private let directory: URL
-    let url: URL
-
-    init(suffix: String) throws {
-        let directory = FileManager.default.temporaryDirectory
-            .appending(path: "aetherunzip-preview-" + UUID().uuidString, directoryHint: .isDirectory)
-        let url = directory.appending(path: "Preview." + suffix, directoryHint: .notDirectory)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false,
-                                                attributes: [.posixPermissions: 0o700])
-        guard FileManager.default.createFile(atPath: url.path, contents: nil,
-                                             attributes: [.posixPermissions: 0o600]) else {
-            try? FileManager.default.removeItem(at: directory)
-            throw ArchiveError.inputOutput
-        }
-        self.directory = directory
-        self.url = url
-    }
-
-    deinit { try? FileManager.default.removeItem(at: directory) }
 }
 
 #if os(macOS)

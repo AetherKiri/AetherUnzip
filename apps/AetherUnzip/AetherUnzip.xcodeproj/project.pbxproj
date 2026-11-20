@@ -27,6 +27,8 @@
 		8D7152F50A9E21298174F8C3 /* FormatSupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 836BEF06B5410252E433780E /* FormatSupportView.swift */; };
 		90FB80381CB3BD633833D846 /* xp3-wrapped.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4D8829ECC9D2611EA0A214F1 /* xp3-wrapped.bin */; };
 		9E7FD50F338F1A8910C37A4E /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74316D504A60E427C9D49F05 /* ActivityView.swift */; };
+		A2B463AE0585A287E3A33420 /* PreviewCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E05E8B1D3AE018E1519FF1 /* PreviewCache.swift */; };
+		A8AD0A50D5DB3933C8D5B64C /* CacheSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7785F81CE612428461A7C822 /* CacheSettingsView.swift */; };
 		ACFE53EE15ED65451F6E62CB /* FileBrowserModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D85580DB03EEEB9705EB516 /* FileBrowserModel.swift */; };
 		AE8D6EC249E34611A5F75E50 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 5369D8EFB7873655B07B921C /* InfoPlist.xcstrings */; };
 		B32254CE04D363C40EDA78B6 /* format-profile.json in Resources */ = {isa = PBXBuildFile; fileRef = 2E0196CE7B038DF2391C2A45 /* format-profile.json */; };
@@ -75,6 +77,7 @@
 		5E9F414290289FC5EB974155 /* AetherUnzip.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AetherUnzip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		69F3C4E42DE12D5301AF5D67 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		74316D504A60E427C9D49F05 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		7785F81CE612428461A7C822 /* CacheSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheSettingsView.swift; sourceTree = "<group>"; };
 		792249201D903B22E31ABC5A /* ExtractionPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractionPlan.swift; sourceTree = "<group>"; };
 		836BEF06B5410252E433780E /* FormatSupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatSupportView.swift; sourceTree = "<group>"; };
 		8AA48FCB35FE73642A7341FB /* zstd.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = zstd.txt; sourceTree = "<group>"; };
@@ -88,6 +91,7 @@
 		C12A63F06D48D9162AC84D95 /* WorkspaceTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTextEditor.swift; sourceTree = "<group>"; };
 		C9C73F90FB3F9D2B922FC920 /* lz4.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = lz4.txt; sourceTree = "<group>"; };
 		CFA50D622AF4CD1F5E51BC0C /* profile-box.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "profile-box.bin"; sourceTree = "<group>"; };
+		D6E05E8B1D3AE018E1519FF1 /* PreviewCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewCache.swift; sourceTree = "<group>"; };
 		D7310920C948FEF9B5AB88DD /* nested.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; path = nested.zip; sourceTree = "<group>"; };
 		D9206CA8FC1DB4D6AA2720F1 /* ArchiveRecognitionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveRecognitionSheet.swift; sourceTree = "<group>"; };
 		EDDBA02285EDEF9F339F8C89 /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
@@ -116,6 +120,7 @@
 				792249201D903B22E31ABC5A /* ExtractionPlan.swift */,
 				3D85580DB03EEEB9705EB516 /* FileBrowserModel.swift */,
 				A7742028812C78B20682663F /* PasswordLibrary.swift */,
+				D6E05E8B1D3AE018E1519FF1 /* PreviewCache.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -214,6 +219,7 @@
 				74316D504A60E427C9D49F05 /* ActivityView.swift */,
 				94AA2548B9D3F8822210CC54 /* ArchivePreview.swift */,
 				D9206CA8FC1DB4D6AA2720F1 /* ArchiveRecognitionSheet.swift */,
+				7785F81CE612428461A7C822 /* CacheSettingsView.swift */,
 				943453051EE8FEEE67C175E8 /* ExtractionPlanSheet.swift */,
 				91A79A67D2262FE1E8960939 /* FileBrowserView.swift */,
 				F1961AB93B86415BB78EA77D /* FilePreview.swift */,
@@ -364,6 +370,7 @@
 				DB0F7FF7563953DFCBE64551 /* ArchivePreview.swift in Sources */,
 				FF375F42BA39D8A85A47F770 /* ArchiveRecognitionSheet.swift in Sources */,
 				1DC0B39D6091190393307A24 /* ArchiveTree.swift in Sources */,
+				A8AD0A50D5DB3933C8D5B64C /* CacheSettingsView.swift in Sources */,
 				E784BAD1BF6EE1A3A8ACA87D /* ExtractionPlan.swift in Sources */,
 				EA2F3FD094B06320DF473928 /* ExtractionPlanSheet.swift in Sources */,
 				ACFE53EE15ED65451F6E62CB /* FileBrowserModel.swift in Sources */,
@@ -372,6 +379,7 @@
 				8D7152F50A9E21298174F8C3 /* FormatSupportView.swift in Sources */,
 				79649D7E5909493C38C3ED29 /* PasswordLibrary.swift in Sources */,
 				F3EE9C0BF966DBAD808D271C /* PasswordLibraryView.swift in Sources */,
+				A2B463AE0585A287E3A33420 /* PreviewCache.swift in Sources */,
 				C2331E1B2B4F2B5E41731515 /* SettingsView.swift in Sources */,
 				D37E608D8CAB0569DD86935A /* WorkspaceChrome.swift in Sources */,
 				E895E90768F3442E162B4882 /* WorkspaceTextEditor.swift in Sources */,

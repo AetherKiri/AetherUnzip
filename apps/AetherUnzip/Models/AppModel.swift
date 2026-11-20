@@ -194,7 +194,8 @@ final class AppModel {
         } catch { self.error = error.localizedDescription }
     }
 
-    func openNested(_ entry: ArchiveEntry, limits: ExtractionOptions.Limits, passphrase: String? = nil,
+    func openNested(_ entry: ArchiveEntry, limits: ExtractionOptions.Limits, maximumStagedBytes: UInt64,
+                    passphrase: String? = nil,
                     childPassphrase: String? = nil,
                     authenticationFailed: @escaping () -> Void) {
         guard let parent = manifest, !loading else { return }
@@ -210,7 +211,8 @@ final class AppModel {
             defer { if !Task.isCancelled { loading = false } }
             do {
                 let archive = try await service.openNested(entry.id, in: parent, passphrase: passphrase,
-                                                           childPassphrase: childPassphrase, limits: limits)
+                                                           childPassphrase: childPassphrase,
+                                                           maximumStagedBytes: maximumStagedBytes, limits: limits)
                 guard !Task.isCancelled else { return }
                 parents.append(previous)
                 manifest = archive

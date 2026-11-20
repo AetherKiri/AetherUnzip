@@ -244,6 +244,56 @@ final class ArchiveWorkflowTests: XCTestCase {
         app.buttons[originalConflict].firstMatch.tap()
     }
 
+    func testCacheSettingsClearsUnusedPreviewsAndAdjustsLimits() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-automaticallyClearPreviewCache", "NO"]
+        app.launch()
+        openSettings(in: app, title: "Settings")
+        let cache = app.buttons["settings-cache"].firstMatch
+        XCTAssertTrue(cache.waitForExistence(timeout: 8), app.debugDescription)
+        cache.tap()
+
+        let automatic = app.switches["cache-automatic"].firstMatch
+        XCTAssertTrue(automatic.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertEqual(automatic.value as? String, "0")
+        let clear = app.buttons["cache-clear"].firstMatch
+        let reclaimable = app.descendants(matching: .any)["cache-reclaimable"].firstMatch
+        XCTAssertTrue(reclaimable.waitForExistence(timeout: 8), app.debugDescription)
+        try XCTSkipUnless(clear.isEnabled, "Seed the abandoned preview fixture before running this test on its own.")
+        capture("Cache Settings", in: app)
+        clear.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["cache-result"].firstMatch
+            .waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertFalse(clear.isEnabled)
+
+        for (identifier, options) in [("cache-preview-limit", ["8 MiB", "16 MiB", "32 MiB"]),
+                                      ("cache-nested-limit", ["64 MiB", "128 MiB", "256 MiB"])] {
+            let picker = app.descendants(matching: .any)[identifier].firstMatch
+            XCTAssertTrue(picker.waitForExistence(timeout: 8), app.debugDescription)
+            let original = try XCTUnwrap(picker.value as? String)
+            let requested = try XCTUnwrap(options.first { $0 != original })
+            picker.tap()
+            app.buttons[requested].firstMatch.tap()
+            XCTAssertEqual(picker.value as? String, requested, picker.debugDescription)
+            if options.contains(original) {
+                picker.tap()
+                app.buttons[original].firstMatch.tap()
+            }
+        }
+    }
+
+    func testArchivePreviewRespectsConfiguredCacheLimit() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-previewLimitMiB", "8"]
+        app.launch()
+        openWorkspaceArchive("Cache Limit.zip", in: app)
+        let preview = app.buttons["Preview large.txt"].firstMatch
+        XCTAssertTrue(preview.waitForExistence(timeout: 8), app.debugDescription)
+        preview.tap()
+        XCTAssertTrue(app.staticTexts["This file exceeds the preview limits."].firstMatch
+            .waitForExistence(timeout: 8), app.debugDescription)
+    }
+
     func testSettingsDestination() {
         let app = XCUIApplication()
         app.launch()
@@ -1190,10 +1240,10 @@ final class ArchiveWorkflowTests: XCTestCase {
         app.launch()
         openFromFiles("MobileNested.zip", in: app)
 
-        let firstChild = app.buttons["open-nested-2"].firstMatch
+        let firstChild = app.buttons["Open visible.zip as Archive"].firstMatch
         XCTAssertTrue(firstChild.waitForExistence(timeout: 10), app.debugDescription)
         firstChild.tap()
-        let secondChild = app.buttons["open-nested-0"].firstMatch
+        let secondChild = app.buttons["Open deep.zip as Archive"].firstMatch
         XCTAssertTrue(secondChild.waitForExistence(timeout: 8))
         secondChild.tap()
         XCTAssertTrue(app.staticTexts["deep.zip"].waitForExistence(timeout: 8))

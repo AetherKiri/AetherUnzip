@@ -99,6 +99,22 @@
         }
       }
     },
+    "%lld MiB": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld MiB"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld MiB"
+          }
+        }
+      }
+    },
     "%lld of %lld archives extracted.": {
       "localizations": {
         "ja": {
@@ -565,6 +581,22 @@
         }
       }
     },
+    "Archive Preview Cache": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブのプレビューキャッシュ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "归档预览缓存"
+          }
+        }
+      }
+    },
     "Archive root": {
       "localizations": {
         "ja": {
@@ -661,6 +693,22 @@
         }
       }
     },
+    "Available to Clear": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "消去可能な容量"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可清理"
+          }
+        }
+      }
+    },
     "Batch cancelled. %lld of %lld archives extracted.": {
       "localizations": {
         "ja": {
@@ -709,6 +757,22 @@
         }
       }
     },
+    "Cache Management": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャッシュ管理"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缓存管理"
+          }
+        }
+      }
+    },
     "Change": {
       "localizations": {
         "ja": {
@@ -753,6 +817,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "选择文件夹…"
+          }
+        }
+      }
+    },
+    "Clean Up Automatically": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動で消去"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动清理"
+          }
+        }
+      }
+    },
+    "Clear Unused Cache": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未使用のキャッシュを消去"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清理闲置缓存"
+          }
+        }
+      }
+    },
+    "Cleared %@ of preview files.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレビューファイルを %@ 消去しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已清理 %@ 预览缓存。"
+          }
+        }
+      }
+    },
+    "Clears unused files generated for archive previews.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブのプレビューで作成した未使用ファイルを消去します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清理归档预览生成的闲置文件。"
+          }
+        }
+      }
+    },
+    "Clears unused previews left by interrupted sessions when the app becomes active.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリがアクティブになると、中断したセッションに残った未使用のプレビューを消去します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用进入前台时，清理上次异常退出后留下的闲置预览。"
           }
         }
       }
@@ -2791,6 +2935,22 @@
         }
       }
     },
+    "Nested Archive Staging": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入れ子のアーカイブの一時領域"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "嵌套归档暂存"
+          }
+        }
+      }
+    },
     "New File": {
       "localizations": {
         "ja": {
@@ -2883,6 +3043,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "暂无已保存的密码"
+          }
+        }
+      }
+    },
+    "No unused preview files.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未使用のプレビューファイルはありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有闲置的预览文件。"
           }
         }
       }
@@ -4007,6 +4183,22 @@
         }
       }
     },
+    "Single File Preview": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイル1件のプレビュー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单文件预览"
+          }
+        }
+      }
+    },
     "Single-volume archives with MSZIP or LZX.": {
       "localizations": {
         "ja": {
@@ -4135,6 +4327,22 @@
         }
       }
     },
+    "Space Used": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用済み容量"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已占用"
+          }
+        }
+      }
+    },
     "Special item": {
       "localizations": {
         "ja": {
@@ -4147,6 +4355,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "特殊项目"
+          }
+        }
+      }
+    },
+    "Staging space is shared across each nested archive chain.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時領域は同じ入れ子のアーカイブの階層で共有されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同一条嵌套归档链共享暂存额度。"
           }
         }
       }
@@ -4295,6 +4519,22 @@
         }
       }
     },
+    "Storage": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ストレージ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储"
+          }
+        }
+      }
+    },
     "Suggested Name": {
       "localizations": {
         "ja": {
@@ -4339,6 +4579,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "支持的压缩格式"
+          }
+        }
+      }
+    },
+    "Temporary Space Limits": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一時領域の上限"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "临时空间上限"
           }
         }
       }

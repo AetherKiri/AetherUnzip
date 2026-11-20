@@ -9,7 +9,7 @@ struct SettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private enum Page: Hashable, Identifiable {
-        case conflict, destination, safety, about
+        case conflict, destination, storage, safety, about
         var id: Self { self }
     }
 
@@ -41,6 +41,8 @@ struct SettingsView: View {
                            selection: $destination, title: \.title, detail: \.settingsDetail)
             case .safety:
                 SafetyLimitsEditor(limits: safetyLimits, save: saveSafetyLimits)
+            case .storage:
+                CacheSettingsView()
             case .about:
                 AboutView()
             }
@@ -59,6 +61,10 @@ struct SettingsView: View {
                 setting("Safety Limits", symbol: "shield", tint: .orange,
                         value: safetyLimits == .defaults ? String(localized: "Default") : String(localized: "Custom"),
                         route: .safety, identifier: "settings-safety")
+            }
+            Section("Storage") {
+                setting("Cache Management", symbol: "internaldrive", tint: .teal,
+                        route: .storage, identifier: "settings-cache")
             }
             Section {
                 setting("About AetherUnzip", symbol: "info.circle", tint: .indigo, value: AboutView.versionSummary,
