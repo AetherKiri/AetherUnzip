@@ -1023,6 +1023,32 @@ static void rar5_solid_password_tests(au_context *correct, au_context *incorrect
     }
 }
 
+static void chinese_zip_password_tests(void) {
+    const struct { const char *fixture, *password; } cases[] = {
+        {"chinese-utf8-aes256.zip", " 资源密碼！Ａ1𠮷🔑 "},
+        {"chinese-gbk-zipcrypto.zip", " 资源密碼！Ａ1 "},
+        {"chinese-gbk-aes256.zip", " 资源密碼！Ａ1 "},
+        {"chinese-big5-zipcrypto.zip", " 資源密碼！Ａ1 "},
+        {"chinese-big5-aes256.zip", " 資源密碼！Ａ1 "},
+    };
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i) {
+        au_context *password = NULL;
+        REQUIRE(aether_unzip_context_create_with_passphrase(cases[i].password, &password) == AU_OK);
+        au_source *source = fixture(cases[i].fixture);
+        au_probe_result info = {.struct_size = sizeof(info)};
+        REQUIRE(aether_unzip_probe(context, source, NULL, &info) == AU_OK && info.format == AU_FORMAT_ZIP);
+        const char *output = directory(cases[i].fixture);
+        REQUIRE(aether_unzip_extract(context, source, NULL, output, NULL, 0, NULL) == AU_ENCRYPTED);
+        no_output(output);
+        REQUIRE(aether_unzip_extract(password, source, NULL, output, NULL, 0, NULL) == AU_OK);
+        char path[512];
+        snprintf(path, sizeof(path), "%s/private.txt", output);
+        contents(path, "Chinese password fixture\n");
+        aether_unzip_source_close(source);
+        aether_unzip_context_destroy(password);
+    }
+}
+
 static void password_tests(void) {
     const char *fixtures[] = {"zipcrypto.zip", "aes256.zip"};
     au_context *correct = NULL, *incorrect = NULL;
@@ -1086,6 +1112,7 @@ static void password_tests(void) {
     sevenzip_password_tests(correct, incorrect);
     rar5_password_tests(correct, incorrect);
     rar5_solid_password_tests(correct, incorrect);
+    chinese_zip_password_tests();
     aether_unzip_context_destroy(incorrect);
     aether_unzip_context_destroy(correct);
 }

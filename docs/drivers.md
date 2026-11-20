@@ -20,6 +20,8 @@
 
 每种格式的实际编解码方法取决于构建选项。流条目从提示名称推导输出名，优先移除对应扩展名，未知长度保留为未知。libarchive 驱动要求可随机访问的输入。资源条目按顺序读取。ZIP、7z 和 RAR5 会报告加密能力，实际解密由条目的加密方法决定。
 
+ZIP 的 ZipCrypto 和 WinZip AES 接受 UTF-8 中文密码。对于可无损转换的非 ASCII 密码，驱动也尝试 Windows 简体中文 CP936 和繁体中文 CP950 字节。转换不改动用户输入，也不应用于 7z 或 RAR5。驱动仍按格式校验解密内容。[Windows 代码页说明](https://learn.microsoft.com/zh-cn/windows/win32/intl/code-page-identifiers)
+
 7z AES 支持 AES-256-CBC 和 SHA-256 密钥派生的单输入流。解密后的数据可以直接读取，或进入 LZMA/LZMA2 和可用的单输入过滤器。加密的 BCJ2、多输入布局和缺少校验和的条目或文件名索引会返回不支持。解码接入固定版 libarchive，密钥与属性格式参照 [7-Zip AES 实现](https://github.com/ip7z/7zip/blob/main/CPP/7zip/Crypto/7zAes.cpp)。
 
 RAR5 AES 使用 AES-256-CBC 和 PBKDF2-HMAC-SHA-256。密码校验字段存在时会先检查字段校验和及密码。解码到文件结尾时会检查 CRC-32 或 BLAKE2sp，并按条目标记验证密钥相关的校验值。单卷固实归档按条目恢复字典后读取目标文件。加密分卷和缺少校验和的加密条目会报告不支持。旧版 RAR 加密仍待实现。[RAR 5.0 格式说明](https://www.rarlab.com/technote.htm)

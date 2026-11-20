@@ -560,6 +560,36 @@ struct ArchiveServiceTests {
         }
     }
 
+    @Test(arguments: [
+        ("chinese-utf8-aes256", " 资源密碼！Ａ1𠮷🔑 "),
+        ("chinese-gbk-zipcrypto", " 资源密碼！Ａ1 "),
+        ("chinese-big5-aes256", " 資源密碼！Ａ1 "),
+    ])
+    func readsChineseZIPPasswordsAndMatchesOriginalCandidate(_ name: String, _ password: String) async throws {
+        let archive = try await service.open(fixture(name))
+        let entry = try #require(archive.entries.first)
+        #expect(entry.isEncrypted && entry.path == "private.txt")
+        let expected = Data("Chinese password fixture\n".utf8)
+        #expect(try await service.readEntry(entry.id, from: archive, maximumBytes: 64,
+                                           passphrase: password) == expected)
+        try await temporaryDirectory { destination in
+            if name.contains("aes256") {
+                let shortened = password.trimmingCharacters(in: .whitespaces)
+                let halfWidth = password.replacingOccurrences(of: "！Ａ", with: "!A")
+                let incorrect = service.extract(archive, to: destination,
+                                                passwordCandidates: [shortened, halfWidth])
+                await #expect(throws: ArchiveError.incorrectPassphrase) { try await incorrect.value() }
+                let files = try FileManager.default.contentsOfDirectory(atPath: destination.path)
+                #expect(files.isEmpty)
+            }
+            let task = service.extract(archive, to: destination, passwordCandidates: ["fixture-pass", password])
+            let accepted = try await task.acceptedPasswordCandidateIndex()
+            let extracted = try Data(contentsOf: destination.appending(path: entry.path))
+            #expect(accepted == 1)
+            #expect(extracted == expected)
+        }
+    }
+
     @Test func opensAndExtractsStandaloneBrotli() async throws {
         try await temporaryDirectory { destination in
             let fixture = try #require(Bundle.module.url(forResource: "notes", withExtension: "br",

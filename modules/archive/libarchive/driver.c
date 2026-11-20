@@ -2,6 +2,7 @@
 #include <archive.h>
 #include <archive_entry.h>
 #include <errno.h>
+#include <iconv.h>
 #include <limits.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -213,6 +214,43 @@ static au_status decoder_error(reader *state, au_status fallback) {
     return fallback;
 }
 
+static au_status set_passphrase(reader *state, au_format candidate, const char *passphrase) {
+    if (!passphrase || (candidate != AU_FORMAT_ZIP && candidate != AU_FORMAT_7ZIP &&
+        candidate != AU_FORMAT_RAR5 && candidate != AU_FORMAT_UNKNOWN)) return AU_OK;
+    if (archive_read_add_passphrase(state->handle, passphrase) != ARCHIVE_OK)
+        return decoder_error(state, AU_INVALID);
+    // The unknown-format reader can also recognize ZIP archives with a prefix.
+    if (candidate != AU_FORMAT_ZIP && candidate != AU_FORMAT_UNKNOWN) return AU_OK;
+    const unsigned char *bytes = (const unsigned char *)passphrase;
+    while (*bytes && *bytes < 0x80) ++bytes;
+    if (!*bytes) return AU_OK;
+
+    const char *encodings[] = {"CP936", "CP950"};
+    size_t length = strlen(passphrase);
+    // These code pages produce at most two bytes for a non-ASCII scalar.
+    char *converted = malloc(length + 1);
+    if (!converted) return AU_NOMEM;
+    au_status status = AU_OK;
+    for (size_t i = 0; i < sizeof(encodings) / sizeof(encodings[0]); ++i) {
+        iconv_t converter = iconv_open(encodings[i], "UTF-8");
+        if (converter == (iconv_t)-1) continue;
+        char *input = (char *)(uintptr_t)passphrase, *output = converted;
+        size_t unused_input = length, unused_output = length;
+        size_t result = iconv(converter, &input, &unused_input, &output, &unused_output);
+        iconv_close(converter);
+        if (result != 0 || unused_input != 0 || output == converted) continue;
+        *output = '\0';
+        if (archive_read_add_passphrase(state->handle, converted) != ARCHIVE_OK) {
+            status = decoder_error(state, AU_INVALID);
+            break;
+        }
+    }
+    volatile unsigned char *secret = (volatile unsigned char *)converted;
+    for (size_t i = 0; i <= length; ++i) secret[i] = 0;
+    free(converted);
+    return status;
+}
+
 static int read_header(reader *state, struct archive_entry **entry) {
     locale_t previous = state->locale ? uselocale(state->locale) : (locale_t)0;
     int result = archive_read_next_header(state->handle, entry);
@@ -336,11 +374,8 @@ static au_status probe(au_source *source, const char *hint, const char *passphra
     state->sevenzip_remaining = au_expansion_budget(options, state->length);
     aether_archive_read_7zip_set_controls(state->handle, decoder_cancelled, reserve_sevenzip_bytes, state);
     aether_archive_read_rar5_cancel(state->handle, decoder_cancelled, state);
-    if (passphrase && (info->candidate == AU_FORMAT_ZIP || info->candidate == AU_FORMAT_7ZIP ||
-                       info->candidate == AU_FORMAT_RAR5 ||
-                       info->candidate == AU_FORMAT_UNKNOWN) &&
-        archive_read_add_passphrase(state->handle, passphrase) != ARCHIVE_OK) {
-        status = decoder_error(state, AU_INVALID);
+    status = set_passphrase(state, info->candidate, passphrase);
+    if (status != AU_OK) {
         close_reader(state);
         return status;
     }

@@ -73,6 +73,8 @@ C 调用者可用 `aether_unzip_normalize_entry_path` 获取归档条目的安�
 
 用 `aether_unzip_context_create_with_passphrase` 创建带密码的上下文。密码为非空、NUL 结尾的 UTF-8 字符串，Core 复制输入。读取归档的驱动持有自己的密码副本。资源挂载保留上下文，以便为每个打开的条目创建独立读取游标。结束时关闭这些句柄并释放上下文。
 
+密码保留全半角、Unicode 序列和首尾空格。ZIP 驱动可额外尝试能无损转换的 CP936、CP950 密码字节。Swift 候选密码返回的下标仍对应调用方传入的原始字符串。[格式兼容性](drivers.md)
+
 ZIP 条目和文件名可见的 7z、RAR5 条目可以无密码枚举。7z 或 RAR5 文件名加密时，探测和打开归档也需要密码。`AU_ENCRYPTED` 表示需要密码，`AU_BAD_PASSPHRASE` 表示密码校验失败或加密数据损坏，`AU_UNSUPPORTED_ENCRYPTION` 表示加密布局或方法不支持。
 
 Swift 通过 `ArchiveService.open(..., passphrase:)` 提供打开密码，生成的清单在内存中保留该密码供后续操作使用。也可以通过 `ExtractionOptions.passphrase` 或读取 API 为单次操作提供密码。
