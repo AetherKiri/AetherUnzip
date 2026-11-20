@@ -807,6 +807,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         let path = app.descendants(matching: .any)["extraction-output-path"].firstMatch
         XCTAssertTrue(path.waitForExistence(timeout: 8), app.debugDescription)
         XCTAssertTrue(path.label.contains("Layout Workflow › Layout"), path.debugDescription)
+        XCTAssertTrue(app.staticTexts["extraction-placement-detail"].label.contains("Keep the archive’s top folder"))
         capture("Smart Extraction Preview", in: app)
 
         chooseExtractionLayout("Extract Directly", in: app)
@@ -815,6 +816,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(path.label.contains("Layout Workflow › Top Layout"), path.debugDescription)
         chooseExtractionLayout("Remove Top Folder", in: app)
         XCTAssertTrue(path.label.hasSuffix("Layout Workflow"), path.debugDescription)
+        XCTAssertTrue(app.staticTexts["extraction-placement-detail"].label.contains("Remove “Layout”"))
         confirmExtraction(in: app)
         let reveal = app.buttons["view-extraction-folder"].firstMatch
         XCTAssertTrue(reveal.waitForExistence(timeout: 12), app.debugDescription)

@@ -2343,6 +2343,22 @@
         }
       }
     },
+    "Group the contents in “%@”.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容を「%@」にまとめます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将内容集中放入「%@」。"
+          }
+        }
+      }
+    },
     "Hide Password": {
       "localizations": {
         "ja": {
@@ -2579,6 +2595,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "保留已有文件并重试"
+          }
+        }
+      }
+    },
+    "Keep the archive’s top folder “%@”.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブの最上位フォルダ「%@」を保持します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留压缩包内的顶层文件夹「%@」。"
           }
         }
       }
@@ -3511,6 +3543,22 @@
         }
       }
     },
+    "Place the file directly in the destination.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルを保存先に直接展開します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将文件直接解压到目标位置。"
+          }
+        }
+      }
+    },
     "Plain Text (.txt)": {
       "localizations": {
         "ja": {
@@ -3731,6 +3779,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "去除顶层目录"
+          }
+        }
+      }
+    },
+    "Remove “%@” and extract its contents directly.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」を取り除き、中身を保存先に直接展開します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去除「%@」，将其中的内容直接解压到目标位置。"
           }
         }
       }
