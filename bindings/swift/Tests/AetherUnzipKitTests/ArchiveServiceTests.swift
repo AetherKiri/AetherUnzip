@@ -3,6 +3,41 @@ import Testing
 import AetherUnzipKit
 
 struct ArchiveServiceTests {
+    @Test func fingerprintsArchiveBytesAcrossRenamesAndRejectsChangedRevisions() async throws {
+        let fixture = try #require(Bundle.module.url(forResource: "aes256", withExtension: "zip", subdirectory: "Fixtures"))
+        let expected = try await service.archiveFingerprint(for: [fixture])
+        try await temporaryDirectory { directory in
+            let copy = directory.appending(path: "Renamed.zip")
+            try FileManager.default.copyItem(at: fixture, to: copy)
+            let manifest = try await service.open(copy)
+            #expect(try await service.archiveFingerprint(for: manifest) == expected)
+
+            var bytes = try Data(contentsOf: copy)
+            bytes[0] ^= 1
+            try bytes.write(to: copy, options: .atomic)
+            #expect(try await service.archiveFingerprint(for: [copy]) != expected)
+            await #expect(throws: ArchiveError.changed) { try await service.archiveFingerprint(for: manifest) }
+        }
+    }
+
+    @Test(arguments: ["zipcrypto", "aes256", "rar5-aes-solid"])
+    func triesSavedPasswordsBeforePublishingAnyFiles(_ fixtureName: String) async throws {
+        let suffix = fixtureName.hasPrefix("rar5") ? "rar" : "zip"
+        let fixture = try #require(Bundle.module.url(forResource: fixtureName, withExtension: suffix, subdirectory: "Fixtures"))
+        let manifest = try await service.open(fixture)
+        try await temporaryDirectory { output in
+            let bad = service.extract(manifest, to: output, passwordCandidates: ["bad-one", "bad-two"])
+            await #expect(throws: ArchiveError.incorrectPassphrase) { try await bad.value() }
+            let files = try FileManager.default.contentsOfDirectory(atPath: output.path)
+            #expect(files.isEmpty)
+
+            let good = service.extract(manifest, to: output, passwordCandidates: ["bad-one", "fixture-pass"])
+            let candidate = try await good.acceptedPasswordCandidateIndex()
+            #expect(candidate == 1)
+            #expect(FileManager.default.fileExists(atPath: output.appending(path: "private.txt").path))
+        }
+    }
+
     private let service = ArchiveService()
 
     @Test func managesFilesInACoordinatedWorkspace() async throws {

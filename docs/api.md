@@ -67,6 +67,10 @@ ZIP 条目和文件名可见的 7z、RAR5 条目可以无密码枚举。7z 或 R
 
 Swift 通过 `ArchiveService.open(..., passphrase:)` 提供打开密码，生成的清单在内存中保留该密码供后续操作使用。也可以通过 `ExtractionOptions.passphrase` 或读取 API 为单次操作提供密码。
 
+`ArchiveService.extract(..., passwordCandidates:)` 按调用方提供的顺序验证选中的加密文件。每条候选密码在写入输出前流式读取并校验所选加密条目。仅密码相关错误会继续尝试，取消、读取错误和超限会直接返回。任务成功后，`acceptedPasswordCandidateIndex()` 返回所用密码在候选数组中的零基下标，未使用候选时返回 `nil`。
+
+`ArchiveService.archiveFingerprint(for:)` 流式计算单文件或按归档顺序排列的分卷的 SHA-256 指纹。显式传入的格式配置也计入指纹。通过清单计算时核对输入文件版本，适用于磁盘和文件提供器上的归档。
+
 ## ABI 与并发
 
 - 当前版本为 0.1.0，仍可调整 ABI。检查 `aether_unzip_abi_version`，使用 `aether_unzip_options_default()` 并初始化探测结果的 `struct_size`。较小的输入结构会返回 `AU_INVALID`。

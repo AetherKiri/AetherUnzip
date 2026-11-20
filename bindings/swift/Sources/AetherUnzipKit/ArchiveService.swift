@@ -1,9 +1,10 @@
 import CAetherUnzip
+import CryptoKit
 import Foundation
 
 public struct ExtractionTask: Sendable {
     public let progress: AsyncStream<ExtractionProgress>
-    fileprivate let worker: Task<Void, Error>
+    fileprivate let worker: Task<Int?, Error>
     fileprivate let control: OperationControl
 
     public func cancel() {
@@ -12,6 +13,11 @@ public struct ExtractionTask: Sendable {
     }
 
     public func value() async throws {
+        _ = try await acceptedPasswordCandidateIndex()
+    }
+
+    /// The index in the supplied password candidates after a successful extraction.
+    public func acceptedPasswordCandidateIndex() async throws -> Int? {
         try await withTaskCancellationHandler {
             try await worker.value
         } onCancel: {
@@ -24,6 +30,24 @@ public struct ArchiveService: Sendable {
     public init() {}
 
     public static var coreVersion: String { String(cString: aether_unzip_version()) }
+
+    /// Fingerprints the bytes of one archive or an ordered volume set for local password associations.
+    public func archiveFingerprint(for urls: [URL], profile: FormatProfile? = nil) async throws -> String {
+        let input: ArchiveInput
+        if profile != nil {
+            guard urls.count == 1, let url = urls.first else { throw ArchiveError.invalidInput }
+            input = try ArchiveInput(profileURL: url)
+        } else {
+            input = try ArchiveInput(urls)
+        }
+        return try await fingerprint(input.urls, profile: profile, revisions: nil)
+    }
+
+    /// Fingerprints a file-backed manifest only if it still identifies the same file revisions.
+    public func archiveFingerprint(for manifest: ArchiveManifest) async throws -> String {
+        guard !manifest.isNested else { throw ArchiveError.unsupported }
+        return try await fingerprint(manifest.sourceURLs, profile: manifest.profile, revisions: manifest.revisions)
+    }
 
     public func open(_ url: URL, limits: ExtractionOptions.Limits = .init(),
                      passphrase: String? = nil) async throws
@@ -307,6 +331,13 @@ public struct ArchiveService: Sendable {
     public func extract(_ manifest: ArchiveManifest, to directory: URL,
                         selecting ids: Set<ArchiveEntry.ID>? = nil,
                         options: ExtractionOptions = .init()) -> ExtractionTask {
+        extract(manifest, to: directory, selecting: ids, options: options, passwordCandidates: [])
+    }
+
+    /// Tries supplied candidates in order before writing files. Only password failures advance the search.
+    public func extract(_ manifest: ArchiveManifest, to directory: URL,
+                        selecting ids: Set<ArchiveEntry.ID>? = nil, options: ExtractionOptions = .init(),
+                        passwordCandidates: [String]) -> ExtractionTask {
         let (progress, continuation) = AsyncStream.makeStream(
             of: ExtractionProgress.self, bufferingPolicy: .bufferingNewest(1))
         let control = OperationControl(progress: continuation,
@@ -321,45 +352,104 @@ public struct ArchiveService: Sendable {
             }
             // Check passwords before writing any output so a retry can use the same folder.
             let verify = ids ?? Set(manifest.entries.lazy.filter(\.isEncrypted).map(\.id))
-            try await coordinated(reading: manifest.coordinatedURLs, writing: directory, control: control) { input, output in
+            let encrypted = manifest.entries.contains { verify.contains($0.id) && $0.kind == .file && $0.isEncrypted }
+            return try await coordinated(reading: manifest.coordinatedURLs, writing: directory, control: control) { input, output in
                 guard let output else { throw ArchiveError.invalidInput }
-                try withManifestSource(manifest, input, passphrase: options.passphrase) { context, source in
-                    var coreOptions = control.options(options)
-                    if !verify.isEmpty {
-                        try withArchive(context, source, manifest.decoderName, &coreOptions) { handle in
-                            var remaining = verify.count
-                            try eachEntry(handle) { entry in
-                                if verify.contains(entry.id) {
-                                    guard let index = Int(exactly: entry.id),
-                                          manifest.entries.indices.contains(index),
-                                          entry == manifest.entries[index] else {
-                                        throw ArchiveError.changed
+                func perform(_ password: String?, candidate: Int?) throws -> Int? {
+                    var authenticated = false
+                    do {
+                        try withManifestSource(manifest, input, passphrase: password) { context, source in
+                            var coreOptions = control.options(options)
+                            if !verify.isEmpty {
+                                try withArchive(context, source, manifest.decoderName, &coreOptions) { handle in
+                                    var remaining = verify.count
+                                    try eachEntry(handle) { entry in
+                                        if verify.contains(entry.id) {
+                                            guard let index = Int(exactly: entry.id),
+                                                  manifest.entries.indices.contains(index),
+                                                  entry == manifest.entries[index] else {
+                                                throw ArchiveError.changed
+                                            }
+                                            if entry.isEncrypted && entry.kind == .file {
+                                                try validatePassphrase(handle, checksAtEnd: candidate != nil || manifest.format == .sevenZip || manifest.format == .rar5)
+                                            }
+                                            remaining -= 1
+                                        }
+                                        return remaining != 0
                                     }
-                                    if entry.isEncrypted && entry.kind == .file {
-                                        try validatePassphrase(handle, format: manifest.format)
-                                    }
-                                    remaining -= 1
+                                    guard remaining == 0 else { throw ArchiveError.changed }
                                 }
-                                return remaining != 0
                             }
-                            guard remaining == 0 else { throw ArchiveError.changed }
+                            authenticated = true
+                            let status = selection.withUnsafeBufferPointer { indexes in
+                                aether_unzip_extract(context, source, manifest.decoderName,
+                                                      output.path, ids == nil ? nil : indexes.baseAddress,
+                                                      indexes.count, &coreOptions)
+                            }
+                            try check(status)
                         }
+                        return candidate
+                    } catch let error as ArchiveError where !authenticated && candidate != nil &&
+                        (error == .encrypted || error == .incorrectPassphrase) {
+                        throw RejectedPassword(error: error)
                     }
-                    let status = selection.withUnsafeBufferPointer { indexes in
-                        aether_unzip_extract(context, source, manifest.decoderName,
-                                              output.path, ids == nil ? nil : indexes.baseAddress,
-                                              indexes.count, &coreOptions)
-                    }
-                    try check(status)
                 }
+                guard encrypted, !passwordCandidates.isEmpty else {
+                    return try perform(options.passphrase, candidate: nil)
+                }
+                var rejection = ArchiveError.incorrectPassphrase
+                for (index, password) in passwordCandidates.enumerated() {
+                    if control.isCancelled { throw ArchiveError.cancelled }
+                    do { return try perform(password, candidate: index) }
+                    catch let rejected as RejectedPassword { rejection = rejected.error }
+                }
+                throw rejection
             }
         }
         return ExtractionTask(progress: progress, worker: worker, control: control)
     }
 }
 
-private func validatePassphrase(_ handle: OpaquePointer, format: ArchiveFormat) throws {
-    let checksAtEnd = format == .sevenZip || format == .rar5
+private func fingerprint(_ inputs: [URL], profile: FormatProfile?, revisions: [FileRevision]?) async throws -> String {
+    let control = OperationControl()
+    return try await withTaskCancellationHandler {
+        try await coordinated(reading: inputs, writing: nil, control: control) { urls, _ in
+            let initial = try urls.map(FileRevision.init)
+            if let revisions, initial != revisions { throw ArchiveError.changed }
+            var archive = SHA256()
+            archive.update(data: Data("AetherUnzip archive fingerprint v1".utf8))
+            var volumeCount = UInt64(urls.count).bigEndian
+            withUnsafeBytes(of: &volumeCount) { archive.update(bufferPointer: $0) }
+            for url in urls {
+                guard try url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
+                    throw ArchiveError.invalidInput
+                }
+                let file = try FileHandle(forReadingFrom: url)
+                defer { try? file.close() }
+                var volume = SHA256()
+                while true {
+                    if control.isCancelled { throw ArchiveError.cancelled }
+                    guard let bytes = try file.read(upToCount: 1024 * 1024), !bytes.isEmpty else { break }
+                    volume.update(data: bytes)
+                }
+                archive.update(data: Data(volume.finalize()))
+            }
+            guard try urls.map(FileRevision.init) == initial else { throw ArchiveError.changed }
+            if let profile {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .sortedKeys
+                archive.update(data: try encoder.encode(profile))
+            }
+            return archive.finalize().map { String(format: "%02x", $0) }.joined()
+        }
+    } onCancel: { control.cancel() }
+}
+
+private struct RejectedPassword: Error {
+    let error: ArchiveError
+}
+
+private func validatePassphrase(_ handle: OpaquePointer, checksAtEnd: Bool) throws {
     var buffer = [UInt8](repeating: 0, count: checksAtEnd ? 65536 : 1)
     var count = 0
     repeat {
