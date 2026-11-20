@@ -64,6 +64,7 @@ struct WorkspaceView: View {
         let profile: FormatProfile?
         let origin: BrowserFolder?
         let action: ArchiveFileAction
+        let access: WorkspaceAccess?
         var message: String? = nil
         var retryCount = 0
     }
@@ -83,6 +84,7 @@ struct WorkspaceView: View {
     @State private var archiveProfile: FormatProfile?
     @State private var profileConfirmation: ProfileConfirmation?
     @State private var loadingProfile = false
+    @State private var incomingArchives: [WorkspaceAccess] = []
     @State private var extractionDraft: ExtractionDraft?
     @State private var confirmedExtraction: ExtractionRun?
     @State private var showBatchResults = false
@@ -119,6 +121,15 @@ struct WorkspaceView: View {
 
     var body: some View {
         workspace
+        .onOpenURL { url in
+            guard url.isFileURL, !incomingArchives.contains(where: { $0.url == url }) else { return }
+            incomingArchives.append(WorkspaceAccess(url))
+        }
+        .onChange(of: nextIncomingArchive, initial: true) { _, url in
+            guard let url else { return }
+            let access = incomingArchives.removeFirst()
+            openArchive([url], profile: nil, access: access)
+        }
         .fileImporter(isPresented: $showPicker,
                       allowedContentTypes: choosingProfile ? [.json] : (addingLocation ? [.folder] : [.item]),
                       allowsMultipleSelection: !choosingProfile && !addingLocation && archiveProfile == nil) { result in
@@ -418,7 +429,7 @@ struct WorkspaceView: View {
                                openingPassword = nil
             }) { choice in
                 openArchive(pending.urls, profile: pending.profile, password: choice,
-                            origin: pending.origin, action: pending.action)
+                            origin: pending.origin, action: pending.action, access: pending.access)
             }
             .frame(maxWidth: 420)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -494,7 +505,7 @@ struct WorkspaceView: View {
         extractionDraft = .init(source: .archive(archive, ids), origin: origin,
             destination: action == .browse ? preferredDestination(origin) : origin,
             lastDestination: lastExtractionDestination, mode: mode, conflict: conflict,
-            access: [origin?.location].compactMap { $0 }, choosePassword: choosePassword)
+            access: [origin?.location, model.archiveAccess].compactMap { $0 }, choosePassword: choosePassword)
     }
 
     private func prepareBatch(_ groups: [[URL]], origin: BrowserFolder?) {
@@ -543,14 +554,24 @@ struct WorkspaceView: View {
         }
     }
 
+    private var nextIncomingArchive: URL? {
+        guard !model.loading, model.current == nil, model.error == nil, !showPicker, !loadingProfile,
+              !preparingOutput, profileConfirmation == nil, extractionDraft == nil, confirmedExtraction == nil,
+              !showBatchResults, openingPassword == nil, passwordRequest == nil, nestedPassword == nil
+        else { return nil }
+        return incomingArchives.first?.url
+    }
+
     private func openArchive(_ urls: [URL], profile: FormatProfile?, password: PasswordChoice = .automatic,
-                             origin: BrowserFolder? = nil, action: ArchiveFileAction = .browse) {
+                             origin: BrowserFolder? = nil, action: ArchiveFileAction = .browse,
+                             access: WorkspaceAccess? = nil) {
         page = .archives
         let previous = model.archiveID
-        model.open(urls, profile: profile, limits: limits, password: password, origin: origin) { failure in
+        model.open(urls, profile: profile, limits: limits, password: password, origin: origin, access: access) { failure in
             if let failure {
                 if openingPassword == nil {
-                    openingPassword = OpeningPasswordRequest(urls: urls, profile: profile, origin: origin, action: action)
+                    openingPassword = OpeningPasswordRequest(urls: urls, profile: profile, origin: origin,
+                                                             action: action, access: access)
                 }
                 if case .library = password {
                     openingPassword?.message = String(localized: "None of the saved passwords could unlock this archive.")

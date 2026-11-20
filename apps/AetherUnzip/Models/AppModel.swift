@@ -57,6 +57,7 @@ final class AppModel {
     private(set) var noticeIsPartial = false
     private(set) var batchPosition: (index: Int, total: Int)?
     private(set) var archiveOrigin: BrowserFolder?
+    private(set) var archiveAccess: WorkspaceAccess?
     private(set) var lastOutput: BrowserFolder?
     private(set) var batchResult: BatchResult?
     private(set) var noticeIsBatch = false
@@ -80,7 +81,7 @@ final class AppModel {
     }
 
     func open(_ urls: [URL], profile: FormatProfile? = nil, limits: ExtractionOptions.Limits,
-              password: PasswordChoice = .automatic, origin: BrowserFolder? = nil,
+              password: PasswordChoice = .automatic, origin: BrowserFolder? = nil, access: WorkspaceAccess? = nil,
               finished: @escaping (ArchiveError?) -> Void) {
         opening?.cancel()
         loading = true
@@ -99,6 +100,7 @@ final class AppModel {
                 parents.removeAll()
                 manifest = archive
                 archiveOrigin = origin
+                archiveAccess = access
                 archiveID = UUID()
                 selection = []
                 #if os(iOS)
@@ -288,7 +290,10 @@ final class AppModel {
     func closeArchive() {
         let parent = parents.popLast()
         manifest = parent?.archive
-        if parent == nil { archiveOrigin = nil }
+        if parent == nil {
+            archiveOrigin = nil
+            archiveAccess = nil
+        }
         selection = parent?.selection ?? []
         #if os(iOS)
         browsing = parent?.browsing ?? ArchiveBrowsing()

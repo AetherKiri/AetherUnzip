@@ -20,6 +20,8 @@ xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
 
 本机 macOS 使用 ad-hoc 签名和沙盒。分发时请用自己的签名设置。iOS 真机安装需要开发团队和设备授权。macOS 的 XCTest 端到端用例通过系统文件面板导入 ZIP、预览条目并选择目标目录，使用图形登录会话里的 `xcodebuild ... -destination 'platform=macOS' test` 运行。
 
+在 iOS/iPadOS 26 的「文件」或 macOS 的 Finder 中，长按或右键点按 ZIP、7z、RAR、TAR、TGZ 或 GZIP 文件，在「打开方式」选择以太解压。App 会读取文件内容后打开预览。收到的是单个文件的访问授权时，解压仍由用户选择目标或使用 App 文档目录。打开分卷归档时，在 App 的文件选择器中一次选中同组分卷。
+
 在 macOS App 的系统文件面板中打开 `tests/fixtures/7z-aes-picker.7z` 可以验证加密文件名的 7z。先输入 `wrong-password` 确认显示错误，再输入 `fixture-pass` 打开归档。选择 **Extract All** 并在系统面板选定空目录，核对 `private.txt` 和 `second.txt` 与样本说明一致。[样本说明](../tests/fixtures/README.md)
 
 RAR5 文件名加密使用 `tests/fixtures/rar5-aes-picker.rar`，密码同为 `fixture-pass`，提取后核对 `rar5-picker-note.txt`。[样本说明](../tests/fixtures/README.md)
@@ -33,6 +35,9 @@ xcrun simctl install "$destination_id" build/app-ios-ui/Build/Products/Debug-iph
 xcrun simctl install "$destination_id" build/app-ios-ui/Build/Products/Debug-iphonesimulator/AetherUnzipUITests-Runner.app
 app_data=$(xcrun simctl get_app_container "$destination_id" org.aetherunzip.app data)
 mkdir -p "$app_data/Documents"
+association="$app_data/Documents/Archive Association QA"
+mkdir -p "$association"
+cp tests/fixtures/sample.zip "$association/Association ZIP.zip"
 cp tests/fixtures/sample.zip "$app_data/Documents/MobileSample.zip"
 mkdir -p "$app_data/Documents/AetherUnzip Settings Output"
 cp tests/fixtures/nested.zip "$app_data/Documents/MobileNested.zip"

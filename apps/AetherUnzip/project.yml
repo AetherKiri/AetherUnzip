@@ -35,7 +35,7 @@ targets:
       base:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_FILE[sdk=iphone*]: Resources/Info-iOS.plist
+        INFOPLIST_FILE: Resources/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: AetherUnzip
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.utilities
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
