@@ -72,6 +72,10 @@ unzip -p tests/fixtures/sample.zip notes.txt > "$workspace/Release Notes.txt"
 cache="$app_data/tmp/aetherunzip-previews/087A3F02-C2EC-4EAB-8563-409838531B70"
 mkdir -p "$cache"
 head -c 131072 /dev/urandom > "$cache/Preview.txt"
+legacy_cache="$app_data/tmp/aetherunzip-preview-ECC17417-8FC4-4C2F-B88B-DFB86A86F2B5"
+mkdir -p "$legacy_cache"
+head -c 8192 /dev/urandom > "$legacy_cache/Preview.txt"
+touch "$legacy_cache"
 python3 - "$app_data/Documents/Cache Limit.zip" <<'PY'
 import sys
 import zipfile

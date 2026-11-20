@@ -30,6 +30,7 @@ actor PreviewCache {
         var reclaimableBytes: UInt64 = 0
         var reclaimableCount = 0
         var removedBytes: UInt64 = 0
+        var deferredLegacyBytes: UInt64 = 0
     }
 
     private let temporaryDirectory: URL
@@ -83,9 +84,9 @@ actor PreviewCache {
                 where entry.lastPathComponent.hasPrefix(Self.legacyPrefix) {
                 let id = entry.lastPathComponent.dropFirst(Self.legacyPrefix.count)
                 guard UUID(uuidString: String(id)) != nil,
-                      let modified = try? entry.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate,
-                      modified < cutoff else { continue }
-                try inspect(entry, clearing: clearing, usage: &usage)
+                      let modified = try? entry.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+                else { continue }
+                try inspect(entry, clearing: clearing, deferringLegacy: modified >= cutoff, usage: &usage)
             }
             return usage
         }
@@ -103,7 +104,8 @@ actor PreviewCache {
         return try operation()
     }
 
-    private func inspect(_ directory: URL, clearing: Bool, usage: inout Usage) throws {
+    private func inspect(_ directory: URL, clearing: Bool, deferringLegacy: Bool = false,
+                         usage: inout Usage) throws {
         try Task.checkCancellation()
         let descriptor = open(directory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard descriptor >= 0 else {
@@ -133,7 +135,10 @@ actor PreviewCache {
             guard info.st_mode & S_IFMT == S_IFREG, info.st_nlink == 1 else { return }
             bytes = UInt64(clamping: info.st_blocks) * 512
         }
-        if available && clearing {
+        if deferringLegacy {
+            usage.bytes += bytes
+            usage.deferredLegacyBytes += bytes
+        } else if available && clearing {
             try Self.remove(directory, name: child, descriptor: descriptor)
             usage.removedBytes += bytes
         } else {

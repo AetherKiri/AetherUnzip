@@ -21,16 +21,7 @@ struct CacheSettingsView: View {
                     } else if working {
                         ProgressView()
                     }
-                    Button("Clear Unused Cache", systemImage: "trash", role: .destructive) {
-                        Task { await updateUsage(clearing: true) }
-                    }
-                    .disabled(working || (usage?.reclaimableCount ?? 0) == 0)
-                    .accessibilityIdentifier("cache-clear")
-                    if let status {
-                        Label(status, systemImage: "checkmark.circle")
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("cache-result")
-                    }
+                    cleanupRow
                     if let failure {
                         Label(failure, systemImage: "exclamationmark.circle")
                             .foregroundStyle(.secondary)
@@ -40,7 +31,13 @@ struct CacheSettingsView: View {
                 } header: {
                     Text("Archive Preview Cache")
                 } footer: {
-                    Text("Clears unused files generated for archive previews.")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Clears unused files generated for archive previews.")
+                        if let bytes = usage?.deferredLegacyBytes, bytes > 0 {
+                            Text("Older preview files (\(formattedBytes(bytes))) become clearable 24 hours after their last change.")
+                                .accessibilityIdentifier("legacy-cache-delay")
+                        }
+                    }
                 }
                 Section {
                     Toggle("Clean Up Automatically", isOn: $automaticCleanup)
@@ -76,6 +73,27 @@ struct CacheSettingsView: View {
         .frame(minWidth: 480, minHeight: 400)
         #endif
         .task { await updateUsage() }
+    }
+
+    @ViewBuilder private var cleanupRow: some View {
+        if let status {
+            Label {
+                Text(status)
+            } icon: {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            }
+            .accessibilityIdentifier("cache-result")
+        } else if let usage, usage.reclaimableCount == 0, !working {
+            Text("No unused preview files.")
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("cache-empty")
+        } else if (usage?.reclaimableCount ?? 0) > 0 {
+            Button("Clear Unused Cache", systemImage: "trash") {
+                Task { await updateUsage(clearing: true) }
+            }
+            .disabled(working)
+            .accessibilityIdentifier("cache-clear")
+        }
     }
 
     private func limitPicker(_ title: LocalizedStringKey, selection: Binding<Int>, sizes: [Int]) -> some View {

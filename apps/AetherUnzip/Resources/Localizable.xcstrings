@@ -3175,6 +3175,22 @@
         }
       }
     },
+    "Older preview files (%@) become clearable 24 hours after their last change.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "旧バージョンのプレビューファイル（%@）は、最終更新から24時間後に消去できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "旧版预览缓存（%@）在最后修改满 24 小时后可清理。"
+          }
+        }
+      }
+    },
     "Oldest First": {
       "localizations": {
         "ja": {

@@ -259,12 +259,18 @@ final class ArchiveWorkflowTests: XCTestCase {
         let clear = app.buttons["cache-clear"].firstMatch
         let reclaimable = app.descendants(matching: .any)["cache-reclaimable"].firstMatch
         XCTAssertTrue(reclaimable.waitForExistence(timeout: 8), app.debugDescription)
-        try XCTSkipUnless(clear.isEnabled, "Seed the abandoned preview fixture before running this test on its own.")
+        try XCTSkipUnless(clear.exists, "Seed the abandoned preview fixture before running this test on its own.")
+        XCTAssertTrue(clear.isEnabled)
+        XCTAssertTrue(app.staticTexts["legacy-cache-delay"].firstMatch.exists)
         capture("Cache Settings", in: app)
         clear.tap()
         XCTAssertTrue(app.descendants(matching: .any)["cache-result"].firstMatch
             .waitForExistence(timeout: 8), app.debugDescription)
-        XCTAssertFalse(clear.isEnabled)
+        XCTAssertFalse(clear.exists)
+        app.buttons["Done"].firstMatch.tap()
+        XCTAssertTrue(cache.waitForExistence(timeout: 8))
+        cache.tap()
+        XCTAssertTrue(app.staticTexts["cache-empty"].firstMatch.waitForExistence(timeout: 8))
 
         for (identifier, options) in [("cache-preview-limit", ["8 MiB", "16 MiB", "32 MiB"]),
                                       ("cache-nested-limit", ["64 MiB", "128 MiB", "256 MiB"])] {
