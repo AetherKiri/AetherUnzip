@@ -6,9 +6,10 @@ struct SettingsView: View {
     @Binding var destination: DestinationPolicy
     let safetyLimits: AppSafetyLimits
     let saveSafetyLimits: (AppSafetyLimits) -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     private enum Page: Hashable, Identifiable {
-        case conflict, destination, formats, safety, about
+        case conflict, destination, safety, about
         var id: Self { self }
     }
 
@@ -19,6 +20,12 @@ struct SettingsView: View {
             WorkspaceHeading(title: String(localized: "Settings"))
                 .modifier(WorkspaceHeaderLayout())
             preferences
+        }
+        .background(alignment: .top) {
+            LinearGradient(colors: [.accentColor.opacity(colorScheme == .dark ? 0.18 : 0.12), .clear],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(maxHeight: 300)
+                .ignoresSafeArea(edges: .top)
         }
         .modifier(WorkspaceCanvas())
         #if os(iOS)
@@ -32,8 +39,6 @@ struct SettingsView: View {
             case .destination:
                 choicePage("Destination", options: DestinationPolicy.allCases,
                            selection: $destination, title: \.title, detail: \.settingsDetail)
-            case .formats:
-                FormatSupportView()
             case .safety:
                 SafetyLimitsEditor(limits: safetyLimits, save: saveSafetyLimits)
             case .about:
@@ -47,29 +52,27 @@ struct SettingsView: View {
             Section("Extraction") {
                 setting("Existing Files", symbol: "doc.on.doc", value: conflict.settingsTitle,
                         route: .conflict, identifier: "settings-conflict")
-                setting("Destination", symbol: "folder", value: destination.title,
+                setting("Destination", symbol: "folder", tint: .teal, value: destination.title,
                         route: .destination, identifier: "settings-destination")
-                setting("Supported Formats", symbol: "doc.zipper",
-                        route: .formats, identifier: "settings-formats")
             }
             Section("Safety") {
-                setting("Safety Limits", symbol: "shield",
+                setting("Safety Limits", symbol: "shield", tint: .orange,
                         value: safetyLimits == .defaults ? String(localized: "Default") : String(localized: "Custom"),
                         route: .safety, identifier: "settings-safety")
             }
             Section {
-                setting("About AetherUnzip", symbol: "info.circle", value: AboutView.versionSummary,
+                setting("About AetherUnzip", symbol: "info.circle", tint: .indigo, value: AboutView.versionSummary,
                         route: .about, identifier: "settings-about")
             }
         }
         .modifier(WorkspaceListSurface())
     }
 
-    private func setting(_ title: LocalizedStringKey, symbol: String, value: String? = nil,
+    private func setting(_ title: LocalizedStringKey, symbol: String, tint: Color = .accentColor, value: String? = nil,
                          route: Page, identifier: String) -> some View {
         Button { page = route } label: {
             HStack(spacing: 10) {
-                WorkspaceGlyph(symbol: symbol, tint: .accentColor)
+                WorkspaceGlyph(symbol: symbol, tint: tint)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title).font(.body.weight(.medium))
                     if let value { Text(value).font(.subheadline).foregroundStyle(.secondary) }

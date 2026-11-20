@@ -31,6 +31,18 @@ struct AboutView: View {
                     versionRow("Build Number", value: Self.build, identifier: "about-build")
                     versionRow("AetherUnzip Core", value: Self.core, identifier: "about-core-version")
                 }
+                Section("Extraction Support") {
+                    NavigationLink {
+                        FormatSupportView()
+                    } label: {
+                        Label {
+                            Text("Supported Formats")
+                        } icon: {
+                            Image(systemName: "doc.zipper").foregroundStyle(.teal)
+                        }
+                    }
+                    .accessibilityIdentifier("about-formats")
+                }
                 Section {
                     Button(action: copyVersions) {
                         Label {

@@ -289,23 +289,33 @@ final class ArchiveWorkflowTests: XCTestCase {
             .firstMatch.waitForExistence(timeout: 8), app.debugDescription)
     }
 
-    func testSettingsShowsSupportedExtractionFormats() {
+    func testAboutShowsSupportedExtractionFormats() {
         let app = XCUIApplication()
         app.launch()
         openSettings(in: app, title: "Settings")
-        let formats = app.buttons["settings-formats"].firstMatch
+        let about = app.buttons["settings-about"].firstMatch
+        XCTAssertTrue(about.waitForExistence(timeout: 8), app.debugDescription)
+        capture("Settings Colors", in: app)
+        about.tap()
+        let formats = app.buttons["about-formats"].firstMatch
         XCTAssertTrue(formats.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Extraction Support"].firstMatch.exists)
+        capture("About Extraction Support", in: app)
         formats.tap()
 
         let zip = app.descendants(matching: .any)["supported-format-1"].firstMatch
         XCTAssertTrue(zip.waitForExistence(timeout: 8), app.debugDescription)
         XCTAssertTrue(zip.label.contains("ZIP / ZIP64"))
         XCTAssertTrue(zip.label.contains("WinZip AES-256"))
+        XCTAssertEqual(zip.value as? String, "Supported")
         capture("Supported Archive Formats", in: app)
         let xp3 = app.descendants(matching: .any)["supported-format-15"].firstMatch
         for _ in 0..<4 where !xp3.isHittable { app.swipeUp() }
         XCTAssertTrue(xp3.waitForExistence(timeout: 8), app.debugDescription)
         XCTAssertTrue(xp3.label.contains("KiriKiri"))
+        XCTAssertEqual(xp3.value as? String, "Supported")
+        app.navigationBars["Supported Formats"].buttons.firstMatch.tap()
+        XCTAssertTrue(formats.waitForExistence(timeout: 8), app.debugDescription)
     }
 
     func testSettingsAskDestinationUsesNativeFolderPicker() {

@@ -2,7 +2,7 @@ import AetherUnzipKit
 import SwiftUI
 
 struct FormatSupportView: View {
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @State private var supported: Set<ArchiveFormat>?
     @State private var failure: String?
 
@@ -27,33 +27,23 @@ struct FormatSupportView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if let failure {
-                    ContentUnavailableView("Format Support Unavailable", systemImage: "doc.zipper",
-                                           description: Text(failure))
-                } else if let supported {
-                    if supported.isEmpty {
-                        ContentUnavailableView("No Extraction Formats Available", systemImage: "doc.zipper")
-                    } else {
-                        formatList(supported)
-                    }
+        Group {
+            if let failure {
+                ContentUnavailableView("Format Support Unavailable", systemImage: "doc.zipper",
+                                       description: Text(failure))
+            } else if let supported {
+                if supported.isEmpty {
+                    ContentUnavailableView("No Extraction Formats Available", systemImage: "doc.zipper")
                 } else {
-                    ProgressView()
+                    formatList(supported)
                 }
-            }
-            .navigationTitle("Supported Formats")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
-                }
+            } else {
+                ProgressView()
             }
         }
-        #if os(macOS)
-        .frame(minWidth: 520, minHeight: 460)
+        .navigationTitle("Supported Formats")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
         #endif
         .task {
             do { supported = try ArchiveService.supportedExtractionFormats() }
@@ -83,16 +73,33 @@ struct FormatSupportView: View {
     }
 
     private func formatRow(_ format: ArchiveFormat) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(verbatim: format == .zip ? "ZIP / ZIP64" : format.description)
-                .font(.body.weight(.medium))
-            Text(details(for: format))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(verbatim: format == .zip ? "ZIP / ZIP64" : format.description)
+                    .font(.body.weight(.semibold))
+                Text(details(for: format))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            supportBadge
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
+        .accessibilityValue("Supported")
         .accessibilityIdentifier("supported-format-\(format.rawValue)")
+    }
+
+    private var supportBadge: some View {
+        let green = colorScheme == .dark
+            ? Color(red: 0.50, green: 0.86, blue: 0.66)
+            : Color(red: 0.10, green: 0.46, blue: 0.28)
+        return Image(systemName: "checkmark")
+            .font(.caption2.weight(.bold))
+            .foregroundStyle(green)
+            .frame(width: 24, height: 22)
+            .background(green.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+            .accessibilityHidden(true)
     }
 
     private func details(for format: ArchiveFormat) -> LocalizedStringKey {

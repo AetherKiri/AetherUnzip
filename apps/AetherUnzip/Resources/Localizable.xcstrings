@@ -1607,6 +1607,22 @@
         }
       }
     },
+    "Extraction Support": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開サポート"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压支持"
+          }
+        }
+      }
+    },
     "Extraction cancelled. Files already extracted are kept.": {
       "localizations": {
         "ja": {
@@ -3635,6 +3651,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "遇到同名文件时停止。已解压的文件会保留。"
+          }
+        }
+      }
+    },
+    "Supported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応済み"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已支持"
           }
         }
       }
