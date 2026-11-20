@@ -12,6 +12,7 @@ struct ArchivePreview: View {
     let close: () -> Void
     let openNested: (ArchiveEntry) -> Void
     let extract: (Set<ArchiveEntry.ID>?) -> Void
+    let extractWithPassword: (Set<ArchiveEntry.ID>?) -> Void
     let nearbyDestination: String?
     let extractNearby: (Set<ArchiveEntry.ID>?, ArchiveFileAction) -> Void
     @State private var browserIndex: ArchiveBrowserIndex?
@@ -332,6 +333,7 @@ struct ArchivePreview: View {
                     .disabled(!browsing.selecting && !archive.entries.contains(where: isSelectable))
                     .accessibilityIdentifier("select-entries")
                 }
+                if !blocked || selected { passwordAction(selected ? selection : nil) }
             }
         }
     }
@@ -353,6 +355,9 @@ struct ArchivePreview: View {
             .disabled(busy || (selection.isEmpty && archive.entries.contains {
                 !$0.isExtractable(supporting: archive.capabilities)
             }))
+        if !selection.isEmpty || archive.entries.allSatisfy({ $0.isExtractable(supporting: archive.capabilities) }) {
+            passwordAction(selection.isEmpty ? nil : selection)
+        }
     }
 
     private func entryRow(_ node: ArchiveNode, showingPath: Bool = false) -> some View {
@@ -435,6 +440,21 @@ struct ArchivePreview: View {
             }
             .accessibilityIdentifier("archive-extract-destinations")
             #endif
+        }
+    }
+
+    @ViewBuilder private func passwordAction(_ selection: Set<ArchiveEntry.ID>?) -> some View {
+        if archive.capabilities.contains(.encryption), archive.entries.contains(where: {
+            $0.kind == .file && $0.isEncrypted && (selection?.contains($0.id) ?? true)
+        }) {
+            Button {
+                extractWithPassword(selection)
+            } label: {
+                Label("Extract with Password…", systemImage: "key")
+                    .font(.subheadline)
+            }
+            .disabled(busy)
+            .accessibilityIdentifier("extract-with-password")
         }
     }
 

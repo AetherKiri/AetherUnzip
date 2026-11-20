@@ -24,12 +24,11 @@ xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
 
 RAR5 文件名加密使用 `tests/fixtures/rar5-aes-picker.rar`，密码同为 `fixture-pass`，提取后核对 `rar5-picker-note.txt`。[样本说明](../tests/fixtures/README.md)
 
-移动端 XCTest 通过系统 Files 面板打开样本。将 `destination_id` 设为 `xcrun simctl list devices booted` 中的 iPhone 或 iPad 模拟器 ID，再从仓库根目录运行以下命令。
+移动端 XCTest 覆盖系统 Files 面板和 App 文件工作区。密码库用例使用模拟器的系统钥匙串，依赖 Xcode 生成的应用签名。将 `destination_id` 设为 `xcrun simctl list devices booted` 中的 iPhone 或 iPad 模拟器 ID，再从仓库根目录运行以下命令。
 
 ```sh
 xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
-  -destination "platform=iOS Simulator,id=$destination_id" -derivedDataPath build/app-ios-ui \
-  CODE_SIGNING_ALLOWED=NO build-for-testing
+  -destination "platform=iOS Simulator,id=$destination_id" -derivedDataPath build/app-ios-ui build-for-testing
 xcrun simctl install "$destination_id" build/app-ios-ui/Build/Products/Debug-iphonesimulator/AetherUnzip.app
 xcrun simctl install "$destination_id" build/app-ios-ui/Build/Products/Debug-iphonesimulator/AetherUnzipUITests-Runner.app
 app_data=$(xcrun simctl get_app_container "$destination_id" org.aetherunzip.app data)
@@ -43,6 +42,9 @@ cp tests/fixtures/profile-box.bin "$app_data/Documents/MobileProfileBox.bin"
 cp tests/fixtures/7z-aes-picker.7z "$app_data/Documents/MobileProtected.7z"
 cp tests/fixtures/rar5-aes-picker.rar "$app_data/Documents/MobileProtectedRAR.rar"
 cp tests/fixtures/rar5-aes-solid-header.rar "$app_data/Documents/MobileSolidRAR.rar"
+cp tests/fixtures/rar5-aes-picker.rar "$app_data/Documents/Library Locked.rar"
+cp tests/fixtures/rar5-aes-picker.rar "$app_data/Documents/Library Renamed.rar"
+cp tests/fixtures/aes256.zip "$app_data/Documents/Library Payload.zip"
 workspace="$app_data/Documents/Project Downloads"
 mkdir -p "$workspace/Guides"
 cp tests/fixtures/sample.zip "$workspace/Project Assets.zip"
@@ -50,7 +52,7 @@ cp tests/fixtures/sample.tar.gz "$workspace/Release Backup.tar.gz"
 unzip -p tests/fixtures/sample.zip notes.txt > "$workspace/Release Notes.txt"
 xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
   -destination "platform=iOS Simulator,id=$destination_id" -derivedDataPath build/app-ios-ui \
-  -parallel-testing-enabled NO -testLanguage en -testRegion US CODE_SIGNING_ALLOWED=NO test-without-building
+  -parallel-testing-enabled NO -testLanguage en -testRegion US test-without-building
 ```
 
 App 和 Swift SDK 使用 String Catalog，支持英文、简体中文和日文。系统按 App 的语言设置选择界面，按地区设置显示日期和数字。新增界面文案时同步更新 App 或 SDK 的 `Localizable.xcstrings`。三个 `test*Localization` 用例分别验证本地化排序、搜索计数和解压密码错误。

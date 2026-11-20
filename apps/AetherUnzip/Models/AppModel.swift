@@ -57,7 +57,8 @@ final class AppModel {
     private(set) var lastOutput: BrowserFolder?
 
     private let service = ArchiveService()
-    private var extraction: ExtractionTask?
+    let passwords = PasswordLibrary()
+    private var extraction: Task<Void, Never>?
     private var opening: Task<Void, Never>?
     private var parents: [ParentArchive] = []
     private(set) var archiveID = UUID()
@@ -73,7 +74,7 @@ final class AppModel {
     }
 
     func open(_ urls: [URL], profile: FormatProfile? = nil, limits: ExtractionOptions.Limits,
-              passphrase: String? = nil, origin: BrowserFolder? = nil,
+              password: PasswordChoice = .automatic, origin: BrowserFolder? = nil,
               finished: @escaping (ArchiveError?) -> Void) {
         opening?.cancel()
         loading = true
@@ -82,13 +83,7 @@ final class AppModel {
         opening = Task {
             defer { if !Task.isCancelled { loading = false } }
             do {
-                let archive: ArchiveManifest
-                if let profile {
-                    guard urls.count == 1, let url = urls.first else { throw ArchiveError.invalidInput }
-                    archive = try await service.open(url, profile: profile, limits: limits, passphrase: passphrase)
-                } else {
-                    archive = try await service.open(urls, limits: limits, passphrase: passphrase)
-                }
+                let archive = try await unlock(urls, profile: profile, limits: limits, password: password)
                 let bookmarks = await Task.detached(priority: .utility) {
                     let archiveBookmarks = archive.sourceURLs.compactMap { createBookmark(for: $0) }
                     let locationBookmark = origin.flatMap { $0.isDocuments ? nil : try? $0.location.bookmark() }
@@ -124,7 +119,7 @@ final class AppModel {
             } catch {
                 guard !Task.isCancelled else { return }
                 if let failure = error as? ArchiveError,
-                   failure == .encrypted || failure == .incorrectPassphrase {
+                   failure.needsArchivePassword {
                     finished(failure)
                 } else {
                     finished(nil)
@@ -132,6 +127,58 @@ final class AppModel {
                 }
             }
         }
+    }
+
+    private func unlock(_ urls: [URL], profile: FormatProfile?, limits: ExtractionOptions.Limits,
+                        password: PasswordChoice) async throws -> ArchiveManifest {
+        func read(_ passphrase: String?) async throws -> ArchiveManifest {
+            if let profile {
+                guard urls.count == 1, let url = urls.first else { throw ArchiveError.invalidInput }
+                return try await service.open(url, profile: profile, limits: limits, passphrase: passphrase)
+            }
+            return try await service.open(urls, limits: limits, passphrase: passphrase)
+        }
+
+        if case .automatic = password {
+            do { return try await read(nil) }
+            catch let error as ArchiveError where error.needsArchivePassword {
+                guard (try? await passwords.hasArchiveAssociations()) == true,
+                      let fingerprint = try? await service.archiveFingerprint(for: urls, profile: profile),
+                      let id = try? await passwords.rememberedID(for: fingerprint),
+                      let candidate = try? await passwords.candidates(for: .saved(id, remember: false)).first
+                else { throw error }
+                try Task.checkCancellation()
+                do { return try await read(candidate.value) }
+                catch let rejected as ArchiveError where rejected.needsArchivePassword { throw error }
+            }
+        }
+
+        var rejection = ArchiveError.incorrectPassphrase
+        for candidate in try await passwords.candidates(for: password) {
+            try Task.checkCancellation()
+            do {
+                let archive = try await read(candidate.value)
+                await remember(candidate, for: archive)
+                return archive
+            } catch let error as ArchiveError where error.needsArchivePassword {
+                rejection = error
+            }
+        }
+        throw rejection
+    }
+
+    func rememberedPassword(for archive: ArchiveManifest) async -> UUID? {
+        guard !archive.isNested, (try? await passwords.hasArchiveAssociations()) == true,
+              let fingerprint = try? await service.archiveFingerprint(for: archive) else { return nil }
+        return try? await passwords.rememberedID(for: fingerprint)
+    }
+
+    private func remember(_ candidate: PasswordCandidate, for archive: ArchiveManifest) async {
+        guard candidate.remember, !Task.isCancelled else { return }
+        let fingerprint = try? await service.archiveFingerprint(for: archive)
+        guard !Task.isCancelled else { return }
+        do { try await passwords.save(candidate.value, title: archive.displayName, fingerprint: fingerprint) }
+        catch { self.error = error.localizedDescription }
     }
 
     func openNested(_ entry: ArchiveEntry, limits: ExtractionOptions.Limits, passphrase: String? = nil,
@@ -238,6 +285,7 @@ final class AppModel {
 
     func extract(_ archive: ArchiveManifest, to output: BrowserFolder, ids: Set<ArchiveEntry.ID>?,
                  options: ExtractionOptions, sourceAccess: WorkspaceAccess?,
+                 password: PasswordChoice = .automatic,
                  authenticationFailed: (() -> Void)? = nil) {
         guard extraction == nil else { return }
         let destination = output.url
@@ -249,27 +297,36 @@ final class AppModel {
         cancelling = false
         notice = nil
         lastOutput = nil
-        let task = service.extract(archive, to: destination, selecting: ids, options: options)
-        extraction = task
-        Task {
+        extraction = Task {
             defer { withExtendedLifetime((sourceAccess, output.location)) {} }
-            for await update in task.progress { progress = update }
             do {
-                try await task.value()
+                let candidates = try await passwords.candidates(for: password)
+                try Task.checkCancellation()
+                let task = service.extract(archive, to: destination, selecting: ids, options: options,
+                                           passwordCandidates: candidates.map(\.value))
+                let accepted = try await withTaskCancellationHandler {
+                    for await update in task.progress { progress = update }
+                    return try await task.acceptedPasswordCandidateIndex()
+                } onCancel: { task.cancel() }
+                if let accepted { await remember(candidates[accepted], for: archive) }
                 record.state = .success
                 lastOutput = output
                 notice = String(localized: "Extraction completed in \(destination.lastPathComponent).")
-            } catch ArchiveError.cancelled {
+            } catch let error where error is CancellationError || (error as? ArchiveError) == .cancelled {
                 record.state = .cancelled
                 notice = String(localized: "Extraction cancelled. Files already extracted are kept.")
             } catch {
                 record.state = .failed
-                record.details = error.localizedDescription
-                if let error = error as? ArchiveError,
-                   error == .incorrectPassphrase || error == .encrypted {
+                let isAuthenticationFailure = (error as? ArchiveError)?.needsArchivePassword == true
+                if isAuthenticationFailure || error is PasswordLibrary.Failure {
                     authenticationFailed?()
                 }
-                self.error = error.localizedDescription
+                if isAuthenticationFailure, case .library = password {
+                    record.details = String(localized: "None of the saved passwords could unlock this archive.")
+                } else {
+                    record.details = error.localizedDescription
+                }
+                self.error = record.details
             }
             history.insert(record, at: 0)
             history = Array(history.prefix(20))

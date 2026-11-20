@@ -43,10 +43,11 @@ struct WorkspaceView: View {
         let manifest: ArchiveManifest
         let selection: Set<ArchiveEntry.ID>?
         let sourceAccess: WorkspaceAccess?
+        var choosePassword = false
 
         var needsPassword: Bool {
-            !manifest.hasOpeningPassphrase && manifest.entries.contains { entry in
-                entry.isEncrypted && (selection?.contains(entry.id) ?? true)
+            manifest.capabilities.contains(.encryption) && !manifest.hasOpeningPassphrase && manifest.entries.contains { entry in
+                entry.kind == .file && entry.isEncrypted && (selection?.contains(entry.id) ?? true)
             }
         }
     }
@@ -178,9 +179,10 @@ struct WorkspaceView: View {
             #endif
         }
         .sheet(item: $passwordRequest) { pending in
-            PasswordPrompt(archiveName: pending.extraction.manifest.displayName, actionTitle: "Extract") { value in
+            PasswordPrompt(archiveName: pending.extraction.manifest.displayName, actionTitle: "Extract",
+                           library: model.passwords) { choice in
                 passwordRequest = nil
-                run(pending.extraction, at: pending.directory, subfolder: pending.subfolder, passphrase: value)
+                run(pending.extraction, at: pending.directory, subfolder: pending.subfolder, password: choice)
             }
         }
         .sheet(item: $nestedPassword) { pending in
@@ -193,7 +195,8 @@ struct WorkspaceView: View {
                                childPassphrase: child, prompting: false)
                 }
             } else {
-                PasswordPrompt(archiveName: pending.entry.path, actionTitle: "Open Archive") { value in
+                PasswordPrompt(archiveName: pending.entry.path, actionTitle: "Open Archive") { choice in
+                    guard case .manual(let value, _) = choice else { return }
                     nestedPassword = nil
                     openNested(pending.entry, passphrase: pending.entry.isEncrypted ? value : nil,
                                childPassphrase: pending.entry.isEncrypted ? nil : value, prompting: false)
@@ -346,7 +349,7 @@ struct WorkspaceView: View {
     }
 
     private var settingsPage: some View {
-        SettingsView(conflict: $conflict, destination: $destination,
+        SettingsView(conflict: $conflict, destination: $destination, passwordLibrary: model.passwords,
                      safetyLimits: AppSafetyLimits(entryGiB: entryLimitGiB, totalGiB: totalLimitGiB,
                                                   entries: entryCountLimit, depth: depthLimit,
                                                   expansion: expansionLimit)) { values in
@@ -379,11 +382,11 @@ struct WorkspaceView: View {
         if let pending = openingPassword {
             PasswordPrompt(archiveName: pending.urls.first?.lastPathComponent ?? String(localized: "Archive"),
                            actionTitle: "Open Archive", errorMessage: pending.message,
-                           working: model.loading, retryCount: pending.retryCount, cancel: {
+                           working: model.loading, retryCount: pending.retryCount, library: model.passwords, cancel: {
                                model.cancelOpening()
                                openingPassword = nil
-                           }) { value in
-                openArchive(pending.urls, profile: pending.profile, passphrase: value,
+            }) { choice in
+                openArchive(pending.urls, profile: pending.profile, password: choice,
                             origin: pending.origin, action: pending.action)
             }
             .frame(maxWidth: 420)
@@ -404,6 +407,7 @@ struct WorkspaceView: View {
             ArchivePreview(archive: archive, selection: $model.selection, browsing: $model.browsing,
                            busy: model.current != nil || preparingOutput, limits: limits, close: model.closeArchive,
                            openNested: { openNested($0) }, extract: { extract(archive, ids: $0) },
+                           extractWithPassword: { extract(archive, ids: $0, choosePassword: true) },
                            nearbyDestination: model.archiveOrigin?.name,
                            extractNearby: { ids, action in extractNearby(archive, ids: ids, action: action) })
                 .id(model.archiveID)
@@ -411,6 +415,7 @@ struct WorkspaceView: View {
             ArchivePreview(archive: archive, selection: $model.selection,
                            busy: model.current != nil || preparingOutput, limits: limits, close: model.closeArchive,
                            openNested: { openNested($0) }, extract: { extract(archive, ids: $0) },
+                           extractWithPassword: { extract(archive, ids: $0, choosePassword: true) },
                            nearbyDestination: model.archiveOrigin?.name,
                            extractNearby: { ids, action in extractNearby(archive, ids: ids, action: action) })
                 .id(model.archiveID)
@@ -433,8 +438,9 @@ struct WorkspaceView: View {
         }, remove: model.remove)
     }
 
-    private func extract(_ archive: ArchiveManifest, ids: Set<ArchiveEntry.ID>?) {
-        let pending = Request(manifest: archive, selection: ids, sourceAccess: model.archiveOrigin?.location)
+    private func extract(_ archive: ArchiveManifest, ids: Set<ArchiveEntry.ID>?, choosePassword: Bool = false) {
+        let pending = Request(manifest: archive, selection: ids, sourceAccess: model.archiveOrigin?.location,
+                              choosePassword: choosePassword)
         if destination == .documents {
             preparingOutput = true
             Task {
@@ -462,17 +468,21 @@ struct WorkspaceView: View {
         start(pending, at: origin, subfolder: subfolder)
     }
 
-    private func openArchive(_ urls: [URL], profile: FormatProfile?, passphrase: String? = nil,
+    private func openArchive(_ urls: [URL], profile: FormatProfile?, password: PasswordChoice = .automatic,
                              origin: BrowserFolder? = nil, action: ArchiveFileAction = .browse) {
         page = .archives
         let previous = model.archiveID
-        model.open(urls, profile: profile, limits: limits, passphrase: passphrase, origin: origin) { failure in
+        model.open(urls, profile: profile, limits: limits, password: password, origin: origin) { failure in
             if let failure {
                 if openingPassword == nil {
                     openingPassword = OpeningPasswordRequest(urls: urls, profile: profile, origin: origin, action: action)
                 }
-                openingPassword?.message = failure == .incorrectPassphrase ? failure.localizedDescription : nil
-                if failure == .incorrectPassphrase { openingPassword?.retryCount += 1 }
+                if case .library = password {
+                    openingPassword?.message = String(localized: "None of the saved passwords could unlock this archive.")
+                } else {
+                    openingPassword?.message = failure == .incorrectPassphrase ? failure.localizedDescription : nil
+                }
+                if openingPassword?.message != nil { openingPassword?.retryCount += 1 }
             } else {
                 openingPassword = nil
                 if action != .browse, model.archiveID != previous, let archive = model.manifest {
@@ -552,15 +562,27 @@ struct WorkspaceView: View {
     }
 
     private func start(_ request: Request, at directory: BrowserFolder, subfolder: String? = nil) {
-        if request.needsPassword {
-            passwordRequest = PasswordRequest(extraction: request, directory: directory, subfolder: subfolder)
-        } else {
+        guard model.current == nil, !preparingOutput else { return }
+        let prompt = PasswordRequest(extraction: request, directory: directory, subfolder: subfolder)
+        if request.choosePassword {
+            passwordRequest = prompt
+        } else if !request.needsPassword {
             run(request, at: directory, subfolder: subfolder)
+        } else {
+            preparingOutput = true
+            Task {
+                let remembered = await model.rememberedPassword(for: request.manifest)
+                preparingOutput = false
+                if let remembered {
+                    run(request, at: directory, subfolder: subfolder, password: .saved(remembered, remember: false))
+                }
+                else { passwordRequest = prompt }
+            }
         }
     }
 
     private func run(_ request: Request, at directory: BrowserFolder, subfolder: String? = nil,
-                     passphrase: String? = nil) {
+                     password: PasswordChoice = .automatic) {
         guard model.current == nil, !preparingOutput else { return }
         if let subfolder {
             preparingOutput = true
@@ -569,19 +591,19 @@ struct WorkspaceView: View {
                 do {
                     let target = try await FileWorkspace().makeUniqueFolder(named: subfolder,
                         in: directory.url, access: directory.location)
-                    begin(request, at: directory.child(target.lastPathComponent), passphrase: passphrase)
+                    begin(request, at: directory.child(target.lastPathComponent), password: password)
                 } catch { model.error = error.localizedDescription }
             }
         } else {
-            begin(request, at: directory, passphrase: passphrase)
+            begin(request, at: directory, password: password)
         }
     }
 
-    private func begin(_ request: Request, at directory: BrowserFolder, passphrase: String?) {
+    private func begin(_ request: Request, at directory: BrowserFolder, password: PasswordChoice) {
         retryPassword = nil
         model.extract(request.manifest, to: directory, ids: request.selection,
-                      options: .init(conflictPolicy: conflict, limits: limits,
-                                     passphrase: passphrase), sourceAccess: request.sourceAccess) {
+                      options: .init(conflictPolicy: conflict, limits: limits),
+                      sourceAccess: request.sourceAccess, password: password) {
             retryPassword = PasswordRequest(extraction: request, directory: directory)
         }
     }
@@ -594,10 +616,13 @@ private struct PasswordPrompt: View {
     var errorMessage: String? = nil
     var working = false
     var retryCount = 0
+    var library: PasswordLibrary? = nil
     var cancel: (() -> Void)? = nil
-    let submit: (String) -> Void
+    let submit: (PasswordChoice) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var passphrase = ""
+    @State private var remember = true
+    @State private var saved: [PasswordLabel] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -612,6 +637,27 @@ private struct PasswordPrompt: View {
                     .font(.footnote)
                     .foregroundStyle(.red)
                     .accessibilityIdentifier("archive-password-error")
+            }
+            if library != nil {
+                Toggle("Save Password for This Archive", isOn: $remember)
+                    .font(.subheadline)
+                    .disabled(working)
+                    .accessibilityIdentifier("remember-archive-password")
+                if !saved.isEmpty {
+                    Menu {
+                        Button("Try All Saved Passwords") { choose(.library(remember: remember)) }
+                            .accessibilityIdentifier("try-password-library")
+                        Divider()
+                        ForEach(saved) { entry in
+                            Button(entry.title) { choose(.saved(entry.id, remember: remember)) }
+                        }
+                    } label: {
+                        Label("Choose from Password Library", systemImage: "key")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .disabled(working)
+                    .accessibilityIdentifier("choose-saved-password")
+                }
             }
             HStack {
                 Spacer()
@@ -630,13 +676,20 @@ private struct PasswordPrompt: View {
         #if os(macOS)
         .frame(minWidth: 360)
         #endif
+        .task {
+            if let library { saved = (try? await library.labels()) ?? [] }
+        }
     }
 
     private func confirm() {
         guard !working, !passphrase.isEmpty else { return }
-        let value = passphrase
+        choose(.manual(passphrase, remember: library != nil && remember))
+    }
+
+    private func choose(_ choice: PasswordChoice) {
+        guard !working else { return }
         passphrase = ""
-        submit(value)
+        submit(choice)
     }
 }
 

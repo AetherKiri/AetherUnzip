@@ -279,6 +279,22 @@
         }
       }
     },
+    "Add Password": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードを追加"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加密码"
+          }
+        }
+      }
+    },
     "AetherUnzip": {
       "localizations": {
         "ja": {
@@ -439,6 +455,22 @@
         }
       }
     },
+    "Archives that use this password will ask for it again.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このパスワードを使うアーカイブでは、次回も入力が必要になります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用此密码的压缩包下次会重新提示输入。"
+          }
+        }
+      }
+    },
     "Ascending": {
       "localizations": {
         "ja": {
@@ -579,6 +611,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "名称不能为“.”或“..”。"
+          }
+        }
+      }
+    },
+    "Choose from Password Library": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブラリから選ぶ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从密码库选择"
           }
         }
       }
@@ -889,6 +937,22 @@
         }
       }
     },
+    "Delete Saved Password?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みのパスワードを削除しますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除已保存的密码？"
+          }
+        }
+      }
+    },
     "Descending": {
       "localizations": {
         "ja": {
@@ -965,6 +1029,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "压缩包为空"
+          }
+        }
+      }
+    },
+    "Enter a valid password.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効なパスワードを入力してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入有效密码。"
           }
         }
       }
@@ -1157,6 +1237,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "解压到新文件夹"
+          }
+        }
+      }
+    },
+    "Extract with Password…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードを選んで展開…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择密码并解压…"
           }
         }
       }
@@ -1849,6 +1945,38 @@
         }
       }
     },
+    "No Saved Passwords": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みのパスワードはありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无已保存的密码"
+          }
+        }
+      }
+    },
+    "None of the saved passwords could unlock this archive.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みのパスワードでは、このアーカイブを開けませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码库中的密码均无法解锁此压缩包。"
+          }
+        }
+      }
+    },
     "OK": {
       "localizations": {
         "ja": {
@@ -2085,6 +2213,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "密码"
+          }
+        }
+      }
+    },
+    "Password Library": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードライブラリ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码库"
           }
         }
       }
@@ -2505,6 +2649,38 @@
         }
       }
     },
+    "Save Password for This Archive": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアーカイブのパスワードを保存"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存此压缩包的密码"
+          }
+        }
+      }
+    },
+    "Save archive passwords to choose them again later.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブのパスワードを保存して、次回も使えます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存压缩包密码，方便下次使用。"
+          }
+        }
+      }
+    },
     "Save to Extracted Archives in My Files.": {
       "localizations": {
         "ja": {
@@ -2809,6 +2985,38 @@
         }
       }
     },
+    "The password library could not be accessed.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードライブラリにアクセスできませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法访问密码库。"
+          }
+        }
+      }
+    },
+    "The password library is empty.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードライブラリは空です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码库为空。"
+          }
+        }
+      }
+    },
     "The selected items will be permanently deleted.": {
       "localizations": {
         "ja": {
@@ -2905,6 +3113,22 @@
         }
       }
     },
+    "This password is no longer in the library.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このパスワードはライブラリから削除されています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此密码已从密码库移除。"
+          }
+        }
+      }
+    },
     "Total Output": {
       "localizations": {
         "ja": {
@@ -2933,6 +3157,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "再试一次"
+          }
+        }
+      }
+    },
+    "Try All Saved Passwords": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みのパスワードをすべて試す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尝试所有已保存的密码"
           }
         }
       }

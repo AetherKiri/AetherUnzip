@@ -4,11 +4,12 @@ import SwiftUI
 struct SettingsView: View {
     @Binding var conflict: ExtractionOptions.ConflictPolicy
     @Binding var destination: DestinationPolicy
+    let passwordLibrary: PasswordLibrary
     let safetyLimits: AppSafetyLimits
     let saveSafetyLimits: (AppSafetyLimits) -> Void
 
     private enum Page: Hashable, Identifiable {
-        case conflict, destination, safety, licenses
+        case conflict, destination, safety, passwords, licenses
         var id: Self { self }
     }
 
@@ -34,6 +35,8 @@ struct SettingsView: View {
                            selection: $destination, title: \.title, detail: \.settingsDetail)
             case .safety:
                 SafetyLimitsEditor(limits: safetyLimits, save: saveSafetyLimits)
+            case .passwords:
+                PasswordLibraryView(library: passwordLibrary)
             case .licenses:
                 licenses
             }
@@ -49,6 +52,7 @@ struct SettingsView: View {
                         route: .destination, identifier: "settings-destination")
             }
             Section("Safety") {
+                setting("Password Library", symbol: "key", route: .passwords, identifier: "settings-password-library")
                 setting("Safety Limits", symbol: "shield",
                         value: safetyLimits == .defaults ? String(localized: "Default") : String(localized: "Custom"),
                         route: .safety, identifier: "settings-safety")

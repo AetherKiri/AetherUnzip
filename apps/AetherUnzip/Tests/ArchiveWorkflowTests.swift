@@ -555,9 +555,100 @@ final class ArchiveWorkflowTests: XCTestCase {
         checkUnlockFromFiles("MobileProtected.7z")
     }
 
+    func testRemembersArchivePasswordAfterRelaunchAndRename() {
+        let app = launchWithIsolatedPasswordLibrary()
+        openWorkspaceArchive("Library Locked.rar", in: app)
+        let field = app.secureTextFields["archive-password"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 8), app.debugDescription)
+        field.tap()
+        field.typeText("fixture-pass")
+        app.buttons["submit-archive-password"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["extract-all"].firstMatch.waitForExistence(timeout: 10), app.debugDescription)
+
+        app.terminate()
+        app.launch()
+        openWorkspaceArchive("Library Renamed.rar", in: app)
+        XCTAssertTrue(app.buttons["extract-all"].firstMatch.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertFalse(field.exists)
+    }
+
+    func testSelectsAndTriesPasswordsFromLibrary() {
+        let app = launchWithIsolatedPasswordLibrary()
+        openSettings(in: app, title: "Settings")
+        app.buttons["settings-password-library"].firstMatch.tap()
+        addLibraryPassword("fixture-pass", named: "Fixture Password", in: app)
+        addLibraryPassword("wrong-password", named: "Other Password", in: app)
+        capture("Password Library", in: app)
+        app.buttons["Done"].firstMatch.tap()
+        app.terminate()
+        app.launch()
+        openWorkspaceArchive("Library Payload.zip", in: app)
+
+        let choose = app.buttons["choose-saved-password"].firstMatch
+        let all = app.buttons["try-password-library"].firstMatch
+        let completion = app.staticTexts["Extraction completed in Extracted Archives."].firstMatch
+        app.buttons["extract-all"].firstMatch.tap()
+        XCTAssertTrue(choose.waitForExistence(timeout: 8), app.debugDescription)
+        choose.tap()
+        XCTAssertTrue(all.waitForExistence(timeout: 8), app.debugDescription)
+        all.tap()
+        XCTAssertTrue(completion.waitForExistence(timeout: 12), app.debugDescription)
+
+        app.terminate()
+        app.launch()
+        openWorkspaceArchive("Library Payload.zip", in: app)
+        app.buttons["extract-all"].firstMatch.tap()
+        XCTAssertTrue(completion.waitForExistence(timeout: 12), app.debugDescription)
+        XCTAssertFalse(choose.exists)
+
+        let explicit = app.buttons["extract-with-password"].firstMatch
+        XCTAssertTrue(explicit.waitForExistence(timeout: 8), app.debugDescription)
+        explicit.tap()
+        XCTAssertTrue(choose.waitForExistence(timeout: 8), app.debugDescription)
+        choose.tap()
+        let saved = app.buttons["Fixture Password"].firstMatch
+        XCTAssertTrue(saved.waitForExistence(timeout: 8), app.debugDescription)
+        saved.tap()
+        XCTAssertTrue(completion.waitForExistence(timeout: 12), app.debugDescription)
+    }
+
+    private func launchWithIsolatedPasswordLibrary() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = passwordLibraryArguments + ["-destinationPolicy", "1", "-conflictPolicy", "2"]
+        app.launch()
+        return app
+    }
+
+    private var passwordLibraryArguments: [String] { ["-PasswordLibraryTestNamespace", UUID().uuidString] }
+
+    private func openWorkspaceArchive(_ name: String, in app: XCUIApplication) {
+        let search = app.textFields["workspace-search"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 8), app.debugDescription)
+        search.tap()
+        search.typeText(name)
+        let archive = app.buttons["workspace-file-\(name)"].firstMatch
+        XCTAssertTrue(archive.waitForExistence(timeout: 8), app.debugDescription)
+        archive.tap()
+    }
+
+    private func addLibraryPassword(_ password: String, named name: String, in app: XCUIApplication) {
+        let add = app.buttons["password-library-add"].firstMatch
+        XCTAssertTrue(add.waitForExistence(timeout: 8), app.debugDescription)
+        add.tap()
+        let title = app.textFields["password-library-name"].firstMatch
+        let value = app.secureTextFields["password-library-value"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 8), app.debugDescription)
+        title.tap()
+        title.typeText(name)
+        value.tap()
+        value.typeText(password)
+        app.buttons["password-library-save"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts[name].firstMatch.waitForExistence(timeout: 8), app.debugDescription)
+    }
+
     func testUnlockRAR5FromFiles() {
         let app = XCUIApplication()
-        app.launchArguments = ["-destinationPolicy", "1", "-conflictPolicy", "2"]
+        app.launchArguments = passwordLibraryArguments + ["-destinationPolicy", "1", "-conflictPolicy", "2"]
         app.launch()
         unlockFromFiles("MobileProtectedRAR.rar", previewing: "rar5-picker-note.txt", in: app,
                         checksWrongPassword: true)
@@ -569,7 +660,7 @@ final class ArchiveWorkflowTests: XCTestCase {
 
     func testExtractSelectedEncryptedSolidRAR5FromFiles() {
         let app = XCUIApplication()
-        app.launchArguments = ["-destinationPolicy", "1", "-conflictPolicy", "2"]
+        app.launchArguments = passwordLibraryArguments + ["-destinationPolicy", "1", "-conflictPolicy", "2"]
         app.launch()
         unlockFromFiles("MobileSolidRAR.rar", previewing: "third.txt", in: app)
         app.buttons["Done"].firstMatch.tap()
@@ -586,6 +677,7 @@ final class ArchiveWorkflowTests: XCTestCase {
 
     private func checkUnlockFromFiles(_ name: String) {
         let app = XCUIApplication()
+        app.launchArguments = passwordLibraryArguments
         app.launch()
         unlockFromFiles(name, previewing: "private.txt", in: app)
     }

@@ -80,6 +80,12 @@ open apps/AetherUnzip/AetherUnzip.xcodeproj
 
 在 Xcode 选择 **AetherUnzip** scheme，然后选择 Mac 或 iPhone/iPad 模拟器。真机运行需要配置开发团队。命令行构建、UI 测试和签名说明见 [Apple 集成文档](docs/apple-integration.md)。
 
+## 密码库
+
+解锁或解压时，勾选「保存此压缩包的密码」。验证成功后，密码会存入系统钥匙串。以后打开或解压同一份压缩包时，App 会自动使用关联的密码，文件改名后也能识别。
+
+在「设置」中的「密码库」可手动添加和删除密码。解压加密文件时，也可以使用「选择密码并解压…」，从库里选一条或依次尝试全部密码。
+
 ## 开发文档
 
 - [项目规格与验收标准](docs/spec.md)
