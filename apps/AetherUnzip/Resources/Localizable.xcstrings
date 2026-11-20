@@ -469,6 +469,22 @@
         }
       }
     },
+    "CSV (.csv)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CSV（.csv）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CSV（.csv）"
+          }
+        }
+      }
+    },
     "Cancel": {
       "localizations": {
         "ja": {
@@ -529,6 +545,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在取消…"
+          }
+        }
+      }
+    },
+    "Can’t Edit File": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルを編集できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法编辑文件"
           }
         }
       }
@@ -789,6 +821,22 @@
         }
       }
     },
+    "Custom Extension": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カスタム拡張子"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义后缀"
+          }
+        }
+      }
+    },
     "Date": {
       "localizations": {
         "ja": {
@@ -951,6 +999,38 @@
         }
       }
     },
+    "Discard Changes": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更を破棄"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放弃修改"
+          }
+        }
+      }
+    },
+    "Discard Changes?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更を破棄しますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放弃修改？"
+          }
+        }
+      }
+    },
     "Dismiss": {
       "localizations": {
         "ja": {
@@ -979,6 +1059,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "完成"
+          }
+        }
+      }
+    },
+    "Edit Text": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テキストを編集"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑文本"
           }
         }
       }
@@ -1415,6 +1511,54 @@
         }
       }
     },
+    "File Contents": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルの内容"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件内容"
+          }
+        }
+      }
+    },
+    "File Extension": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拡張子"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件后缀"
+          }
+        }
+      }
+    },
+    "File Name: %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイル名：%@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件名：%@"
+          }
+        }
+      }
+    },
     "Files": {
       "localizations": {
         "ja": {
@@ -1479,6 +1623,22 @@
         }
       }
     },
+    "Format": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォーマット"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "格式"
+          }
+        }
+      }
+    },
     "Format Profile": {
       "localizations": {
         "ja": {
@@ -1511,6 +1671,22 @@
         }
       }
     },
+    "INI (.ini)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "INI（.ini）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "INI（.ini）"
+          }
+        }
+      }
+    },
     "In Progress": {
       "localizations": {
         "ja": {
@@ -1539,6 +1715,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "简介"
+          }
+        }
+      }
+    },
+    "JSON (.json)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "JSON（.json）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "JSON（.json）"
+          }
+        }
+      }
+    },
+    "Keep Editing": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集を続ける"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续编辑"
           }
         }
       }
@@ -1667,6 +1875,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "位置"
+          }
+        }
+      }
+    },
+    "Markdown (.md)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markdown（.md）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markdown（.md）"
           }
         }
       }
@@ -1843,6 +2067,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "内层压缩包密码"
+          }
+        }
+      }
+    },
+    "New File": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新規ファイル"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建文件"
           }
         }
       }
@@ -2291,6 +2531,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "单个文件"
+          }
+        }
+      }
+    },
+    "Plain Text (.txt)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレーンテキスト（.txt）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "纯文本（.txt）"
           }
         }
       }
@@ -3191,6 +3447,38 @@
         }
       }
     },
+    "Use a file name without slashes or a leading dot.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイル名にスラッシュを含めたり、先頭にピリオドを付けたりできません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件名不能包含斜杠或以点开头。"
+          }
+        }
+      }
+    },
+    "Use letters, numbers, hyphens, or underscores in each extension segment.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拡張子の各部分には、文字、数字、ハイフン、アンダースコアを使ってください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "后缀的每一段仅可使用字母、数字、连字符或下划线。"
+          }
+        }
+      }
+    },
     "View Folder": {
       "localizations": {
         "ja": {
@@ -3219,6 +3507,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在处理"
+          }
+        }
+      }
+    },
+    "XML (.xml)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XML（.xml）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XML（.xml）"
+          }
+        }
+      }
+    },
+    "YAML (.yaml)": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YAML（.yaml）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YAML（.yaml）"
           }
         }
       }

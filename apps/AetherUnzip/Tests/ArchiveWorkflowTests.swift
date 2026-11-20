@@ -549,6 +549,97 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(app.buttons["file-path-0"].firstMatch.waitForExistence(timeout: 8))
     }
 
+    func testCreatesMarkdownAndSavesEditsInPlace() {
+        let app = XCUIApplication()
+        app.launch()
+        let name = "Notes \(UUID().uuidString.prefix(6))"
+        newWorkspaceFile(named: name, format: "Markdown (.md)", in: app)
+        app.buttons["workspace-new-file-create"].firstMatch.tap()
+
+        let text = workspaceEditor(in: app)
+        text.tap()
+        text.typeText("Saved draft")
+        let save = app.buttons["workspace-editor-save"].firstMatch
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+        XCTAssertTrue(save.wait(for: \.isEnabled, toEqual: false, timeout: 8))
+        capture("Text Editor", in: app)
+
+        text.tap()
+        text.typeText(" unsaved")
+        app.buttons["workspace-editor-done"].firstMatch.tap()
+        let discard = app.buttons["Discard Changes"].firstMatch
+        XCTAssertTrue(discard.waitForExistence(timeout: 8))
+        discard.tap()
+
+        workspaceFile(named: name + ".md", in: app).tap()
+        XCTAssertEqual(workspaceEditor(in: app).value as? String, "Saved draft")
+    }
+
+    func testCreatesAndReopensCustomTextFile() {
+        let app = XCUIApplication()
+        app.launch()
+        let name = "Custom \(UUID().uuidString.prefix(6))"
+        newWorkspaceFile(named: name, format: "Custom Extension", in: app)
+        let suffix = app.textFields["workspace-new-file-extension"].firstMatch
+        XCTAssertTrue(suffix.waitForExistence(timeout: 8), app.debugDescription)
+        let create = app.buttons["workspace-new-file-create"].firstMatch
+        XCTAssertFalse(create.isEnabled)
+        suffix.tap()
+        suffix.typeText("no/slash")
+        XCTAssertFalse(create.isEnabled)
+        XCTAssertTrue(app.staticTexts["workspace-new-file-error"].firstMatch.exists)
+        suffix.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "no/slash".count) + ".aunote")
+        XCTAssertTrue(create.isEnabled)
+        capture("New Custom File", in: app)
+        create.tap()
+
+        let text = workspaceEditor(in: app)
+        text.tap()
+        text.typeText("Custom contents")
+        let save = app.buttons["workspace-editor-save"].firstMatch
+        save.tap()
+        XCTAssertTrue(save.wait(for: \.isEnabled, toEqual: false, timeout: 8))
+        app.buttons["workspace-editor-done"].firstMatch.tap()
+
+        workspaceFile(named: name + ".aunote", in: app).press(forDuration: 1)
+        let edit = app.buttons["edit-workspace-text"].firstMatch
+        XCTAssertTrue(edit.waitForExistence(timeout: 8), app.debugDescription)
+        edit.tap()
+        XCTAssertEqual(workspaceEditor(in: app).value as? String, "Custom contents")
+    }
+
+    private func newWorkspaceFile(named name: String, format: String, in app: XCUIApplication) {
+        let menu = app.buttons["file-actions"].firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 8), app.debugDescription)
+        menu.tap()
+        app.buttons["new-workspace-file"].firstMatch.tap()
+        let field = app.textFields["workspace-new-file-name"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 8), app.debugDescription)
+        field.tap()
+        field.typeText(name)
+        app.buttons["workspace-new-file-format"].firstMatch.tap()
+        let option = app.buttons[format].firstMatch
+        XCTAssertTrue(option.waitForExistence(timeout: 8), app.debugDescription)
+        option.tap()
+    }
+
+    private func workspaceEditor(in app: XCUIApplication) -> XCUIElement {
+        let field = app.textViews["workspace-editor-text"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 8), app.debugDescription)
+        return field
+    }
+
+    private func workspaceFile(named name: String, in app: XCUIApplication) -> XCUIElement {
+        let search = app.textFields["workspace-search"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 8), app.debugDescription)
+        search.tap()
+        search.typeText(name)
+        let row = app.buttons["workspace-file-\(name)"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 8), app.debugDescription)
+        return row
+    }
+
     func testBrowseAndSelectAcrossFolders() {
         let app = XCUIApplication()
         app.launch()

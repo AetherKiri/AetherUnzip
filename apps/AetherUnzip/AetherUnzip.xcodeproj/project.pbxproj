@@ -34,6 +34,7 @@
 		CD07864FF17C1DF1A07FB4D3 /* lz4.txt in Resources */ = {isa = PBXBuildFile; fileRef = C9C73F90FB3F9D2B922FC920 /* lz4.txt */; };
 		D37E608D8CAB0569DD86935A /* WorkspaceChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4715C78D9BA108C26DE39E1A /* WorkspaceChrome.swift */; };
 		DB0F7FF7563953DFCBE64551 /* ArchivePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94AA2548B9D3F8822210CC54 /* ArchivePreview.swift */; };
+		E895E90768F3442E162B4882 /* WorkspaceTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12A63F06D48D9162AC84D95 /* WorkspaceTextEditor.swift */; };
 		F3EE9C0BF966DBAD808D271C /* PasswordLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B1248155BC9337F0337AF4 /* PasswordLibraryView.swift */; };
 /* End PBXBuildFile section */
 
@@ -71,6 +72,7 @@
 		978FB6A63BAB38D3A4EF7C60 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A076A1D47D21FC2AA09A9842 /* WorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceView.swift; sourceTree = "<group>"; };
 		A7742028812C78B20682663F /* PasswordLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordLibrary.swift; sourceTree = "<group>"; };
+		C12A63F06D48D9162AC84D95 /* WorkspaceTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceTextEditor.swift; sourceTree = "<group>"; };
 		C9C73F90FB3F9D2B922FC920 /* lz4.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = lz4.txt; sourceTree = "<group>"; };
 		CFA50D622AF4CD1F5E51BC0C /* profile-box.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "profile-box.bin"; sourceTree = "<group>"; };
 		D7310920C948FEF9B5AB88DD /* nested.zip */ = {isa = PBXFileReference; lastKnownFileType = archive.zip; path = nested.zip; sourceTree = "<group>"; };
@@ -198,6 +200,7 @@
 				21B1248155BC9337F0337AF4 /* PasswordLibraryView.swift */,
 				978FB6A63BAB38D3A4EF7C60 /* SettingsView.swift */,
 				4715C78D9BA108C26DE39E1A /* WorkspaceChrome.swift */,
+				C12A63F06D48D9162AC84D95 /* WorkspaceTextEditor.swift */,
 				A076A1D47D21FC2AA09A9842 /* WorkspaceView.swift */,
 			);
 			path = Features;
@@ -343,6 +346,7 @@
 				F3EE9C0BF966DBAD808D271C /* PasswordLibraryView.swift in Sources */,
 				C2331E1B2B4F2B5E41731515 /* SettingsView.swift in Sources */,
 				D37E608D8CAB0569DD86935A /* WorkspaceChrome.swift in Sources */,
+				E895E90768F3442E162B4882 /* WorkspaceTextEditor.swift in Sources */,
 				8D6C35CAAD9D7BE9E4643BD9 /* WorkspaceView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

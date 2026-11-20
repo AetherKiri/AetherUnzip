@@ -101,6 +101,9 @@ struct FileBrowserView: View {
     @State private var preview: URL?
     @State private var details: WorkspaceFile?
     @State private var rename: RenameTarget?
+    @State private var creatingFile = false
+    @State private var createdFile: WorkspaceTextFile?
+    @State private var editor: WorkspaceTextRequest?
     @State private var deletion: [String] = []
     @State private var showDelete = false
     @State private var transfer: TransferRequest?
@@ -171,6 +174,19 @@ struct FileBrowserView: View {
                 try await applyName(name, to: target, in: folder)
                 rename = nil
             }
+        }
+        .sheet(isPresented: $creatingFile, onDismiss: {
+            guard let createdFile else { return }
+            editor = .created(createdFile)
+            self.createdFile = nil
+        }) {
+            NewWorkspaceTextFileSheet(folder: model.folder) { file in
+                createdFile = file
+                model.reload()
+            }
+        }
+        .sheet(item: $editor) { request in
+            WorkspaceTextEditor(request: request, didSave: model.reload)
         }
         .confirmationDialog(deleteTitle, isPresented: $showDelete, titleVisibility: .visible) {
             Button(deleteAction, role: .destructive, action: deletePending)
@@ -428,6 +444,8 @@ struct FileBrowserView: View {
     @ViewBuilder private var fileActionOptions: some View {
         Button("New Folder", systemImage: "folder.badge.plus") { rename = .newFolder }
             .accessibilityIdentifier("new-file-folder")
+        Button("New File", systemImage: "doc.badge.plus") { creatingFile = true }
+            .accessibilityIdentifier("new-workspace-file")
         Button("Select Items", systemImage: "checkmark.circle") {
             searchFocused = false
             selecting = true
@@ -450,6 +468,8 @@ struct FileBrowserView: View {
                         } actions: {
                             Button("New Folder") { rename = .newFolder }
                                 .accessibilityIdentifier("empty-new-folder")
+                            Button("New File") { creatingFile = true }
+                                .accessibilityIdentifier("empty-new-workspace-file")
                         }
                     } else {
                         ContentUnavailableView.search(text: query)
@@ -533,6 +553,8 @@ struct FileBrowserView: View {
                 Button("Preview", systemImage: "eye") { preview = model.folder.item(file.name) }
                 Button("Open as Archive", systemImage: "archivebox") { open(file, action: .browse) }
             }
+            Button("Edit Text", systemImage: "square.and.pencil") { edit(file) }
+                .accessibilityIdentifier("edit-workspace-text")
             ShareLink(item: model.folder.item(file.name)) { Label("Share", systemImage: "square.and.arrow.up") }
             Divider()
         }
@@ -635,10 +657,22 @@ struct FileBrowserView: View {
             model.show(model.folder.child(file.name))
         } else if file.kind == .file {
             if ArchiveNames.matches(file.name) { open(file, action: .browse) }
+            else if isKnownText(file) { edit(file) }
             else { preview = model.folder.item(file.name) }
         } else {
             details = file
         }
+    }
+
+    private func isKnownText(_ file: WorkspaceFile) -> Bool {
+        let suffix = (file.name as NSString).pathExtension.lowercased()
+        if let format = WorkspaceTextFormat(rawValue: suffix), format != .custom { return true }
+        return UTType(filenameExtension: suffix)?.conforms(to: .plainText) == true
+    }
+
+    private func edit(_ file: WorkspaceFile) {
+        let folder = model.folder
+        editor = .existing(folder.item(file.name), folder.location)
     }
 
     private func open(_ file: WorkspaceFile, action: ArchiveFileAction) {
