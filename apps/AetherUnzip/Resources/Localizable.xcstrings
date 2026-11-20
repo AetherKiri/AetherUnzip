@@ -1911,6 +1911,22 @@
         }
       }
     },
+    "Extract This File": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルを展開"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压此文件"
+          }
+        }
+      }
+    },
     "Extract This File…": {
       "localizations": {
         "ja": {
@@ -2227,6 +2243,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "文件名：%@"
+          }
+        }
+      }
+    },
+    "File size · %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルサイズ · %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件大小 · %@"
           }
         }
       }
@@ -3699,6 +3731,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "预览“%@”"
+          }
+        }
+      }
+    },
+    "Preview limit · %llu MiB": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレビューの上限 · %llu MiB"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预览上限 · %llu MiB"
           }
         }
       }

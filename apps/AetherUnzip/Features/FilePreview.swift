@@ -24,24 +24,36 @@ struct FilePreview: View {
     }
 
     private enum Phase {
-        case password(String?), loading, loaded(PreviewFile), failed(String)
+        case password(String?), loading, loaded(PreviewFile), limited(UInt64), failed(String)
     }
 
     let archive: ArchiveManifest
     let request: Request
     let limits: ExtractionOptions.Limits
+    let extract: () -> Void
     @Environment(\.dismiss) private var dismiss
     @AppStorage(CachePreferences.previewLimitKey) private var previewLimit = CachePreferences.defaultPreviewLimit
     @State private var phase: Phase
     @State private var password = ""
     @State private var passwordTask: Task<Void, Never>?
 
-    init(archive: ArchiveManifest, request: Request, limits: ExtractionOptions.Limits) {
+    init(archive: ArchiveManifest, request: Request, limits: ExtractionOptions.Limits,
+         extract: @escaping () -> Void) {
         self.archive = archive
         self.request = request
         self.limits = limits
+        self.extract = extract
         _phase = State(initialValue: request.entry.isEncrypted && !archive.hasOpeningPassphrase
                        ? .password(nil) : .loading)
+    }
+
+    private var maximumPreviewBytes: UInt64 {
+        CachePreferences.bytes(for: previewLimit, choices: CachePreferences.previewLimits,
+                               fallback: CachePreferences.defaultPreviewLimit)
+    }
+
+    private var exceedsPreviewLimit: Bool {
+        request.entry.size.map { $0 > maximumPreviewBytes } ?? false
     }
 
     var body: some View {
@@ -58,7 +70,7 @@ struct FilePreview: View {
                     .keyboardShortcut(.cancelAction)
             }
             .modifier(WorkspaceHeaderLayout())
-            switch phase {
+            switch exceedsPreviewLimit ? .limited(maximumPreviewBytes) : phase {
             case .password(let error):
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Enter the archive password to preview this file.")
@@ -78,6 +90,24 @@ struct FilePreview: View {
             case .loaded(let file):
                 NativeFilePreview(file: file)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .limited(let maximumBytes):
+                ContentUnavailableView {
+                    Label("Preview Unavailable", systemImage: "doc")
+                } description: {
+                    VStack(spacing: 4) {
+                        Text("This file exceeds the preview limits.")
+                        if let size = request.entry.size {
+                            Text("File size · \(formattedBytes(size))")
+                                .accessibilityIdentifier("preview-file-size")
+                        }
+                        Text("Preview limit · \(maximumBytes >> 20) MiB")
+                            .accessibilityIdentifier("preview-capacity-limit")
+                    }
+                } actions: {
+                    Button("Extract This File", systemImage: "arrow.down.to.line", action: extract)
+                        .modifier(WorkspaceButton(prominent: true))
+                        .accessibilityIdentifier("extract-preview-file")
+                }
             case .failed(let message):
                 ContentUnavailableView("Preview Unavailable", systemImage: "doc",
                                        description: Text(message))
@@ -87,7 +117,9 @@ struct FilePreview: View {
         .frame(minWidth: 560, minHeight: 380)
         #endif
         .task {
-            if !request.entry.isEncrypted || archive.hasOpeningPassphrase { await load(passphrase: nil) }
+            if !exceedsPreviewLimit && (!request.entry.isEncrypted || archive.hasOpeningPassphrase) {
+                await load(passphrase: nil)
+            }
         }
         .onDisappear {
             passwordTask?.cancel()
@@ -106,8 +138,7 @@ struct FilePreview: View {
     }
 
     private func load(passphrase: String?) async {
-        let maximumBytes = CachePreferences.bytes(for: previewLimit, choices: CachePreferences.previewLimits,
-                                                  fallback: CachePreferences.defaultPreviewLimit)
+        let maximumBytes = maximumPreviewBytes
         let worker = Task.detached(priority: .userInitiated) { [archive, request, limits] in
             try Task.checkCancellation()
             let file = try await PreviewCache.shared.create(suffix: request.suffix)
@@ -139,7 +170,7 @@ struct FilePreview: View {
             case .incorrectPassphrase, .encrypted:
                 phase = .password(error.localizedDescription)
             case .limitExceeded:
-                phase = .failed(String(localized: "This file exceeds the preview limits."))
+                phase = .limited(maximumBytes)
             default:
                 phase = .failed(error.localizedDescription)
             }

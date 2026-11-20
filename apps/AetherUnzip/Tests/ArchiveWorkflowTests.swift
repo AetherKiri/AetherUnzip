@@ -290,7 +290,7 @@ final class ArchiveWorkflowTests: XCTestCase {
 
     func testArchivePreviewRespectsConfiguredCacheLimit() {
         let app = XCUIApplication()
-        app.launchArguments = ["-previewLimitMiB", "8"]
+        app.launchArguments = ["-previewLimitMiB", "8", "-destinationPolicy", "2"]
         app.launch()
         openWorkspaceArchive("Cache Limit.zip", in: app)
         let preview = app.buttons["Preview large.txt"].firstMatch
@@ -298,6 +298,20 @@ final class ArchiveWorkflowTests: XCTestCase {
         preview.tap()
         XCTAssertTrue(app.staticTexts["This file exceeds the preview limits."].firstMatch
             .waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["preview-file-size"].firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["preview-capacity-limit"].firstMatch.label.contains("8 MiB"))
+        app.buttons["extract-preview-file"].firstMatch.tap()
+        let placement = app.staticTexts["extraction-placement-detail"].firstMatch
+        XCTAssertTrue(placement.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertEqual(placement.label, "Place the file directly in the destination.")
+        confirmExtraction(in: app)
+        let reveal = app.buttons["view-extraction-folder"].firstMatch
+        XCTAssertTrue(reveal.waitForExistence(timeout: 12), app.debugDescription)
+        reveal.tap()
+        let clear = app.buttons["clear-workspace-search"].firstMatch
+        if clear.exists { clear.tap() }
+        _ = workspaceFile(named: "large.txt", in: app)
+        XCTAssertFalse(app.buttons["workspace-file-preview-companion.txt"].firstMatch.exists)
     }
 
     func testSettingsDestination() {

@@ -24,8 +24,18 @@ struct ArchivePreview: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     #endif
     @State private var preview: FilePreview.Request?
+    @State private var extractAfterPreview: ArchiveEntry.ID?
 
     var body: some View {
+        archiveBrowser.sheet(item: $preview, onDismiss: finishPreview) { request in
+            FilePreview(archive: archive, request: request, limits: limits) {
+                extractAfterPreview = request.id
+                preview = nil
+            }
+        }
+    }
+
+    private var archiveBrowser: some View {
         #if os(iOS)
         NavigationStack(path: $browsing.folders) {
             mobilePage(folder: nil)
@@ -38,9 +48,6 @@ struct ArchivePreview: View {
                 }
         }
         .task(id: archive.entries) { await prepareIndex() }
-        .sheet(item: $preview) { request in
-            FilePreview(archive: archive, request: request, limits: limits)
-        }
         #else
         VStack(spacing: 0) {
             HStack(spacing: 8) {
@@ -93,10 +100,13 @@ struct ArchivePreview: View {
         .navigationTitle("Archive Preview")
         .searchable(text: $search, prompt: "Find files in archive")
         .task(id: archive.entries) { await prepareIndex() }
-        .sheet(item: $preview) { request in
-            FilePreview(archive: archive, request: request, limits: limits)
-        }
         #endif
+    }
+
+    private func finishPreview() {
+        guard let id = extractAfterPreview else { return }
+        extractAfterPreview = nil
+        extract([id])
     }
 
     private func prepareIndex() async {

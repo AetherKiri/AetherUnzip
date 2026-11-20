@@ -83,6 +83,7 @@ import zipfile
 block = bytes(range(32, 127)) + b"\n"
 with zipfile.ZipFile(sys.argv[1], "w", compression=zipfile.ZIP_DEFLATED) as archive:
     archive.writestr("large.txt", (block * (9 * 1024 * 1024 // len(block) + 1))[:9 * 1024 * 1024])
+    archive.writestr("preview-companion.txt", "Only the requested entry should be extracted.\n")
 PY
 printf '%s' ' 资源密碼！Ａ1 ' | xcrun simctl pbcopy "$destination_id"
 xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
@@ -94,7 +95,7 @@ xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
 
 中文密码用例会粘贴含全角字符和首尾空格的公开样本密码，验证 CP936 ZIP 解压及改名后的密码关联。重复运行前，从测试容器的 `Extracted Archives` 中清理本用例生成的 `Chinese Vault` 和 `Chinese Vault Renamed` 文件夹。
 
-缓存用例用 8 MiB 的单文件上限拦截 9 MiB 的预览。手动清理用例在关闭自动清理的状态下测量并删除测试预览文件。由于其他用例启动 App 时会自动清理，请重新创建上述测试缓存，再用 `-only-testing:AetherUnzipUITests/ArchiveWorkflowTests/testCacheSettingsClearsUnusedPreviewsAndAdjustsLimits` 单独运行该用例。
+缓存用例用 8 MiB 的单文件上限拦截 9 MiB 的预览，随后从提示页提取该文件。复测前移走测试容器中的 `Documents/large.txt`。手动清理用例在关闭自动清理的状态下测量并删除测试预览文件。由于其他用例启动 App 时会自动清理，请重新创建上述测试缓存，再用 `-only-testing:AetherUnzipUITests/ArchiveWorkflowTests/testCacheSettingsClearsUnusedPreviewsAndAdjustsLimits` 单独运行该用例。
 
 布局用例在 `Layout Workflow` 去除顶层目录并保留两个同名文件，核对 `notes.txt` 和 `notes (2).txt`。批量用例在 `Batch Workflow` 检查每个压缩包的结果，并从成功项打开输出目录。恢复用例在 `Batch Recovery` 先用错误密码，再用 `fixture-pass` 重试加密项。复测时从这些测试目录清理旧的输出，并确认密码库中没有已关联到 `7z-aes-picker.7z` 样本的密码。
 
