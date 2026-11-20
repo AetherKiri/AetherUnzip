@@ -1,3 +1,4 @@
+import AetherUnzipKit
 import SwiftUI
 
 private extension TaskRecord.State {
@@ -6,6 +7,7 @@ private extension TaskRecord.State {
         case .running: String(localized: "Extracting")
         case .success: String(localized: "Completed")
         case .failed: String(localized: "Failed")
+        case .skipped: String(localized: "Skipped")
         case .cancelled: String(localized: "Cancelled")
         }
     }
@@ -15,6 +17,7 @@ private extension TaskRecord.State {
         case .running: "arrow.down.to.line"
         case .success: "checkmark"
         case .failed: "exclamationmark.triangle"
+        case .skipped: "arrow.turn.down.right"
         case .cancelled: "stop"
         }
     }
@@ -24,7 +27,7 @@ private extension TaskRecord.State {
         case .running: .accentColor
         case .success: .green
         case .failed: .red
-        case .cancelled: .orange
+        case .cancelled, .skipped: .orange
         }
     }
 }
@@ -32,6 +35,7 @@ private extension TaskRecord.State {
 struct TaskBanner: View {
     @Bindable var model: AppModel
     var openOutput: (() -> Void)? = nil
+    var openResults: (() -> Void)? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -72,22 +76,36 @@ struct TaskBanner: View {
     }
 
     private func result(_ notice: String) -> some View {
-        HStack(spacing: 8) {
-            let partial = model.noticeIsPartial || model.lastOutput == nil
-            WorkspaceGlyph(symbol: partial ? "exclamationmark.circle" : "checkmark",
-                           tint: partial ? .orange : .green)
-            Text(notice).font(.subheadline)
-            Spacer(minLength: 0)
-            if let openOutput, model.lastOutput != nil {
-                Button("View Folder", action: openOutput)
-                    .font(.subheadline.weight(.semibold))
-                    .accessibilityIdentifier("view-extraction-folder")
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                let partial = model.noticeIsPartial || model.lastOutput == nil
+                WorkspaceGlyph(symbol: partial ? "exclamationmark.circle" : "checkmark",
+                               tint: partial ? .orange : .green)
+                Text(notice).font(.subheadline)
+                Spacer(minLength: 0)
+                if !model.noticeIsBatch { outputButton }
+                Button { model.notice = nil } label: {
+                    Label("Dismiss", systemImage: "xmark").labelStyle(.iconOnly)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
             }
-            Button { model.notice = nil } label: {
-                Label("Dismiss", systemImage: "xmark").labelStyle(.iconOnly)
+            if model.noticeIsBatch, let openResults {
+                HStack(spacing: 16) {
+                    Button("View Results", action: openResults)
+                        .font(.subheadline.weight(.semibold))
+                        .accessibilityIdentifier("view-batch-results")
+                    outputButton
+                }
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder private var outputButton: some View {
+        if let openOutput, model.lastOutput != nil {
+            Button("View Folder", action: openOutput)
+                .font(.subheadline.weight(.semibold))
+                .accessibilityIdentifier("view-extraction-folder")
         }
     }
 }
@@ -127,6 +145,7 @@ private struct TaskProgress: View {
 struct ActivityView: View {
     let model: AppModel
     let reopen: (RecentArchive) -> Void
+    let openBatchResults: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var details: TaskRecord?
     @State private var showAllRecents = false
@@ -179,6 +198,9 @@ struct ActivityView: View {
                     }
                     if !model.history.isEmpty {
                         Section("Extraction History") {
+                            if model.batchResult != nil {
+                                Button("Latest Batch Results", systemImage: "archivebox", action: openBatchResults)
+                            }
                             ForEach(model.history) { task in
                                 Group {
                                     if task.details != nil {
@@ -270,5 +292,85 @@ struct ActivityView: View {
         .contextMenu {
             Button("Remove from Recents", role: .destructive) { model.remove(item) }
         }
+    }
+}
+
+struct BatchResultsView: View {
+    let model: AppModel
+    let openOutput: (BrowserFolder) -> Void
+    let retry: (UUID, PasswordChoice) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var passwordEntry: BatchResult.Entry?
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if model.current != nil {
+                    Section("In Progress") {
+                        TaskProgress(model: model)
+                        Button(model.cancelling ? "Cancelling…" : "Cancel Extraction", role: .cancel,
+                               action: model.cancelExtraction).disabled(model.cancelling)
+                    }
+                }
+                let entries = model.batchResult?.entries ?? []
+                ForEach([TaskRecord.State.failed, .skipped, .cancelled, .success], id: \.self) { state in
+                    let matching = entries.filter { $0.record.state == state }
+                    if !matching.isEmpty {
+                        Section(state.title) {
+                            ForEach(matching) { entry in resultRow(entry) }
+                        }
+                    }
+                }
+            }
+            .modifier(WorkspaceListSurface())
+            .modifier(WorkspaceCanvas())
+            .navigationTitle("Batch Results")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
+                }
+            }
+        }
+        #if os(macOS)
+        .frame(minWidth: 520, minHeight: 460)
+        #endif
+        .sheet(item: $passwordEntry) { entry in
+            PasswordPrompt(archiveName: entry.record.archive, actionTitle: "Retry Extraction",
+                           library: model.passwords) { choice in
+                passwordEntry = nil
+                retry(entry.id, choice)
+            }
+        }
+    }
+
+    private func resultRow(_ entry: BatchResult.Entry) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(entry.record.archive, systemImage: entry.record.state.symbol)
+                .font(.subheadline.weight(.semibold))
+            if let details = entry.record.details {
+                Text(details).font(.caption).foregroundStyle(.secondary)
+            }
+            if let output = entry.output {
+                Text(output.breadcrumb).font(.caption).foregroundStyle(.secondary)
+                    .lineLimit(2).truncationMode(.middle)
+                Button("View Folder", systemImage: "folder") { openOutput(output) }
+                    .buttonStyle(.borderless)
+                    .accessibilityIdentifier("batch-output-\(entry.record.archive)")
+            }
+            if entry.canRetry {
+                Button(entry.needsPassword ? "Enter Password" : "Retry Extraction",
+                       systemImage: entry.needsPassword ? "key" : "arrow.clockwise") {
+                    if entry.needsPassword { passwordEntry = entry }
+                    else { retry(entry.id, .automatic) }
+                }
+                .buttonStyle(.borderless)
+                .disabled(model.current != nil)
+                .accessibilityIdentifier("batch-retry-\(entry.record.archive)")
+            }
+        }
+        .padding(.vertical, 4)
     }
 }

@@ -831,19 +831,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         app.launchArguments = ["-destinationPolicy", "2", "-conflictPolicy", "3"]
         app.launch()
         workspaceFile(named: "Batch Workflow", in: app).tap()
-        let actions = app.buttons["file-actions"].firstMatch
-        XCTAssertTrue(actions.waitForExistence(timeout: 8), app.debugDescription)
-        actions.tap()
-        app.buttons["select-workspace-files"].firstMatch.tap()
-        for name in ["Batch First.zip", "Batch Second.tar.gz", "Batch Corrupt.zip"] {
-            let file = app.buttons["workspace-file-\(name)"].firstMatch
-            XCTAssertTrue(file.waitForExistence(timeout: 8), app.debugDescription)
-            file.tap()
-        }
-        app.buttons["workspace-selection-actions"].firstMatch.tap()
-        let selected = app.buttons["extract-workspace-selection"].firstMatch
-        XCTAssertTrue(selected.waitForExistence(timeout: 8), app.debugDescription)
-        selected.tap()
+        selectBatch(["Batch First.zip", "Batch Second.tar.gz", "Batch Corrupt.zip"], in: app)
         let path = app.descendants(matching: .any)["extraction-output-path"].firstMatch
         XCTAssertTrue(path.waitForExistence(timeout: 12), app.debugDescription)
         XCTAssertTrue(path.label.contains("Batch Workflow › Batch First"), path.debugDescription)
@@ -858,9 +846,70 @@ final class ArchiveWorkflowTests: XCTestCase {
         confirmExtraction(in: app)
         XCTAssertTrue(app.staticTexts["2 of 3 archives extracted."].firstMatch.waitForExistence(timeout: 12),
                       app.debugDescription)
-        app.buttons["view-extraction-folder"].firstMatch.tap()
-        XCTAssertTrue(app.buttons["workspace-file-Batch First"].firstMatch.waitForExistence(timeout: 8))
-        XCTAssertTrue(app.buttons["workspace-file-Layout"].firstMatch.exists)
+        app.buttons["view-batch-results"].firstMatch.tap()
+        let open = app.buttons["batch-output-Batch Second.tar.gz"].firstMatch
+        XCTAssertTrue(open.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(app.buttons["batch-retry-Batch Corrupt.zip"].firstMatch.exists)
+        XCTAssertFalse(app.buttons["batch-retry-Batch Second.tar.gz"].firstMatch.exists)
+        open.tap()
+        XCTAssertTrue(app.buttons["workspace-file-notes.txt"].firstMatch.waitForExistence(timeout: 8))
+    }
+
+    func testBatchRecoveryRetriesOnlyTheLockedArchive() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-destinationPolicy", "2", "-conflictPolicy", "3"]
+        app.launch()
+        workspaceFile(named: "Batch Recovery", in: app).tap()
+        selectBatch(["Recovery First.zip", "Recovery Locked.7z"], in: app)
+        let ready = app.buttons["confirm-extraction-plan"].firstMatch
+        XCTAssertTrue(ready.waitForExistence(timeout: 8))
+        XCTAssertTrue(app.descendants(matching: .any)["extraction-skipped"].firstMatch.waitForExistence(timeout: 8))
+        confirmExtraction(in: app)
+        let results = app.buttons["view-batch-results"].firstMatch
+        XCTAssertTrue(results.waitForExistence(timeout: 12), app.debugDescription)
+        results.tap()
+
+        let retry = app.buttons["batch-retry-Recovery Locked.7z"].firstMatch
+        let firstOutput = app.buttons["batch-output-Recovery First.zip"].firstMatch
+        let recovered = app.buttons["batch-output-Recovery Locked.7z"].firstMatch
+        XCTAssertTrue(retry.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(firstOutput.exists)
+        for password in ["wrong-password", "fixture-pass"] {
+            XCTAssertTrue(retry.waitForExistence(timeout: 8))
+            retry.tap()
+            let field = app.secureTextFields["archive-password"].firstMatch
+            XCTAssertTrue(field.waitForExistence(timeout: 8))
+            field.tap()
+            field.typeText(password)
+            let remember = app.switches["remember-archive-password"].firstMatch
+            if remember.value as? String == "1" { remember.tap() }
+            app.buttons["submit-archive-password"].firstMatch.tap()
+            if password == "wrong-password" {
+                XCTAssertTrue(retry.waitForExistence(timeout: 8))
+                XCTAssertFalse(recovered.exists)
+            }
+        }
+        XCTAssertTrue(recovered.waitForExistence(timeout: 12), app.debugDescription)
+        XCTAssertFalse(retry.exists)
+        XCTAssertTrue(firstOutput.exists)
+        recovered.tap()
+        XCTAssertTrue(app.buttons["workspace-file-private.txt"].firstMatch.waitForExistence(timeout: 8))
+    }
+
+    private func selectBatch(_ names: [String], in app: XCUIApplication) {
+        let actions = app.buttons["file-actions"].firstMatch
+        XCTAssertTrue(actions.waitForExistence(timeout: 8), app.debugDescription)
+        actions.tap()
+        app.buttons["select-workspace-files"].firstMatch.tap()
+        for name in names {
+            let file = app.buttons["workspace-file-\(name)"].firstMatch
+            XCTAssertTrue(file.waitForExistence(timeout: 8), app.debugDescription)
+            file.tap()
+        }
+        app.buttons["workspace-selection-actions"].firstMatch.tap()
+        let selected = app.buttons["extract-workspace-selection"].firstMatch
+        XCTAssertTrue(selected.waitForExistence(timeout: 8), app.debugDescription)
+        selected.tap()
     }
 
     private func workspaceFile(named name: String, in app: XCUIApplication) -> XCUIElement {

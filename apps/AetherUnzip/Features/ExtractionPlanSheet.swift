@@ -182,9 +182,9 @@ struct ExtractionPlanSheet: View {
                     }
                 }
             }
-            Button(conflict == .replace ? "Extract and Replace" : "Extract", action: confirm)
+            Button(confirmationTitle, action: confirm)
                 .modifier(WorkspaceButton(prominent: true))
-                .disabled(folder == nil || loading || items.isEmpty)
+                .disabled(folder == nil || loading || (items.isEmpty && issues.isEmpty))
                 .keyboardShortcut(.defaultAction)
                 .accessibilityIdentifier("confirm-extraction-plan")
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -194,6 +194,11 @@ struct ExtractionPlanSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.regularMaterial)
         .overlay(alignment: .top) { Divider() }
+    }
+
+    private var confirmationTitle: LocalizedStringKey {
+        if items.isEmpty && !issues.isEmpty { return "Review Skipped Archives" }
+        return conflict == .replace ? "Extract and Replace" : "Extract"
     }
 
     private func outputPath(for item: ExtractionItem) -> some View {
@@ -266,7 +271,7 @@ struct ExtractionPlanSheet: View {
     }
 
     private func confirm() {
-        guard let folder, !loading, !items.isEmpty else { return }
+        guard let folder, !loading, !items.isEmpty || !issues.isEmpty else { return }
         submit(.init(items: items, issues: issues, inputURLs: draft.inputURLs, destination: folder,
                      mode: mode, conflict: conflict,
                      isBatch: draft.isBatch, choosePassword: draft.choosePassword, usePasswordLibrary: usePasswords))

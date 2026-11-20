@@ -85,6 +85,7 @@ struct WorkspaceView: View {
     @State private var loadingProfile = false
     @State private var extractionDraft: ExtractionDraft?
     @State private var confirmedExtraction: ExtractionRun?
+    @State private var showBatchResults = false
     @State private var lastExtractionDestination: BrowserFolder?
     @State private var openingPassword: OpeningPasswordRequest?
     @State private var passwordRequest: PasswordRequest?
@@ -158,6 +159,14 @@ struct WorkspaceView: View {
             ExtractionPlanSheet(draft: draft, inspect: { try await inspect(draft, usePasswords: $0) }) { extraction in
                 confirmedExtraction = extraction
                 extractionDraft = nil
+            }
+        }
+        .sheet(isPresented: $showBatchResults) {
+            BatchResultsView(model: model) { output in
+                showBatchResults = false
+                revealOutput(output)
+            } retry: { id, choice in
+                model.retryBatchEntry(id, limits: limits, password: choice) { files.reload() }
             }
         }
         .sheet(item: $profileConfirmation, onDismiss: {
@@ -255,7 +264,7 @@ struct WorkspaceView: View {
         let visible = model.current != nil || model.notice != nil
         return ZStack {
             if visible {
-                TaskBanner(model: model, openOutput: revealOutput)
+                TaskBanner(model: model, openOutput: revealOutput) { showBatchResults = true }
                     .transition(reduceMotion ? .identity : WorkspaceMotion.bottomInset)
             }
         }
@@ -468,6 +477,8 @@ struct WorkspaceView: View {
                 if let origin { files.show(origin) }
                 openArchive(urls, profile: profile, origin: origin)
             }
+        } openBatchResults: {
+            showBatchResults = true
         }
     }
 
@@ -524,7 +535,8 @@ struct WorkspaceView: View {
                     try Task.checkCancellation()
                     issues.append(.init(name: urls.first?.lastPathComponent ?? String(localized: "Archive"),
                         reason: error.localizedDescription,
-                        needsPassword: (error as? ArchiveError)?.needsArchivePassword == true))
+                        needsPassword: (error as? ArchiveError)?.needsArchivePassword == true,
+                        urls: urls, access: draft.access))
                 }
             }
             return (items, issues)
@@ -605,6 +617,10 @@ struct WorkspaceView: View {
 
     private func revealOutput() {
         guard let output = model.lastOutput else { return }
+        revealOutput(output)
+    }
+
+    private func revealOutput(_ output: BrowserFolder) {
         model.notice = nil
         model.leaveArchive()
         files.show(output)
@@ -625,9 +641,14 @@ struct WorkspaceView: View {
     }
 
     private func start(_ extraction: ExtractionRun) {
-        guard model.current == nil, !preparingOutput, let item = extraction.items.first else { return }
+        guard model.current == nil, !preparingOutput else { return }
         lastExtractionDestination = extraction.destination
-        if extraction.isBatch || (!item.needsPassword && !extraction.choosePassword) {
+        if extraction.isBatch {
+            run(extraction)
+            return
+        }
+        guard let item = extraction.items.first else { return }
+        if !item.needsPassword && !extraction.choosePassword {
             run(extraction)
         } else if extraction.choosePassword {
             passwordRequest = PasswordRequest(extraction: extraction)
@@ -664,7 +685,7 @@ struct WorkspaceView: View {
 
 }
 
-private struct PasswordPrompt: View {
+struct PasswordPrompt: View {
     let archiveName: String
     let actionTitle: LocalizedStringKey
     var errorMessage: String? = nil

@@ -19,6 +19,7 @@ struct TaskRecord: Identifiable, Codable {
         case running = "Extracting"
         case success = "Completed"
         case failed = "Failed"
+        case skipped = "Skipped"
         case cancelled = "Cancelled"
     }
 
@@ -57,6 +58,8 @@ final class AppModel {
     private(set) var batchPosition: (index: Int, total: Int)?
     private(set) var archiveOrigin: BrowserFolder?
     private(set) var lastOutput: BrowserFolder?
+    private(set) var batchResult: BatchResult?
+    private(set) var noticeIsBatch = false
 
     private let service = ArchiveService()
     let passwords = PasswordLibrary()
@@ -301,14 +304,23 @@ final class AppModel {
     func extract(_ run: ExtractionRun, limits: ExtractionOptions.Limits,
                  password: PasswordChoice, existingOutput: BrowserFolder?,
                  conflictOverride: ExtractionOptions.ConflictPolicy?,
+                 retry: BatchResult.Entry? = nil,
                  finished: @escaping (ArchiveError?, BrowserFolder?) -> Void) {
-        guard extraction == nil, let first = run.items.first else { return }
-        current = record(for: first.archive.displayName, at: run.destination)
+        guard extraction == nil,
+              let name = retry?.record.archive ?? run.items.first?.archive.displayName ?? run.issues.first?.name
+        else { return }
+        current = record(for: name, at: run.destination)
         progress = nil
         cancelling = false
         notice = nil
         noticeIsPartial = false
+        noticeIsBatch = run.isBatch
         lastOutput = nil
+        let policy = conflictOverride ?? run.conflict
+        if run.isBatch && retry == nil {
+            batchResult = .init(inputs: run.inputURLs, destination: run.destination, mode: run.mode,
+                                conflict: policy, usePasswordLibrary: run.usePasswordLibrary)
+        }
 
         extraction = Task {
             defer {
@@ -317,24 +329,59 @@ final class AppModel {
                 batchPosition = nil
                 cancelling = false
             }
-            let policy = conflictOverride ?? run.conflict
-            let total = run.items.count + run.issues.count
+            var items = run.items
+            if let retry {
+                do {
+                    let archive: ArchiveManifest
+                    if case .automatic = password {
+                        archive = try await inspectArchive(retry.urls, limits: limits,
+                                                           usePasswordLibrary: run.usePasswordLibrary)
+                    } else {
+                        do {
+                            archive = try await service.open(retry.urls, limits: limits)
+                        } catch let error as ArchiveError where error.needsArchivePassword {
+                            archive = try await unlock(retry.urls, profile: nil, limits: limits, password: password)
+                        }
+                    }
+                    guard archive.capabilities.contains(.extract) else { throw ArchiveError.unsupported }
+                    let layout = try await service.extractionLayout(for: archive, limits: limits)
+                    items = [.init(archive: archive, selection: nil, access: retry.access, layout: layout)]
+                } catch {
+                    if !Task.isCancelled {
+                        var record = retry.record
+                        record.state = .failed
+                        record.details = error.localizedDescription
+                        saveBatchEntry(.init(record: record, urls: retry.urls, access: retry.access,
+                                             output: retry.output,
+                                             needsPassword: isPasswordFailure(error),
+                                             reservedOutput: retry.reservedOutput))
+                    }
+                    showBatchOutcome(cancelled: Task.isCancelled)
+                    finished(nil, nil)
+                    return
+                }
+            }
             var completed = 0
             var cancelled = false
-            var hasOutput = false
             var preparedBase = false
             for issue in run.issues {
-                var failed = record(for: issue.name, at: run.destination)
-                failed.state = .failed
-                failed.details = issue.reason
-                recordResult(failed)
+                var skipped = record(for: issue.name, at: run.destination)
+                skipped.state = .skipped
+                skipped.details = issue.reason
+                saveBatchEntry(.init(record: skipped, urls: issue.urls, access: issue.access,
+                                     output: nil, needsPassword: issue.needsPassword))
             }
-            for (index, item) in run.items.enumerated() {
-                var record = record(for: item.archive.displayName, at: run.destination)
+            for (index, item) in items.enumerated() {
+                var record = retry?.record ?? self.record(for: item.archive.displayName, at: run.destination)
+                record.state = .running
+                record.details = nil
                 current = record
                 progress = nil
-                if run.isBatch { batchPosition = (index + 1, run.items.count) }
+                if run.isBatch { batchPosition = (index + 1, items.count) }
                 var output = existingOutput
+                var browsableOutput: BrowserFolder?
+                var reservedOutput: BrowserFolder?
+                var needsPassword = false
                 var candidate = password
                 do {
                     try Task.checkCancellation()
@@ -350,7 +397,7 @@ final class AppModel {
                         try await prepareBase(run.destination)
                         preparedBase = true
                     }
-                    if run.isBatch && item.needsPassword {
+                    if run.isBatch, item.needsPassword, case .automatic = password {
                         if let id = await rememberedPassword(for: item.archive) {
                             candidate = .saved(id, remember: false)
                         } else if run.usePasswordLibrary {
@@ -361,6 +408,7 @@ final class AppModel {
                     }
                     try Task.checkCancellation()
                     if output == nil { output = try await outputFolder(for: placement, in: run.destination) }
+                    if placement.folderName != nil { reservedOutput = output }
                     guard let output else { throw ArchiveError.invalidInput }
                     record.destination = output.name
                     current = record
@@ -368,7 +416,11 @@ final class AppModel {
                     try await performExtraction(item, to: output, options: options, password: candidate)
                     record.state = .success
                     completed += 1
-                    hasOutput = true
+                    if run.mode == .direct, let top = item.layout.commonDirectory {
+                        browsableOutput = output.child(top)
+                    } else {
+                        browsableOutput = output
+                    }
                     if !run.isBatch {
                         lastOutput = output
                         notice = String(localized: "Extraction completed in \(output.name).")
@@ -379,6 +431,7 @@ final class AppModel {
                 } catch {
                     record.state = .failed
                     let failure = error as? ArchiveError
+                    needsPassword = isPasswordFailure(error)
                     if failure?.needsArchivePassword == true, case .library = candidate {
                         record.details = String(localized: "None of the saved passwords could unlock this archive.")
                     } else {
@@ -390,24 +443,35 @@ final class AppModel {
                     }
                 }
                 if record.state != .success, let output, (progress?.entriesDone ?? 0) > 0 {
-                    hasOutput = true
+                    browsableOutput = output
                     if !run.isBatch {
                         lastOutput = output
                         noticeIsPartial = true
                         notice = String(localized: "Extraction stopped. Files already extracted are kept.")
                     }
                 }
-                recordResult(record)
-                if cancelled { break }
+                if run.isBatch {
+                    if let browsableOutput { record.destination = browsableOutput.breadcrumb }
+                    saveBatchEntry(.init(record: record, urls: item.archive.sourceURLs, access: item.access,
+                                         output: browsableOutput ?? retry?.output, needsPassword: needsPassword,
+                                         reservedOutput: browsableOutput == nil ? reservedOutput : nil))
+                } else {
+                    recordResult(record)
+                }
+                if cancelled {
+                    if run.isBatch {
+                        for pending in items.dropFirst(index + 1) {
+                            var skipped = self.record(for: pending.archive.displayName, at: run.destination)
+                            skipped.state = .cancelled
+                            saveBatchEntry(.init(record: skipped, urls: pending.archive.sourceURLs,
+                                                 access: pending.access, output: nil, needsPassword: false))
+                        }
+                    }
+                    break
+                }
             }
             if run.isBatch {
-                if hasOutput { lastOutput = run.destination }
-                noticeIsPartial = completed != total
-                if cancelled {
-                    notice = String(localized: "Batch cancelled. \(completed) of \(total) archives extracted.")
-                } else {
-                    notice = String(localized: "\(completed) of \(total) archives extracted.")
-                }
+                showBatchOutcome(cancelled: cancelled)
                 finished(nil, nil)
             } else if cancelled {
                 notice = String(localized: "Extraction cancelled. Files already extracted are kept.")
@@ -415,6 +479,44 @@ final class AppModel {
             } else if completed > 0 {
                 finished(nil, nil)
             }
+        }
+    }
+
+    func retryBatchEntry(_ id: UUID, limits: ExtractionOptions.Limits, password: PasswordChoice,
+                         finished: @escaping () -> Void) {
+        guard let batchResult, let entry = batchResult.entries.first(where: { $0.id == id }),
+              entry.canRetry else { return }
+        let run = ExtractionRun(items: [], issues: [], inputURLs: batchResult.inputs,
+                                destination: batchResult.destination, mode: batchResult.mode,
+                                conflict: batchResult.conflict, isBatch: true, choosePassword: false,
+                                usePasswordLibrary: batchResult.usePasswordLibrary)
+        extract(run, limits: limits, password: password, existingOutput: entry.reservedOutput,
+                conflictOverride: nil, retry: entry) { _, _ in finished() }
+    }
+
+    private func isPasswordFailure(_ error: any Error) -> Bool {
+        (error as? ArchiveError)?.needsArchivePassword == true || error is PasswordLibrary.Failure
+    }
+
+    private func saveBatchEntry(_ entry: BatchResult.Entry) {
+        if let index = batchResult?.entries.firstIndex(where: { $0.id == entry.id }) {
+            batchResult?.entries[index] = entry
+        } else {
+            batchResult?.entries.append(entry)
+        }
+        recordResult(entry.record)
+    }
+
+    private func showBatchOutcome(cancelled: Bool) {
+        guard let batchResult else { return }
+        let completed = batchResult.entries.filter { $0.record.state == .success }.count
+        let total = batchResult.entries.count
+        if batchResult.entries.contains(where: { $0.output != nil }) { lastOutput = batchResult.destination }
+        noticeIsPartial = completed != total
+        if cancelled {
+            notice = String(localized: "Batch cancelled. \(completed) of \(total) archives extracted.")
+        } else {
+            notice = String(localized: "\(completed) of \(total) archives extracted.")
         }
     }
 
@@ -454,6 +556,7 @@ final class AppModel {
     }
 
     private func recordResult(_ record: TaskRecord) {
+        history.removeAll { $0.id == record.id }
         history.insert(record, at: 0)
         history = Array(history.prefix(20))
         persist(history, for: "taskHistory")

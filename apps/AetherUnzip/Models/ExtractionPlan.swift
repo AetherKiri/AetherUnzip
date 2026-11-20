@@ -20,6 +20,8 @@ struct ExtractionIssue: Identifiable {
     let name: String
     let reason: String
     let needsPassword: Bool
+    let urls: [URL]
+    let access: [WorkspaceAccess]
 }
 
 struct ExtractionDraft: Identifiable {
@@ -68,6 +70,26 @@ struct ExtractionRun {
     let isBatch: Bool
     let choosePassword: Bool
     let usePasswordLibrary: Bool
+}
+
+struct BatchResult {
+    struct Entry: Identifiable {
+        var record: TaskRecord
+        let urls: [URL]
+        let access: [WorkspaceAccess]
+        let output: BrowserFolder?
+        let needsPassword: Bool
+        var reservedOutput: BrowserFolder? = nil
+        var id: UUID { record.id }
+        var canRetry: Bool { record.state == .failed || record.state == .skipped }
+    }
+
+    let inputs: [URL]
+    let destination: BrowserFolder
+    let mode: ExtractionMode
+    let conflict: ExtractionOptions.ConflictPolicy
+    let usePasswordLibrary: Bool
+    var entries: [Entry] = []
 }
 
 extension ExtractionMode {

@@ -60,6 +60,10 @@ printf '%s\n' 'Existing notes' > "$layout/notes.txt"
 cp tests/fixtures/sample.zip "$batch/Batch First.zip"
 cp tests/fixtures/layout.tar.gz "$batch/Batch Second.tar.gz"
 printf '%s\n' 'Invalid archive fixture' > "$batch/Batch Corrupt.zip"
+recovery="$app_data/Documents/Batch Recovery"
+mkdir -p "$recovery"
+cp tests/fixtures/sample.zip "$recovery/Recovery First.zip"
+cp tests/fixtures/7z-aes-picker.7z "$recovery/Recovery Locked.7z"
 workspace="$app_data/Documents/Project Downloads"
 mkdir -p "$workspace/Guides"
 cp tests/fixtures/sample.zip "$workspace/Project Assets.zip"
@@ -88,7 +92,7 @@ xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
 
 缓存用例用 8 MiB 的单文件上限拦截 9 MiB 的预览。手动清理用例在关闭自动清理的状态下测量并删除测试预览文件。由于其他用例启动 App 时会自动清理，请重新创建上述测试缓存，再用 `-only-testing:AetherUnzipUITests/ArchiveWorkflowTests/testCacheSettingsClearsUnusedPreviewsAndAdjustsLimits` 单独运行该用例。
 
-布局用例在 `Layout Workflow` 去除顶层目录并保留两个同名文件，核对 `notes.txt` 和 `notes (2).txt`。批量用例在 `Batch Workflow` 保留归档内已有的 `Layout` 目录，为散落条目创建 `Batch First` 目录，并在活动中记录损坏的归档。重复运行前，从这两个测试目录清理旧的测试输出。
+布局用例在 `Layout Workflow` 去除顶层目录并保留两个同名文件，核对 `notes.txt` 和 `notes (2).txt`。批量用例在 `Batch Workflow` 检查每个压缩包的结果，并从成功项打开输出目录。恢复用例在 `Batch Recovery` 先用错误密码，再用 `fixture-pass` 重试加密项。复测时从这些测试目录清理旧的输出，并确认密码库中没有已关联到 `7z-aes-picker.7z` 样本的密码。
 
 App 和 Swift SDK 使用 String Catalog，支持英文、简体中文和日文。系统按 App 的语言设置选择界面，按地区设置显示日期和数字。新增界面文案时同步更新 App 或 SDK 的 `Localizable.xcstrings`。三个 `test*Localization` 用例分别验证本地化排序、搜索计数和解压密码错误。
 
