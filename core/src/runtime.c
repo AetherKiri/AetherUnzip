@@ -118,7 +118,7 @@ uint64_t au_expansion_budget(const au_options *options, uint64_t source_length) 
 au_status au_options_resolve(const au_options *input, au_options *out) {
     *out = aether_unzip_options_default();
     if (!input) return AU_OK;
-    if (input->struct_size < sizeof(*input) || input->conflict_policy > AU_CONFLICT_REPLACE ||
+    if (input->struct_size < sizeof(*input) || input->conflict_policy > AU_CONFLICT_KEEP_BOTH ||
         !input->max_entry_bytes || !input->max_total_bytes || !input->max_entries ||
         !input->max_path_depth || !input->max_expansion_ratio) return AU_INVALID;
     *out = *input;

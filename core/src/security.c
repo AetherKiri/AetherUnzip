@@ -71,12 +71,16 @@ au_status au_normalize_path(const char *name, uint32_t kind, uint32_t max_depth,
     return AU_OK;
 }
 
-au_status au_safe_parent(int root, const au_entry *entry, uint32_t max_depth,
-                         int *parent, char **leaf) {
-    const char *name;
-    size_t length;
-    au_status status = au_normalize_path(entry->name, entry->kind, max_depth, &name, &length);
-    if (status != AU_OK) return status;
+au_status aether_unzip_normalize_entry_path(const char *name, uint32_t kind, uint32_t max_depth,
+                                           const char **normalized, size_t *length) {
+    if (!name || !normalized || !length || !max_depth ||
+        (kind != AU_ENTRY_FILE && kind != AU_ENTRY_DIRECTORY)) return AU_INVALID;
+    *normalized = NULL;
+    *length = 0;
+    return au_normalize_path(name, kind, max_depth, normalized, length);
+}
+
+au_status au_safe_parent(int root, const char *name, size_t length, int *parent, char **leaf) {
     char *path = strndup(name, length);
     if (!path) return AU_NOMEM;
     int current = fcntl(root, F_DUPFD_CLOEXEC, 0);

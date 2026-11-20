@@ -23,7 +23,7 @@ enum {
 enum { AU_EVIDENCE_MAGIC = 1, AU_EVIDENCE_EXTENSION = 2, AU_EVIDENCE_STRUCTURE = 4 };
 enum { AU_KIND_CONTAINER = 1, AU_KIND_STREAM = 2 };
 enum { AU_ENTRY_FILE = 1, AU_ENTRY_DIRECTORY = 2, AU_ENTRY_OTHER = 3 };
-enum { AU_CONFLICT_FAIL, AU_CONFLICT_SKIP, AU_CONFLICT_REPLACE };
+enum { AU_CONFLICT_FAIL, AU_CONFLICT_SKIP, AU_CONFLICT_REPLACE, AU_CONFLICT_KEEP_BOTH };
 
 typedef struct {
     uint32_t struct_size;
@@ -107,6 +107,20 @@ void aether_unzip_archive_close(au_archive *archive);
 au_status aether_unzip_extract(const au_context *context, au_source *source, const char *name_hint,
                                const char *directory, const uint64_t *selection,
                                size_t selection_count, const au_options *options);
+
+/* Validates a NUL-terminated entry path using the extraction rules. The returned
+ * byte range borrows name; it need not be NUL terminated. AU_END is the root
+ * directory marker and has no output path. */
+au_status aether_unzip_normalize_entry_path(const char *name, uint32_t kind, uint32_t max_depth,
+                                           const char **normalized, size_t *length);
+
+/* Removes exactly one named, common directory component. NULL preserves paths.
+ * Validates the selected paths before writing and skips the root directory marker.
+ * The existing destination is treated as the new root. */
+au_status aether_unzip_extract_stripping_root(const au_context *context, au_source *source,
+                                             const char *name_hint, const char *directory,
+                                             const uint64_t *selection, size_t selection_count,
+                                             const char *root_component, const au_options *options);
 
 #ifdef __cplusplus
 }

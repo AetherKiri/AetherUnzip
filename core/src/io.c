@@ -146,6 +146,18 @@ void au_source_retain(au_source *source) {
     atomic_fetch_add_explicit(&source->refs, 1, memory_order_relaxed);
 }
 
+int au_source_uses_file(const au_source *source, const struct stat *file) {
+    if (source->parent) return au_source_uses_file(source->parent, file);
+    if (source->fd >= 0) {
+        struct stat input;
+        return fstat(source->fd, &input) == 0 &&
+            input.st_dev == file->st_dev && input.st_ino == file->st_ino;
+    }
+    for (size_t i = 0; i < source->segment_count; ++i)
+        if (au_source_uses_file(source->segments[i].source, file)) return 1;
+    return 0;
+}
+
 size_t au_source_parts(const au_source *source) {
     return source->segment_count ? source->segment_count : 1;
 }

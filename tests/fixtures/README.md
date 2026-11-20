@@ -17,6 +17,7 @@
 - `members.gz` concatenates two valid members. `gzip-crc.gz` and `gzip-size.gz` contain a multi-block stream with one modified trailer field each.
 - `prefixed-zip.bin` prepends an inert header to the standard ZIP fixture to exercise central-directory recognition without a ZIP extension.
 - `workspace-photo.jpg` is a synthetic 96 × 64 JPEG drawn with Pillow. The recognition tests use the original JPEG, a ZIP with a media extension, and this JPEG followed by `sample.zip`. ImageIO decodes the image and Core reads the appended archive.
+- `layout.zip` and `layout.tar.gz` contain a single `Layout` folder with a file and a subfolder. `layout-unsafe.zip` checks that validation rejects an unsafe path before any files are published when stripping a root. All three come from `generate.py`.
 - `profile-box.bin` contains a fixed header, the standard ZIP and an unrelated footer. `format-profile.json` bounds the ZIP payload and verifies the header signature.
 - `resource-index.zip` contains explicit and implicit directories, paths that normalize to the same name, a UTF-8 file, a path outside the resource namespace, and a file that conflicts with directory traversal.
 - `composition-patch.zip` provides replacement content and a file whose name collides with an implicit directory in `nested.zip`.

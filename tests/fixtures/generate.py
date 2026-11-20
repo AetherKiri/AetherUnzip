@@ -36,6 +36,8 @@ profile_payload = (root / "sample.zip").read_bytes()
 (root / "prefixed-zip.bin").write_bytes(b"MZ\0AetherUnzip inert prefix\0" +
                                         (root / "sample.zip").read_bytes())
 zip_file("empty.zip", {})
+zip_file("layout.zip", {"Layout/": b"", "Layout/notes.txt": message, "Layout/docs/readme.txt": files["docs/readme.txt"]})
+zip_file("layout-unsafe.zip", {"Layout/notes.txt": message, "Layout/../escaped.txt": message})
 zip_file("traversal.zip", {"../escaped.txt": message})
 zip_file("absolute.zip", {"/escaped.txt": message})
 zip_file("windows-path.zip", {"C:\\escaped.txt": message})
@@ -161,6 +163,16 @@ with tarfile.open(fileobj=buffer, mode="w", format=tarfile.USTAR_FORMAT) as arch
     archive.addfile(info, BytesIO(message))
 (root / "sample.tar").write_bytes(buffer.getvalue())
 (root / "sample.tar.gz").write_bytes(compress(buffer.getvalue(), mtime=0))
+with BytesIO() as wrapped:
+    with tarfile.open(fileobj=wrapped, mode="w", format=tarfile.USTAR_FORMAT) as archive:
+        info = tarfile.TarInfo("./Layout/")
+        info.type = tarfile.DIRTYPE
+        archive.addfile(info)
+        for path in ("notes.txt", "docs/readme.txt"):
+            info = tarfile.TarInfo(f"./Layout/{path}")
+            info.size = len(files[path])
+            archive.addfile(info, BytesIO(files[path]))
+    (root / "layout.tar.gz").write_bytes(compress(wrapped.getvalue(), mtime=0))
 (root / "notes.gz").write_bytes(compress(message, mtime=0))
 (root / "empty.gz").write_bytes(compress(b"", mtime=0))
 (root / "members.gz").write_bytes(compress(message, mtime=0) +
@@ -177,7 +189,7 @@ for suffix, encoder in [("xz", lzma.compress), ("bz2", bz2.compress)]:
     (root / f"sample.tar.{suffix}").write_bytes(encoder(buffer.getvalue()))
 
 swift = root.parent.parent / "bindings/swift/Tests/AetherUnzipKitTests/Fixtures"
-for name in ["sample.zip", "expansion.zip", "prefixed-zip.bin", "nested.zip", "sample.xp3",
+for name in ["sample.zip", "layout.zip", "layout.tar.gz", "expansion.zip", "prefixed-zip.bin", "nested.zip", "sample.xp3",
              "profile-box.bin", "format-profile.json"]:
     shutil.copyfile(root / name, swift / name)
 shutil.copyfile(root / "gzip-crc.gz", swift / "gzip-crc.gz")

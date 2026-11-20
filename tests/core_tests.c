@@ -1197,6 +1197,64 @@ static void security_tests(void) {
     aether_unzip_source_close(source);
 }
 
+static void extraction_layout_tests(void) {
+    const char *fixtures[] = {"layout.zip", "layout.tar.gz"};
+    char path[512];
+    au_options options = aether_unzip_options_default();
+    for (size_t i = 0; i < sizeof(fixtures) / sizeof(fixtures[0]); ++i) {
+        const char *output = directory(i == 0 ? "zip-layout" : "tar-layout");
+        au_source *source = fixture(fixtures[i]);
+        REQUIRE(aether_unzip_extract_stripping_root(context, source, fixtures[i], output,
+            NULL, 0, "Lay", NULL) == AU_INVALID);
+        REQUIRE(aether_unzip_extract_stripping_root(context, source, fixtures[i], output,
+            NULL, 0, "../Layout", NULL) == AU_INVALID);
+        options.max_path_depth = 2;
+        REQUIRE(aether_unzip_extract_stripping_root(context, source, fixtures[i], output,
+            NULL, 0, "Layout", &options) == AU_LIMIT);
+        no_output(output);
+        options = aether_unzip_options_default();
+        REQUIRE(aether_unzip_extract_stripping_root(context, source, fixtures[i], output,
+            NULL, 0, "Layout", &options) == AU_OK);
+        snprintf(path, sizeof(path), "%s/notes.txt", output);
+        contents(path, message);
+        snprintf(path, sizeof(path), "%s/docs/readme.txt", output);
+        contents(path, "Nested document\n");
+        snprintf(path, sizeof(path), "%s/Layout", output);
+        REQUIRE(access(path, F_OK) != 0);
+        options.conflict_policy = AU_CONFLICT_KEEP_BOTH;
+        REQUIRE(aether_unzip_extract_stripping_root(context, source, fixtures[i], output,
+            NULL, 0, "Layout", &options) == AU_OK);
+        snprintf(path, sizeof(path), "%s/notes (2).txt", output);
+        contents(path, message);
+        aether_unzip_source_close(source);
+    }
+    const char *output = directory("layout-unsafe");
+    au_source *source = fixture("layout-unsafe.zip");
+    REQUIRE(aether_unzip_extract_stripping_root(context, source, "layout-unsafe.zip", output,
+        NULL, 0, "Layout", NULL) == AU_UNSAFE_PATH);
+    no_output(output);
+    aether_unzip_source_close(source);
+
+    output = directory("input-conflict");
+    source = fixture("sample.zip");
+    unsigned char bytes[4096];
+    size_t length;
+    REQUIRE(aether_unzip_source_read_at(source, 0, bytes, sizeof(bytes), &length) == AU_OK);
+    REQUIRE(length < sizeof(bytes));
+    aether_unzip_source_close(source);
+    snprintf(path, sizeof(path), "%s/notes.txt", output);
+    FILE *input = fopen(path, "wb");
+    REQUIRE(input && fwrite(bytes, 1, length, input) == length && fclose(input) == 0);
+    REQUIRE(aether_unzip_source_file(path, &source) == AU_OK);
+    options.conflict_policy = AU_CONFLICT_REPLACE;
+    REQUIRE(aether_unzip_extract(context, source, "sample.zip", output, NULL, 0, &options) == AU_EXISTS);
+    aether_unzip_source_close(source);
+    unsigned char after[sizeof(bytes)];
+    input = fopen(path, "rb");
+    REQUIRE(input && fread(after, 1, sizeof(after), input) == length && fclose(input) == 0);
+    REQUIRE(memcmp(bytes, after, length) == 0);
+}
+
 int main(int argc, char **argv) {
     REQUIRE(argc == 2 && mkdtemp(work));
     cwd = open(".", O_RDONLY);
@@ -1205,7 +1263,7 @@ int main(int argc, char **argv) {
     if (!strcmp(argv[1], "io")) io_test();
     else if (!strcmp(argv[1], "formats")) format_tests();
     else if (!strcmp(argv[1], "password")) password_tests();
-    else if (!strcmp(argv[1], "security")) security_tests();
+    else if (!strcmp(argv[1], "security")) { security_tests(); extraction_layout_tests(); }
     else if (!strcmp(argv[1], "resource")) resource_tests();
     else if (!strcmp(argv[1], "profile")) profile_tests();
     else REQUIRE(0);

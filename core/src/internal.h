@@ -1,6 +1,7 @@
 #ifndef AU_INTERNAL_H
 #define AU_INTERNAL_H
 #include "aetherunzip/api.h"
+#include <sys/stat.h>
 
 typedef struct au_driver {
     au_driver_info info;
@@ -36,6 +37,7 @@ const au_driver *au_driver_at(const au_context *context, size_t index);
 const char *au_context_passphrase(const au_context *context);
 void au_context_retain(const au_context *context);
 void au_source_retain(au_source *source);
+int au_source_uses_file(const au_source *source, const struct stat *file);
 /* Takes ownership of fd on success. */
 au_status au_source_from_fd(int fd, au_source **out);
 size_t au_source_parts(const au_source *source);
@@ -48,7 +50,7 @@ au_status au_archive_entry_access(const au_archive *archive);
 int au_valid_utf8(const char *text);
 au_status au_normalize_path(const char *path, uint32_t kind, uint32_t max_depth,
                             const char **name, size_t *length);
-au_status au_safe_parent(int root, const au_entry *entry, uint32_t max_depth,
+au_status au_safe_parent(int root, const char *name, size_t length,
                          int *parent, char **leaf);
 au_status au_write_all(int fd, const void *data, size_t size);
 int au_open_temp(int parent, const char *reserved, char *name, size_t capacity, int access);

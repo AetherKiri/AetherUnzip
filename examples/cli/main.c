@@ -21,6 +21,7 @@ typedef struct {
     size_t entry_count;
     int password_stdin;
     int total_budget_set;
+    const char *strip_root;
     au_options options;
 } cli_options;
 
@@ -46,6 +47,8 @@ static void usage(FILE *stream, const char *program) {
                     "  --entry INDEX          Verify or extract this zero-based entry index; repeat in ascending order.\n"
                     "  --password-stdin       Read one UTF-8 line from standard input.\n"
                     "  --max-total-bytes N    Limit total decoded bytes for this operation.\n"
+                    "  --strip-root NAME      Remove one shared top-level directory when extracting.\n"
+                    "  --keep-both           Give incoming files a new name when a file already exists.\n"
                     "  --help                 Show this usage.\n",
                     program, program, program, program, program);
 }
@@ -218,12 +221,13 @@ static au_status verify_archive(const au_context *context, au_source *source, co
 }
 
 static int parse_options(int argc, char **argv, cli_options *cli) {
-    enum { ADD_VOLUME = 1000, ADD_ENTRY, PASSWORD, MAX_TOTAL };
+    enum { ADD_VOLUME = 1000, ADD_ENTRY, PASSWORD, MAX_TOTAL, STRIP_ROOT, KEEP_BOTH };
     static const struct option flags[] = {
         {"probe", no_argument, NULL, PROBE}, {"verify", no_argument, NULL, VERIFY},
         {"cat", no_argument, NULL, CAT}, {"ls", no_argument, NULL, LIST_DIRECTORY},
         {"volume", required_argument, NULL, ADD_VOLUME}, {"entry", required_argument, NULL, ADD_ENTRY},
         {"password-stdin", no_argument, NULL, PASSWORD},
+        {"strip-root", required_argument, NULL, STRIP_ROOT}, {"keep-both", no_argument, NULL, KEEP_BOTH},
         {"max-total-bytes", required_argument, NULL, MAX_TOTAL}, {"help", no_argument, NULL, 'h'},
         {NULL, 0, NULL, 0}
     };
@@ -255,10 +259,19 @@ static int parse_options(int argc, char **argv, cli_options *cli) {
                 return 0;
             cli->total_budget_set = 1;
             break;
+        case STRIP_ROOT:
+            if (!*optarg || cli->strip_root) return 0;
+            cli->strip_root = optarg;
+            break;
+        case KEEP_BOTH:
+            cli->options.conflict_policy = AU_CONFLICT_KEEP_BOTH;
+            break;
         default: return 0;
         }
     }
     int operands = argc - optind;
+    if (cli->strip_root || cli->options.conflict_policy == AU_CONFLICT_KEEP_BOTH)
+        return cli->mode == AUTO && operands == 2;
     if (cli->mode == CAT || cli->mode == LIST_DIRECTORY)
         return operands == 2 && !cli->entry_count;
     if (cli->mode == VERIFY) return operands == 1;
@@ -299,8 +312,8 @@ int main(int argc, char **argv) {
             break;
         case AUTO:
             status = operand
-                ? aether_unzip_extract(context, source, input, operand, cli.entry_count ? cli.entries : NULL,
-                                        cli.entry_count, &cli.options)
+                ? aether_unzip_extract_stripping_root(context, source, input, operand,
+                    cli.entry_count ? cli.entries : NULL, cli.entry_count, cli.strip_root, &cli.options)
                 : catalog_archive(context, source, input, &cli.options);
             break;
         }

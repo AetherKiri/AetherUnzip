@@ -730,6 +730,57 @@ struct ArchiveServiceTests {
         }
     }
 
+    @Test(arguments: ["zip", "tar.gz"])
+    func laysOutArchiveByItsSelectedTopLevelStructure(_ suffix: String) async throws {
+        let url = try #require(Bundle.module.url(forResource: "layout", withExtension: suffix,
+                                                  subdirectory: "Fixtures"))
+        let archive = try await service.open(url)
+        let layout = try await service.extractionLayout(for: archive)
+        #expect(layout.topLevelCount == 1)
+        #expect(layout.commonDirectory == "Layout")
+        #expect(layout.placement(for: .smart)?.folderName == "Layout")
+        #expect(layout.placement(for: .smart)?.stripRoot == "Layout")
+        #expect(layout.placement(for: .separateFolder)?.folderName == "layout")
+        #expect(layout.placement(for: .direct)?.stripRoot == nil)
+        let stripped = try #require(layout.placement(for: .stripTopLevel))
+        #expect(stripped.folderName == nil)
+        #expect(stripped.stripRoot == "Layout")
+
+        try await temporaryDirectory { destination in
+            let existing = destination.appending(path: "notes.txt")
+            try Data("Existing".utf8).write(to: existing)
+            try await service.extract(archive, to: destination,
+                options: .init(conflictPolicy: .keepBoth, stripRoot: stripped.stripRoot)).value()
+            #expect(try Data(contentsOf: existing) == Data("Existing".utf8))
+            #expect(try Data(contentsOf: destination.appending(path: "notes (2).txt")) ==
+                Data("AetherUnzip fixture\n".utf8))
+            #expect(FileManager.default.fileExists(atPath: destination.appending(path: "docs/readme.txt").path))
+            #expect(!FileManager.default.fileExists(atPath: destination.appending(path: "Layout").path))
+        }
+    }
+
+    @Test func laysOutLooseFilesAndGroupsSelectedVolumes() async throws {
+        let archive = try await service.open(fixture())
+        let full = try await service.extractionLayout(for: archive)
+        #expect(full.topLevelCount == 2)
+        #expect(full.placement(for: .smart)?.folderName == "sample")
+        #expect(full.placement(for: .stripTopLevel) == nil)
+        let selection = try await service.extractionLayout(for: archive, selecting: [0])
+        #expect(selection.topLevelCount == 1)
+        #expect(selection.placement(for: .smart)?.folderName == nil)
+        let directory = URL(fileURLWithPath: "/archives")
+        let protected = directory.appending(path: "NOTES.txt")
+        let direct = try #require(full.placement(for: .direct))
+        #expect(await full.wouldReplaceInput([protected], at: directory, placement: direct))
+        let smart = try #require(full.placement(for: .smart))
+        #expect(await !full.wouldReplaceInput([protected], at: directory, placement: smart))
+
+        let files = ["A.zip", "B.7z.002", "C.z01", "D.rar", "B.7z.001", "C.zip", "D.r00"]
+            .map { directory.appending(path: $0) }
+        #expect(service.archiveGroups(in: files).map { $0.map(\.lastPathComponent) } ==
+            [["A.zip"], ["B.7z.002", "B.7z.001"], ["C.z01", "C.zip"], ["D.rar", "D.r00"]])
+    }
+
     private func independentFixture(_ name: String) throws -> URL {
         try #require(Bundle.module.url(forResource: name, withExtension: nil,
                                        subdirectory: "Fixtures/Independent"))

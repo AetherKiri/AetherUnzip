@@ -81,6 +81,12 @@ public struct ArchiveService: Sendable {
         try await open(ArchiveInput(urls), profile: nil, limits: limits, passphrase: passphrase)
     }
 
+    /// Divides a file selection into standalone archives and named sets of volumes.
+    /// Opening each group still checks for missing parts and validates its contents.
+    public func archiveGroups(in urls: [URL]) -> [[URL]] {
+        ArchiveInput.groups(in: urls)
+    }
+
     public func open(_ url: URL, profile: FormatProfile, limits: ExtractionOptions.Limits = .init(),
                      passphrase: String? = nil)
         async throws -> ArchiveManifest {
@@ -401,9 +407,15 @@ public struct ArchiveService: Sendable {
                             }
                             authenticated = true
                             let status = selection.withUnsafeBufferPointer { indexes in
-                                aether_unzip_extract(context, source, manifest.decoderName,
-                                                      output.path, ids == nil ? nil : indexes.baseAddress,
-                                                      indexes.count, &coreOptions)
+                                if let root = options.stripRoot {
+                                    return root.withCString {
+                                        aether_unzip_extract_stripping_root(context, source, manifest.decoderName,
+                                            output.path, ids == nil ? nil : indexes.baseAddress, indexes.count,
+                                            $0, &coreOptions)
+                                    }
+                                }
+                                return aether_unzip_extract(context, source, manifest.decoderName,
+                                    output.path, ids == nil ? nil : indexes.baseAddress, indexes.count, &coreOptions)
                             }
                             try check(status)
                         }
@@ -504,7 +516,7 @@ private func copyEntryBytes(_ handle: OpaquePointer, entry: ArchiveEntry, maximu
 }
 
 private struct ArchiveInput: Sendable {
-    private enum Scheme: Equatable {
+    private enum Scheme: Hashable {
         case byteSplit(ArchiveFormat), diskZIP, numberedRAR, legacyRAR
 
         var format: ArchiveFormat {
@@ -528,6 +540,45 @@ private struct ArchiveInput: Sendable {
         let stem: String
         let scheme: Scheme
         let index: Int
+    }
+
+    private struct Group: Hashable {
+        let folder: URL
+        let stem: String
+        let scheme: Scheme
+    }
+
+    static func groups(in urls: [URL]) -> [[URL]] {
+        func explicitGroup(_ url: URL) -> Group? {
+            guard let part = part(url) else { return nil }
+            return Group(folder: url.deletingLastPathComponent().standardizedFileURL,
+                         stem: part.stem, scheme: part.scheme)
+        }
+        let explicit = Set(urls.compactMap(explicitGroup))
+        var result: [[URL]] = []
+        var indexes: [Group: Int] = [:]
+        for url in urls {
+            var group = explicitGroup(url)
+            let companionScheme: Scheme? = switch url.pathExtension.lowercased() {
+            case "zip": .diskZIP
+            case "rar": .legacyRAR
+            default: nil
+            }
+            if group == nil, let scheme = companionScheme {
+                let companion = Group(folder: url.deletingLastPathComponent().standardizedFileURL,
+                                      stem: url.deletingPathExtension().lastPathComponent, scheme: scheme)
+                if explicit.contains(companion) { group = companion }
+            }
+            if let group {
+                if let index = indexes[group] {
+                    result[index].append(url)
+                    continue
+                }
+                indexes[group] = result.count
+            }
+            result.append([url])
+        }
+        return result
     }
 
     let urls: [URL]

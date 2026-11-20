@@ -159,7 +159,7 @@ public struct ResourceEntry: Identifiable, Sendable {
 
 public struct ExtractionOptions: Sendable {
     public enum ConflictPolicy: Int, CaseIterable, Sendable {
-        case fail, skip, replace
+        case fail, skip, replace, keepBoth
     }
 
     public struct Limits: Sendable {
@@ -181,14 +181,17 @@ public struct ExtractionOptions: Sendable {
 
     public var conflictPolicy: ConflictPolicy
     public var limits: Limits
+    /// Removes this exact shared top-level directory. Core revalidates before writing.
+    public var stripRoot: String?
     /// Used for this extraction task. The SDK does not persist this value.
     public var passphrase: String?
 
     public init(conflictPolicy: ConflictPolicy = .fail, limits: Limits = .init(),
-                passphrase: String? = nil) {
+                passphrase: String? = nil, stripRoot: String? = nil) {
         self.conflictPolicy = conflictPolicy
         self.limits = limits
         self.passphrase = passphrase
+        self.stripRoot = stripRoot
     }
 }
 
