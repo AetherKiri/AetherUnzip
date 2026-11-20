@@ -104,17 +104,20 @@ private struct TaskProgress: View {
     }
 }
 
-struct TasksView: View {
-    var model: AppModel
+struct ActivityView: View {
+    let model: AppModel
+    let reopen: (RecentArchive) -> Void
     @State private var details: TaskRecord?
+    @State private var showAllRecents = false
+    private let recentPreviewCount = 4
 
     var body: some View {
         VStack(spacing: 0) {
-            WorkspaceHeading(title: String(localized: "Tasks"),
-                             detail: model.history.isEmpty ? nil : String(localized: "\(model.history.count) recent"))
+            WorkspaceHeading(title: String(localized: "Activity"))
                 .modifier(WorkspaceHeaderLayout())
-            if model.current == nil && model.history.isEmpty {
-                ContentUnavailableView("No Extraction Tasks", systemImage: "tray")
+            if model.current == nil && model.recents.isEmpty && model.history.isEmpty {
+                ContentUnavailableView("No Activity Yet", systemImage: "clock.arrow.circlepath",
+                                       description: Text("Opened archives and extractions will appear here."))
             } else {
                 List {
                     if let current = model.current {
@@ -130,8 +133,24 @@ struct TasksView: View {
                             .padding(.bottom, 8)
                         }
                     }
+                    if !model.recents.isEmpty {
+                        Section("Recently Opened") {
+                            let count = showAllRecents ? model.recents.count : recentPreviewCount
+                            ForEach(model.recents.prefix(count)) { item in recentRow(item) }
+                            if model.recents.count > recentPreviewCount {
+                                Button {
+                                    showAllRecents.toggle()
+                                } label: {
+                                    Label(showAllRecents ? "Show Fewer Recent Archives" : "Show All Recent Archives",
+                                          systemImage: showAllRecents ? "chevron.up" : "chevron.down")
+                                        .font(.subheadline)
+                                }
+                                .accessibilityIdentifier("activity-toggle-recents")
+                            }
+                        }
+                    }
                     if !model.history.isEmpty {
-                        Section("History") {
+                        Section("Extraction History") {
                             ForEach(model.history) { task in
                                 Group {
                                     if task.details != nil {
@@ -153,7 +172,6 @@ struct TasksView: View {
         #if os(iOS)
         .toolbar(.hidden, for: .navigationBar)
         #endif
-        .accessibilityIdentifier("tasks-page")
         .sheet(item: $details) { task in
             VStack(alignment: .leading, spacing: 12) {
                 WorkspaceHeading(title: task.archive, symbol: task.state.symbol, tint: task.state.tint,
@@ -172,7 +190,11 @@ struct TasksView: View {
         HStack(spacing: 10) {
             WorkspaceGlyph(symbol: task.state.symbol, tint: task.state.tint)
             VStack(alignment: .leading, spacing: 3) {
-                Text(task.archive).font(.body.weight(.medium)).lineLimit(2).truncationMode(.middle)
+                Text(task.archive)
+                    .font(.body.weight(.medium))
+                    .lineLimit(2)
+                    .truncationMode(.middle)
+                    .accessibilityIdentifier("activity-extraction-\(task.archive)")
                 Text(task.destination).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 8)
@@ -191,5 +213,34 @@ struct TasksView: View {
         .padding(.vertical, 5)
         .frame(minHeight: 46)
         .contentShape(Rectangle())
+    }
+
+    private func recentRow(_ item: RecentArchive) -> some View {
+        Button { reopen(item) } label: {
+            HStack(spacing: 10) {
+                WorkspaceGlyph(symbol: "doc.zipper", tint: .teal)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.name).font(.body.weight(.medium)).foregroundStyle(.primary)
+                        .lineLimit(2).truncationMode(.middle)
+                    Text("\(item.format) · \(formattedBytes(item.size))")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary).accessibilityHidden(true)
+            }
+            .padding(.vertical, 5)
+            .frame(minHeight: 46)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+        .accessibilityIdentifier("activity-recent-\(item.name)")
+        .swipeActions {
+            Button("Remove from Recents", systemImage: "trash", role: .destructive) { model.remove(item) }
+        }
+        .contextMenu {
+            Button("Remove from Recents", role: .destructive) { model.remove(item) }
+        }
     }
 }

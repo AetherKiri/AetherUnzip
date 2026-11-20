@@ -11,7 +11,7 @@ AetherUnzip 是一个 MIT 许可的归档与资源处理 Monorepo。首个产品
 | Core | C17/C++17 工具链、CMake 3.24+、POSIX 文件 I/O。提供 C ABI、静态驱动注册、文件/内存/切片/拼接/回调源、文件/内存/回调 sink、归档游标、资源路径索引、组合挂载、受限嵌套挂载和提取。 |
 | 驱动 | 通用归档使用 libarchive，独立 `.br` 压缩流使用 Brotli 驱动，KiriKiri 资源容器使用 XP3 驱动。识别以文件签名和结构为准，扩展名用于辅助确认。 |
 | Swift SDK | Swift 6、Swift Package Manager、本地 XCFramework。提供归档清单、格式配置、异步条目枚举、单文件按需流式读取、提取进度、取消及错误映射。 |
-| App | macOS 14+、iOS/iPadOS 17+。以文件管理器为入口，包含 App 文档目录和授权文件夹、路径导航、搜索、排序及基本文件操作。支持从文件列表进入归档、ZIP/7z/RAR 分卷导入、预览、嵌套归档、密码输入、就地或指定目录提取、任务记录及设置。 |
+| App | macOS 14+、iOS/iPadOS 17+。主导航包含文件、密码库、活动和设置。文件工作区支持 App 文档目录和授权文件夹、路径导航、搜索、排序及基本文件操作。支持归档预览、嵌套归档、ZIP/7z/RAR 分卷导入、就地或指定目录提取。密码库使用系统钥匙串保存密码并关联归档。活动页汇集最近打开的归档、正在进行的解压和解压记录。 |
 | 构建 | Core 可独立构建并运行 C CLI。Apple 构建脚本生成通用 macOS、iOS arm64 真机和通用模拟器的库。GitHub Actions 配置 Linux Core 及 Apple 构建和测试。 |
 
 Core 按 POSIX 平台设计，本地验证覆盖 macOS 与 Ubuntu 24.04 ARM64。Apple 验证覆盖 macOS 实际文件面板流程、iPhone/iPad 模拟器启动和 iOS 真机目标的未签名构建。

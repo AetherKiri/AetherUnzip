@@ -293,15 +293,19 @@ final class ArchiveWorkflowTests: XCTestCase {
     }
 
     private func openSettings(in app: XCUIApplication, title: String) {
+        openWorkspacePage(title, sidebarID: "settings", in: app)
+    }
+
+    private func openWorkspacePage(_ title: String, sidebarID: String, in app: XCUIApplication) {
         let tabs = app.tabBars.firstMatch
         if tabs.exists {
             tabs.buttons[title].tap()
         } else {
-            let settings = app.descendants(matching: .any)["workspace-sidebar-settings"].firstMatch
+            let page = app.descendants(matching: .any)["workspace-sidebar-\(sidebarID)"].firstMatch
             let sidebar = app.buttons["Show Sidebar"].firstMatch
-            if !settings.exists && sidebar.waitForExistence(timeout: 5) { sidebar.tap() }
-            XCTAssertTrue(settings.waitForExistence(timeout: 8), app.debugDescription)
-            settings.tap()
+            if !page.exists && sidebar.waitForExistence(timeout: 5) { sidebar.tap() }
+            XCTAssertTrue(page.waitForExistence(timeout: 8), app.debugDescription)
+            page.tap()
         }
     }
 
@@ -389,6 +393,7 @@ final class ArchiveWorkflowTests: XCTestCase {
 
     func testArchiveAndWorkspacePageLayouts() {
         let app = XCUIApplication()
+        app.launchArguments = ["-destinationPolicy", "1", "-conflictPolicy", "2"]
         app.launch()
 
         let search = app.textFields["workspace-search"].firstMatch
@@ -410,21 +415,42 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(app.buttons["extract-all"].firstMatch.isHittable)
         capture("Archive Preview", in: app)
 
-        let tabs = app.tabBars.firstMatch
-        if tabs.exists {
-            tabs.buttons["Recents"].tap()
-            XCTAssertTrue(app.staticTexts["Release Backup.tar.gz"].firstMatch.waitForExistence(timeout: 8))
-            capture("Recents", in: app)
-            tabs.buttons["Tasks"].tap()
-            XCTAssertTrue(app.staticTexts["Tasks"].firstMatch.waitForExistence(timeout: 8))
-            capture("Tasks", in: app)
-            tabs.buttons["Settings"].tap()
-            let limits = app.buttons["settings-safety"].firstMatch
-            XCTAssertTrue(limits.waitForExistence(timeout: 8), app.debugDescription)
-            capture("Settings", in: app)
-            limits.tap()
-            XCTAssertTrue(app.textFields["settings-limit-file"].firstMatch.waitForExistence(timeout: 8), app.debugDescription)
+        app.buttons["extract-all"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Extraction completed in Extracted Archives."].firstMatch
+            .waitForExistence(timeout: 10), app.debugDescription)
+
+        openWorkspacePage("Activity", sidebarID: "activity", in: app)
+        XCTAssertTrue(app.staticTexts["Recently Opened"].firstMatch.waitForExistence(timeout: 8))
+        let recent = app.buttons["activity-recent-Release Backup.tar.gz"].firstMatch
+        XCTAssertTrue(recent.waitForExistence(timeout: 8), app.debugDescription)
+        capture("Activity", in: app)
+        let showRecents = app.buttons["activity-toggle-recents"].firstMatch
+        if showRecents.isHittable {
+            showRecents.tap()
+            if !showRecents.isHittable { app.swipeUp() }
+            XCTAssertTrue(showRecents.waitForExistence(timeout: 8))
+            XCTAssertEqual(showRecents.label, "Show Fewer Recent Archives")
+            showRecents.tap()
         }
+        if !recent.isHittable { app.swipeDown() }
+        recent.tap()
+        XCTAssertTrue(summary.waitForExistence(timeout: 8), app.debugDescription)
+
+        openWorkspacePage("Activity", sidebarID: "activity", in: app)
+        let extraction = app.staticTexts["activity-extraction-Release Backup.tar.gz"].firstMatch
+        let lowerList = app.coordinate(withNormalizedOffset: CGVector(dx: 0.66, dy: 0.72))
+        let upperList = app.coordinate(withNormalizedOffset: CGVector(dx: 0.66, dy: 0.45))
+        for _ in 0..<5 where !extraction.exists {
+            lowerList.press(forDuration: 0.05, thenDragTo: upperList, withVelocity: .slow, thenHoldForDuration: 0.15)
+        }
+        XCTAssertTrue(extraction.waitForExistence(timeout: 8), app.debugDescription)
+
+        openSettings(in: app, title: "Settings")
+        let limits = app.buttons["settings-safety"].firstMatch
+        XCTAssertTrue(limits.waitForExistence(timeout: 8), app.debugDescription)
+        capture("Settings", in: app)
+        limits.tap()
+        XCTAssertTrue(app.textFields["settings-limit-file"].firstMatch.waitForExistence(timeout: 8), app.debugDescription)
     }
 
     private func capture(_ title: String, in app: XCUIApplication) {
@@ -557,6 +583,9 @@ final class ArchiveWorkflowTests: XCTestCase {
 
     func testRemembersArchivePasswordAfterRelaunchAndRename() {
         let app = launchWithIsolatedPasswordLibrary()
+        openWorkspacePage("Passwords", sidebarID: "passwords", in: app)
+        XCTAssertTrue(app.staticTexts["No Saved Passwords"].firstMatch.waitForExistence(timeout: 8))
+        openWorkspacePage("Files", sidebarID: "archives", in: app)
         openWorkspaceArchive("Library Locked.rar", in: app)
         let field = app.secureTextFields["archive-password"].firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 8), app.debugDescription)
@@ -564,6 +593,8 @@ final class ArchiveWorkflowTests: XCTestCase {
         field.typeText("fixture-pass")
         app.buttons["submit-archive-password"].firstMatch.tap()
         XCTAssertTrue(app.buttons["extract-all"].firstMatch.waitForExistence(timeout: 10), app.debugDescription)
+        openWorkspacePage("Passwords", sidebarID: "passwords", in: app)
+        XCTAssertTrue(app.staticTexts["Library Locked.rar"].firstMatch.waitForExistence(timeout: 8))
 
         app.terminate()
         app.launch()
@@ -574,14 +605,11 @@ final class ArchiveWorkflowTests: XCTestCase {
 
     func testSelectsAndTriesPasswordsFromLibrary() {
         let app = launchWithIsolatedPasswordLibrary()
-        openSettings(in: app, title: "Settings")
-        app.buttons["settings-password-library"].firstMatch.tap()
+        openWorkspacePage("Passwords", sidebarID: "passwords", in: app)
         addLibraryPassword("fixture-pass", named: "Fixture Password", in: app)
         addLibraryPassword("wrong-password", named: "Other Password", in: app)
         capture("Password Library", in: app)
-        app.buttons["Done"].firstMatch.tap()
-        app.terminate()
-        app.launch()
+        openWorkspacePage("Files", sidebarID: "archives", in: app)
         openWorkspaceArchive("Library Payload.zip", in: app)
 
         let choose = app.buttons["choose-saved-password"].firstMatch

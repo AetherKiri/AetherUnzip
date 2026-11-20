@@ -2,7 +2,7 @@ import SwiftUI
 
 struct PasswordLibraryView: View {
     let library: PasswordLibrary
-    @Environment(\.dismiss) private var dismiss
+    let refreshVersion: Int
     @State private var entries: [PasswordLabel] = []
     @State private var loaded = false
     @State private var adding = false
@@ -10,60 +10,82 @@ struct PasswordLibraryView: View {
     @State private var error: String?
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if !loaded {
-                    ProgressView()
-                } else if entries.isEmpty {
-                    ContentUnavailableView("No Saved Passwords", systemImage: "key",
-                                           description: Text("Save archive passwords to choose them again later."))
-                } else {
-                    List(entries) { entry in
-                        Label(entry.title, systemImage: "key")
-                            .accessibilityIdentifier("password-library-entry")
-                            .swipeActions {
-                                Button("Delete", systemImage: "trash", role: .destructive) { deleting = entry }
-                            }
-                            .contextMenu {
-                                Button("Delete", systemImage: "trash", role: .destructive) { deleting = entry }
-                            }
-                    }
-                    .modifier(WorkspaceListSurface())
-                }
-            }
-            .navigationTitle("Password Library")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }.keyboardShortcut(.cancelAction)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Add Password", systemImage: "plus") { adding = true }
-                        .accessibilityIdentifier("password-library-add")
-                }
-            }
-            .task {
-                do { entries = try await library.labels() }
-                catch { self.error = error.localizedDescription }
-                loaded = true
-            }
-            .sheet(isPresented: $adding) {
-                AddArchivePassword(library: library) { entries = $0 }
-            }
-            .confirmationDialog("Delete Saved Password?", isPresented: Binding(
-                get: { deleting != nil }, set: { if !$0 { deleting = nil } }
-            ), titleVisibility: .visible, presenting: deleting) { entry in
-                Button("Delete", role: .destructive) { remove(entry) }
-                Button("Cancel", role: .cancel) {}
-            } message: { _ in
-                Text("Archives that use this password will ask for it again.")
-            }
-            .alert("Password Library", isPresented: Binding(
-                get: { error != nil }, set: { if !$0 { error = nil } }
-            )) { Button("OK", role: .cancel) {} } message: { Text(error ?? "") }
+        VStack(spacing: 0) {
+            header
+            passwords
         }
-        #if os(macOS)
-        .frame(minWidth: 440, minHeight: 380)
+        .modifier(WorkspaceCanvas())
+        #if os(iOS)
+        .toolbar(.hidden, for: .navigationBar)
         #endif
+        .task(id: refreshVersion) {
+            do {
+                let labels = try await library.labels()
+                guard !Task.isCancelled else { return }
+                entries = labels
+            } catch {
+                guard !Task.isCancelled else { return }
+                self.error = error.localizedDescription
+            }
+            loaded = true
+        }
+        .sheet(isPresented: $adding) {
+            AddArchivePassword(library: library) { entries = $0 }
+        }
+        .confirmationDialog("Delete Saved Password?", isPresented: Binding(
+            get: { deleting != nil }, set: { if !$0 { deleting = nil } }
+        ), titleVisibility: .visible, presenting: deleting) { entry in
+            Button("Delete", role: .destructive) { remove(entry) }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("Archives that use this password will ask for it again.")
+        }
+        .alert("Password Library", isPresented: Binding(
+            get: { error != nil }, set: { if !$0 { error = nil } }
+        )) { Button("OK", role: .cancel) {} } message: { Text(error ?? "") }
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            WorkspaceHeading(title: String(localized: "Password Library"))
+            Button { adding = true } label: {
+                Label("Add Password", systemImage: "plus")
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(Color.accentColor)
+            }
+            .modifier(WorkspaceButton())
+            .help("Add Password")
+            .accessibilityIdentifier("password-library-add")
+        }
+        .modifier(WorkspaceHeaderLayout())
+    }
+
+    @ViewBuilder private var passwords: some View {
+        if !loaded {
+            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if entries.isEmpty {
+            ContentUnavailableView("No Saved Passwords", systemImage: "key",
+                                   description: Text("Save archive passwords to choose them again later."))
+        } else {
+            List(entries) { entry in
+                HStack(spacing: 10) {
+                    WorkspaceGlyph(symbol: "key", tint: .accentColor)
+                    Text(entry.title).font(.body.weight(.medium)).lineLimit(2)
+                }
+                .frame(minHeight: 44)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
+                .accessibilityIdentifier("password-library-entry")
+                .swipeActions {
+                    Button("Delete", systemImage: "trash", role: .destructive) { deleting = entry }
+                }
+                .contextMenu {
+                    Button("Delete", systemImage: "trash", role: .destructive) { deleting = entry }
+                }
+            }
+            .modifier(WorkspaceListSurface())
+        }
     }
 
     private func remove(_ entry: PasswordLabel) {

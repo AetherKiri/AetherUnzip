@@ -58,6 +58,7 @@ final class AppModel {
 
     private let service = ArchiveService()
     let passwords = PasswordLibrary()
+    private(set) var passwordLibraryVersion = 0
     private var extraction: Task<Void, Never>?
     private var opening: Task<Void, Never>?
     private var parents: [ParentArchive] = []
@@ -177,8 +178,10 @@ final class AppModel {
         guard candidate.remember, !Task.isCancelled else { return }
         let fingerprint = try? await service.archiveFingerprint(for: archive)
         guard !Task.isCancelled else { return }
-        do { try await passwords.save(candidate.value, title: archive.displayName, fingerprint: fingerprint) }
-        catch { self.error = error.localizedDescription }
+        do {
+            try await passwords.save(candidate.value, title: archive.displayName, fingerprint: fingerprint)
+            passwordLibraryVersion += 1
+        } catch { self.error = error.localizedDescription }
     }
 
     func openNested(_ entry: ArchiveEntry, limits: ExtractionOptions.Limits, passphrase: String? = nil,

@@ -18,22 +18,22 @@ enum DestinationPolicy: Int, CaseIterable {
 
 struct WorkspaceView: View {
     private enum Page: CaseIterable, Identifiable {
-        case archives, recent, tasks, settings
+        case archives, passwords, activity, settings
 
         var id: Self { self }
         var title: LocalizedStringKey {
             switch self {
             case .archives: "Files"
-            case .recent: "Recents"
-            case .tasks: "Tasks"
+            case .passwords: "Passwords"
+            case .activity: "Activity"
             case .settings: "Settings"
             }
         }
         var icon: String {
             switch self {
             case .archives: "folder"
-            case .recent: "clock"
-            case .tasks: "list.bullet.rectangle"
+            case .passwords: "key"
+            case .activity: "clock.arrow.circlepath"
             case .settings: "gearshape"
             }
         }
@@ -230,7 +230,7 @@ struct WorkspaceView: View {
             Text(model.error ?? "")
         }
         #if os(macOS)
-        .safeAreaInset(edge: .bottom, spacing: 0) { if page != .tasks { taskBanner } }
+        .safeAreaInset(edge: .bottom, spacing: 0) { if page != .activity { taskBanner } }
         #endif
     }
 
@@ -247,12 +247,12 @@ struct WorkspaceView: View {
                 mobileArchiveWorkspace
                     .tabItem { Label(Page.archives.title, systemImage: Page.archives.icon) }
                     .tag(Optional(Page.archives))
-                workspaceNavigation { recentPage }
-                    .tabItem { Label(Page.recent.title, systemImage: Page.recent.icon) }
-                    .tag(Optional(Page.recent))
-                workspaceNavigation(showTaskBanner: false) { TasksView(model: model) }
-                    .tabItem { Label(Page.tasks.title, systemImage: Page.tasks.icon) }
-                    .tag(Optional(Page.tasks))
+                workspaceNavigation { passwordPage }
+                    .tabItem { Label(Page.passwords.title, systemImage: Page.passwords.icon) }
+                    .tag(Optional(Page.passwords))
+                workspaceNavigation(showTaskBanner: false) { activityPage }
+                    .tabItem { Label(Page.activity.title, systemImage: Page.activity.icon) }
+                    .tag(Optional(Page.activity))
                 workspaceNavigation { settingsPage }
                     .tabItem { Label(Page.settings.title, systemImage: Page.settings.icon) }
                     .tag(Optional(Page.settings))
@@ -314,13 +314,13 @@ struct WorkspaceView: View {
                 switch page ?? .archives {
                 #if os(iOS)
                 case .archives: mobileArchiveWorkspace
-                case .recent: workspaceNavigation { recentPage }
-                case .tasks: workspaceNavigation(showTaskBanner: false) { TasksView(model: model) }
+                case .passwords: workspaceNavigation { passwordPage }
+                case .activity: workspaceNavigation(showTaskBanner: false) { activityPage }
                 case .settings: workspaceNavigation { settingsPage }
                 #else
                 case .archives: archivePage
-                case .recent: recentPage
-                case .tasks: TasksView(model: model)
+                case .passwords: passwordPage
+                case .activity: activityPage
                 case .settings: settingsPage
                 #endif
                 }
@@ -349,7 +349,7 @@ struct WorkspaceView: View {
     }
 
     private var settingsPage: some View {
-        SettingsView(conflict: $conflict, destination: $destination, passwordLibrary: model.passwords,
+        SettingsView(conflict: $conflict, destination: $destination,
                      safetyLimits: AppSafetyLimits(entryGiB: entryLimitGiB, totalGiB: totalLimitGiB,
                                                   entries: entryCountLimit, depth: depthLimit,
                                                   expansion: expansionLimit)) { values in
@@ -429,13 +429,17 @@ struct WorkspaceView: View {
         }
     }
 
-    private var recentPage: some View {
-        RecentArchivesView(recents: model.recents, reopen: { item in
+    private var passwordPage: some View {
+        PasswordLibraryView(library: model.passwords, refreshVersion: model.passwordLibraryVersion)
+    }
+
+    private var activityPage: some View {
+        ActivityView(model: model) { item in
             model.reopen(item) { urls, profile, origin in
                 if let origin { files.show(origin) }
                 openArchive(urls, profile: profile, origin: origin)
             }
-        }, remove: model.remove)
+        }
     }
 
     private func extract(_ archive: ArchiveManifest, ids: Set<ArchiveEntry.ID>?, choosePassword: Bool = false) {
@@ -730,57 +734,6 @@ private struct NestedPasswordPrompt: View {
     private func confirm() {
         guard canOpen else { return }
         submit(parentPassword.isEmpty ? nil : parentPassword, childPassword.isEmpty ? nil : childPassword)
-    }
-}
-
-struct RecentArchivesView: View {
-    let recents: [RecentArchive]
-    let reopen: (RecentArchive) -> Void
-    let remove: (RecentArchive) -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            WorkspaceHeading(title: String(localized: "Recents"),
-                             detail: recents.isEmpty ? nil : String(localized: "\(recents.count) archives"))
-                .modifier(WorkspaceHeaderLayout())
-            if recents.isEmpty {
-                ContentUnavailableView("No Recent Archives", systemImage: "clock")
-            } else {
-                List {
-                    ForEach(recents) { item in recentRow(item) }
-                }
-                .modifier(WorkspaceListSurface())
-            }
-        }
-        .modifier(WorkspaceCanvas())
-        #if os(iOS)
-        .toolbar(.hidden, for: .navigationBar)
-        #endif
-    }
-
-    private func recentRow(_ item: RecentArchive) -> some View {
-        Button { reopen(item) } label: {
-            HStack(spacing: 10) {
-                WorkspaceGlyph(symbol: "doc.zipper", tint: .teal)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.name).font(.body.weight(.medium)).foregroundStyle(.primary)
-                        .lineLimit(2).truncationMode(.middle)
-                    Text("\(item.format) · \(formattedBytes(item.size))")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tertiary).accessibilityHidden(true)
-            }
-            .padding(.vertical, 5)
-            .frame(minHeight: 46)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .listRowInsets(EdgeInsets(top: 0, leading: 14, bottom: 0, trailing: 14))
-        .contextMenu {
-            Button("Remove from Recents", role: .destructive) { remove(item) }
-        }
     }
 }
 

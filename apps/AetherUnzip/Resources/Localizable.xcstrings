@@ -49,40 +49,6 @@
         }
       }
     },
-    "%lld archives": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld archive"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld archives"
-                }
-              }
-            }
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アーカイブ %lld 件"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld 个压缩包"
-          }
-        }
-      }
-    },
     "%lld items": {
       "localizations": {
         "en": {
@@ -147,22 +113,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld 个分卷"
-          }
-        }
-      }
-    },
-    "%lld recent": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近のタスク %lld 件"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近 %lld 个任务"
           }
         }
       }
@@ -259,6 +209,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "操作"
+          }
+        }
+      }
+    },
+    "Activity": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アクティビティ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "活动"
           }
         }
       }
@@ -1337,6 +1303,22 @@
         }
       }
     },
+    "Extraction History": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開履歴"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压记录"
+          }
+        }
+      }
+    },
     "Extraction cancelled. Files already extracted are kept.": {
       "localizations": {
         "ja": {
@@ -1525,22 +1507,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "隐藏密码"
-          }
-        }
-      }
-    },
-    "History": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "履歴"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "历史记录"
           }
         }
       }
@@ -1913,34 +1879,18 @@
         }
       }
     },
-    "No Extraction Tasks": {
+    "No Activity Yet": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "展開タスクはありません"
+            "value": "アクティビティはありません"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "暂无解压任务"
-          }
-        }
-      }
-    },
-    "No Recent Archives": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近開いたアーカイブはありません"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "暂无最近打开的压缩包"
+            "value": "暂无活动"
           }
         }
       }
@@ -2121,6 +2071,22 @@
         }
       }
     },
+    "Opened archives and extractions will appear here.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開いたアーカイブと展開の履歴がここに表示されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近打开的压缩包和解压记录会显示在这里。"
+          }
+        }
+      }
+    },
     "Other Destinations": {
       "localizations": {
         "ja": {
@@ -2223,6 +2189,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "パスワードライブラリ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码库"
+          }
+        }
+      }
+    },
+    "Passwords": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワード"
           }
         },
         "zh-Hans": {
@@ -2425,7 +2407,7 @@
         }
       }
     },
-    "Recents": {
+    "Recently Opened": {
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -2809,6 +2791,38 @@
         }
       }
     },
+    "Show All Recent Archives": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近開いたアーカイブをすべて表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示全部最近打开的压缩包"
+          }
+        }
+      }
+    },
+    "Show Fewer Recent Archives": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近開いたアーカイブを折りたたむ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起最近打开的压缩包"
+          }
+        }
+      }
+    },
     "Show Password": {
       "localizations": {
         "ja": {
@@ -2933,22 +2947,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "遇到同名文件时停止。已解压的文件会保留。"
-          }
-        }
-      }
-    },
-    "Tasks": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タスク"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "任务"
           }
         }
       }
