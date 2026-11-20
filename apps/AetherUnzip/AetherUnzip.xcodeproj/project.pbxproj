@@ -18,6 +18,7 @@
 		58677CCF1B17D21DCBEC9569 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FB7949DE899C1B8BBC0FC69 /* AppModel.swift */; };
 		6147D3B40C70CCC3A1196811 /* AetherUnzipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7D36EA0EAD8B2254158352 /* AetherUnzipApp.swift */; };
 		63801EA55FFC9CF98B363EE9 /* nested.zip in Resources */ = {isa = PBXBuildFile; fileRef = D7310920C948FEF9B5AB88DD /* nested.zip */; };
+		6B03D272EA3F84F47E034655 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69F3C4E42DE12D5301AF5D67 /* Assets.xcassets */; };
 		71153B5BF9DBB7E4BEEAA1AE /* libarchive.txt in Resources */ = {isa = PBXBuildFile; fileRef = 47454222EDB218BD2E8C0262 /* libarchive.txt */; };
 		749DC58A221FF1AC9C3C9289 /* brotli.txt in Resources */ = {isa = PBXBuildFile; fileRef = 447FB49568A16F1153CB51ED /* brotli.txt */; };
 		79649D7E5909493C38C3ED29 /* PasswordLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7742028812C78B20682663F /* PasswordLibrary.swift */; };
@@ -70,6 +71,7 @@
 		5454BF515BB4212FF2650EB7 /* swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = swift; path = ../../bindings/swift; sourceTree = SOURCE_ROOT; };
 		5B7D36EA0EAD8B2254158352 /* AetherUnzipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AetherUnzipApp.swift; sourceTree = "<group>"; };
 		5E9F414290289FC5EB974155 /* AetherUnzip.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AetherUnzip.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		69F3C4E42DE12D5301AF5D67 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		74316D504A60E427C9D49F05 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		792249201D903B22E31ABC5A /* ExtractionPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractionPlan.swift; sourceTree = "<group>"; };
 		836BEF06B5410252E433780E /* FormatSupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatSupportView.swift; sourceTree = "<group>"; };
@@ -145,6 +147,7 @@
 		590F6A93CAA742E092B11870 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				69F3C4E42DE12D5301AF5D67 /* Assets.xcassets */,
 				F6274CE9E6D76C323D0FCADF /* Localizable.xcstrings */,
 			);
 			path = Resources;
@@ -332,6 +335,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6B03D272EA3F84F47E034655 /* Assets.xcassets in Resources */,
 				7A90B46A26F598346632E780 /* LICENSE in Resources */,
 				C7CD595FCDC297D24EB69068 /* Localizable.xcstrings in Resources */,
 				749DC58A221FF1AC9C3C9289 /* brotli.txt in Resources */,
