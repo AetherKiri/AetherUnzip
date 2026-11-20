@@ -442,6 +442,7 @@ struct ArchivePreview: View {
             NearbyDestinationButton(folder: nearbyDestination) { action in extractNearby(selection, action) }
             #else
             Menu {
+                Button("Smart Extract Here…", systemImage: "wand.and.sparkles") { extractNearby(selection, .extractSmart) }
                 Button("Extract Here", systemImage: "arrow.down.to.line") { extractNearby(selection, .extractHere) }
                 Button("Extract to New Folder", systemImage: "folder.badge.plus") {
                     extractNearby(selection, .extractToNewFolder)
@@ -525,6 +526,7 @@ private struct NearbyDestinationButton: View {
                 Text("Extraction Destination").font(.headline).accessibilityAddTraits(.isHeader)
                 Text(folder).font(.subheadline).foregroundStyle(.secondary)
                 Divider().padding(.top, 6)
+                destination("Smart Extract Here…", symbol: "wand.and.sparkles", action: .extractSmart)
                 destination("Extract Here", symbol: "arrow.down.to.line", action: .extractHere)
                 destination("Extract to New Folder", symbol: "folder.badge.plus", action: .extractToNewFolder)
             }

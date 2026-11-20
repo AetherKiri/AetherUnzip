@@ -29,9 +29,9 @@ final class ArchiveWorkflowTests: XCTestCase {
         try pick(source, in: app)
         XCTAssertTrue(app.staticTexts["ProfileWorkflow.bin"].waitForExistence(timeout: 10), app.debugDescription)
         app.buttons["extract-all"].click()
-        try pick(destination, in: app)
-        XCTAssertTrue(app.staticTexts["Extraction completed in Output."].waitForExistence(timeout: 12))
-        XCTAssertEqual(try String(contentsOf: destination.appending(path: "notes.txt"), encoding: .utf8),
+        try pickExtractionFolder(destination, in: app)
+        XCTAssertTrue(app.staticTexts["Extraction completed in ProfileWorkflow."].waitForExistence(timeout: 12))
+        XCTAssertEqual(try String(contentsOf: destination.appending(path: "ProfileWorkflow/notes.txt"), encoding: .utf8),
                        "AetherUnzip fixture\n")
     }
 
@@ -64,9 +64,9 @@ final class ArchiveWorkflowTests: XCTestCase {
         let extract = app.buttons["extract-all"]
         XCTAssertTrue(extract.isEnabled)
         extract.click()
-        try pick(destination, in: app)
-        XCTAssertTrue(app.staticTexts["Extraction completed in Output."].waitForExistence(timeout: 12))
-        XCTAssertEqual(try String(contentsOf: destination.appending(path: "notes.txt"), encoding: .utf8),
+        try pickExtractionFolder(destination, in: app)
+        XCTAssertTrue(app.staticTexts["Extraction completed in deep."].waitForExistence(timeout: 12))
+        XCTAssertEqual(try String(contentsOf: destination.appending(path: "deep/notes.txt"), encoding: .utf8),
                        "AetherUnzip fixture\n")
         let parent = app.buttons["parent-archive"].firstMatch
         parent.click()
@@ -133,18 +133,27 @@ final class ArchiveWorkflowTests: XCTestCase {
         let extract = app.buttons["extract-all"]
         XCTAssertTrue(extract.isEnabled)
         extract.click()
-        try pick(destination, in: app)
+        try pickExtractionFolder(destination, in: app)
 
-        XCTAssertTrue(app.staticTexts["Extraction completed in Output."].waitForExistence(timeout: 12))
-        XCTAssertEqual(try String(contentsOf: destination.appending(path: "notes.txt"), encoding: .utf8),
+        XCTAssertTrue(app.staticTexts["Extraction completed in ArchiveWorkflow."].waitForExistence(timeout: 12))
+        XCTAssertEqual(try String(contentsOf: destination.appending(path: "ArchiveWorkflow/notes.txt"), encoding: .utf8),
                        "AetherUnzip fixture\n")
+    }
+
+    private func pickExtractionFolder(_ destination: URL, in app: XCUIApplication) throws {
+        let choose = app.descendants(matching: .any).matching(NSPredicate(format: "identifier == %@ OR label == %@",
+            "extraction-choose-folder", "Choose Folder…")).firstMatch
+        XCTAssertTrue(choose.waitForExistence(timeout: 8), app.debugDescription)
+        choose.click()
+        try pick(destination, in: app)
+        app.buttons["confirm-extraction-plan"].firstMatch.click()
     }
 
     private func pick(_ url: URL, in app: XCUIApplication) throws {
         let panel = app.sheets.firstMatch
         XCTAssertTrue(panel.waitForExistence(timeout: 8))
         app.typeKey("g", modifierFlags: [.command, .shift])
-        let field = panel.sheets.firstMatch.textFields["PathTextField"]
+        let field = app.textFields["PathTextField"].firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         let pasteboard = NSPasteboard.general
         let savedItems: [NSPasteboardItem] = pasteboard.pasteboardItems?.map { item in
@@ -330,7 +339,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         app.buttons["Ask each time"].firstMatch.tap()
         XCTAssertEqual(destination.value as? String, "Ask each time")
 
-        app.tabBars.firstMatch.buttons["Files"].tap()
+        openWorkspacePage("Files", sidebarID: "archives", in: app)
         let search = app.textFields["workspace-search"].firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 8))
         search.tap()
@@ -339,14 +348,19 @@ final class ArchiveWorkflowTests: XCTestCase {
         let extract = app.buttons["extract-all"].firstMatch
         XCTAssertTrue(extract.waitForExistence(timeout: 8))
         extract.tap()
+        let choose = app.buttons["extraction-choose-folder"].firstMatch
+        XCTAssertTrue(choose.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertFalse(app.buttons["confirm-extraction-plan"].firstMatch.isEnabled)
+        choose.tap()
         pickFromFiles("AetherUnzip Settings Output", in: app)
+        confirmExtraction(in: app, layout: "Extract Directly")
         XCTAssertTrue(app.staticTexts["Extraction completed in AetherUnzip Settings Output."].firstMatch
             .waitForExistence(timeout: 12), app.debugDescription)
 
-        if original == "App Documents" {
+        if let original, original != "Ask each time" {
             openSettings(in: app, title: "Settings")
             destination.tap()
-            app.buttons["App Documents"].firstMatch.tap()
+            app.buttons[original].firstMatch.tap()
         }
     }
 
@@ -487,6 +501,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         capture("Archive Preview", in: app)
 
         app.buttons["extract-all"].firstMatch.tap()
+        confirmExtraction(in: app, layout: "Extract Directly")
         XCTAssertTrue(app.staticTexts["Extraction completed in Extracted Archives."].firstMatch
             .waitForExistence(timeout: 10), app.debugDescription)
 
@@ -576,6 +591,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(newFolder.waitForExistence(timeout: 8), app.debugDescription)
         capture("Extraction Destination", in: app)
         newFolder.tap()
+        confirmExtraction(in: app)
         let reveal = app.buttons["view-extraction-folder"].firstMatch
         XCTAssertTrue(reveal.waitForExistence(timeout: 12), app.debugDescription)
         reveal.tap()
@@ -708,6 +724,89 @@ final class ArchiveWorkflowTests: XCTestCase {
         return field
     }
 
+    private func chooseExtractionLayout(_ name: String, in app: XCUIApplication) {
+        let picker = app.descendants(matching: .any)["extraction-layout"].firstMatch
+        XCTAssertTrue(picker.waitForExistence(timeout: 8), app.debugDescription)
+        picker.tap()
+        let option = app.buttons[name].firstMatch
+        XCTAssertTrue(option.waitForExistence(timeout: 8), app.debugDescription)
+        option.tap()
+    }
+
+    private func confirmExtraction(in app: XCUIApplication, layout: String? = nil) {
+        if let layout { chooseExtractionLayout(layout, in: app) }
+        let confirm = app.buttons["confirm-extraction-plan"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(confirm.isEnabled, app.debugDescription)
+        confirm.tap()
+    }
+
+    func testExtractionLayoutPreviewsAndKeepsBothAfterRemovingTopFolder() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-destinationPolicy", "2", "-conflictPolicy", "3"]
+        app.launch()
+        workspaceFile(named: "Layout Workflow", in: app).tap()
+        workspaceFile(named: "Top Layout.zip", in: app).tap()
+        let extract = app.buttons["extract-all"].firstMatch
+        XCTAssertTrue(extract.waitForExistence(timeout: 8), app.debugDescription)
+        extract.tap()
+        let path = app.descendants(matching: .any)["extraction-output-path"].firstMatch
+        XCTAssertTrue(path.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(path.label.contains("Layout Workflow › Layout"), path.debugDescription)
+        capture("Smart Extraction Preview", in: app)
+
+        chooseExtractionLayout("Extract Directly", in: app)
+        XCTAssertTrue(path.label.contains("Layout Workflow › Layout"), path.debugDescription)
+        chooseExtractionLayout("Separate Folder", in: app)
+        XCTAssertTrue(path.label.contains("Layout Workflow › Top Layout"), path.debugDescription)
+        chooseExtractionLayout("Remove Top Folder", in: app)
+        XCTAssertTrue(path.label.hasSuffix("Layout Workflow"), path.debugDescription)
+        confirmExtraction(in: app)
+        let reveal = app.buttons["view-extraction-folder"].firstMatch
+        XCTAssertTrue(reveal.waitForExistence(timeout: 12), app.debugDescription)
+        reveal.tap()
+        XCTAssertTrue(app.buttons["workspace-file-notes (2).txt"].firstMatch
+            .waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(app.buttons["workspace-file-notes.txt"].firstMatch.exists)
+    }
+
+    func testBatchExtractsTwoArchivesAndReportsUnreadableInput() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-destinationPolicy", "2", "-conflictPolicy", "3"]
+        app.launch()
+        workspaceFile(named: "Batch Workflow", in: app).tap()
+        let actions = app.buttons["file-actions"].firstMatch
+        XCTAssertTrue(actions.waitForExistence(timeout: 8), app.debugDescription)
+        actions.tap()
+        app.buttons["select-workspace-files"].firstMatch.tap()
+        for name in ["Batch First.zip", "Batch Second.tar.gz", "Batch Corrupt.zip"] {
+            let file = app.buttons["workspace-file-\(name)"].firstMatch
+            XCTAssertTrue(file.waitForExistence(timeout: 8), app.debugDescription)
+            file.tap()
+        }
+        app.buttons["workspace-selection-actions"].firstMatch.tap()
+        let selected = app.buttons["extract-workspace-selection"].firstMatch
+        XCTAssertTrue(selected.waitForExistence(timeout: 8), app.debugDescription)
+        selected.tap()
+        let path = app.descendants(matching: .any)["extraction-output-path"].firstMatch
+        XCTAssertTrue(path.waitForExistence(timeout: 12), app.debugDescription)
+        XCTAssertTrue(path.label.contains("Batch Workflow › Batch First"), path.debugDescription)
+        let skipped = app.descendants(matching: .any)["extraction-skipped"].firstMatch
+        XCTAssertTrue(skipped.exists, app.debugDescription)
+        capture("Batch Extraction Preview", in: app)
+        skipped.tap()
+        let reason = app.staticTexts["Archive format could not be identified"].firstMatch
+        XCTAssertTrue(reason.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "identifier == %@ AND label == %@",
+            "extraction-skipped", "Batch Corrupt.zip")).firstMatch.exists)
+        confirmExtraction(in: app)
+        XCTAssertTrue(app.staticTexts["2 of 3 archives extracted."].firstMatch.waitForExistence(timeout: 12),
+                      app.debugDescription)
+        app.buttons["view-extraction-folder"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["workspace-file-Batch First"].firstMatch.waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["workspace-file-Layout"].firstMatch.exists)
+    }
+
     private func workspaceFile(named name: String, in app: XCUIApplication) -> XCUIElement {
         let search = app.textFields["workspace-search"].firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 8), app.debugDescription)
@@ -746,6 +845,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(extract.waitForExistence(timeout: 10), app.debugDescription)
         XCTAssertTrue(app.staticTexts["Recognition Hybrid.zip"].firstMatch.exists)
         extract.tap()
+        confirmExtraction(in: app, layout: "Extract Directly")
         XCTAssertTrue(app.staticTexts["Extraction completed in Extracted Archives."].firstMatch
             .waitForExistence(timeout: 12), app.debugDescription)
     }
@@ -874,6 +974,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         let all = app.buttons["try-password-library"].firstMatch
         let completion = app.staticTexts["Extraction completed in Extracted Archives."].firstMatch
         app.buttons["extract-all"].firstMatch.tap()
+        confirmExtraction(in: app, layout: "Extract Directly")
         XCTAssertTrue(choose.waitForExistence(timeout: 8), app.debugDescription)
         choose.tap()
         XCTAssertTrue(all.waitForExistence(timeout: 8), app.debugDescription)
@@ -884,12 +985,14 @@ final class ArchiveWorkflowTests: XCTestCase {
         app.launch()
         openWorkspaceArchive("Library Payload.zip", in: app)
         app.buttons["extract-all"].firstMatch.tap()
+        confirmExtraction(in: app, layout: "Extract Directly")
         XCTAssertTrue(completion.waitForExistence(timeout: 12), app.debugDescription)
         XCTAssertFalse(choose.exists)
 
         let explicit = app.buttons["extract-with-password"].firstMatch
         XCTAssertTrue(explicit.waitForExistence(timeout: 8), app.debugDescription)
         explicit.tap()
+        confirmExtraction(in: app, layout: "Extract Directly")
         XCTAssertTrue(choose.waitForExistence(timeout: 8), app.debugDescription)
         choose.tap()
         let saved = app.buttons["Fixture Password"].firstMatch
@@ -940,6 +1043,7 @@ final class ArchiveWorkflowTests: XCTestCase {
                         checksWrongPassword: true)
         app.buttons["Done"].firstMatch.tap()
         app.buttons["extract-all"].firstMatch.tap()
+        confirmExtraction(in: app, layout: "Extract Directly")
         XCTAssertTrue(app.staticTexts["Extraction completed in Extracted Archives."]
             .waitForExistence(timeout: 10), app.debugDescription)
     }
@@ -957,6 +1061,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(entry.waitForExistence(timeout: 8), app.debugDescription)
         entry.tap()
         app.buttons["extract-selected"].firstMatch.tap()
+        confirmExtraction(in: app, layout: "Extract Directly")
         XCTAssertTrue(app.staticTexts["Extraction completed in Extracted Archives."]
             .waitForExistence(timeout: 10), app.debugDescription)
     }

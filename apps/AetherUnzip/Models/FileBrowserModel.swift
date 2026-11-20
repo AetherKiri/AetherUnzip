@@ -18,6 +18,7 @@ struct BrowserFolder: Sendable {
     var rootName: String { isDocuments ? String(localized: "My Files") : location.url.lastPathComponent }
     var identity: URL { url.standardizedFileURL }
     var canGoUp: Bool { !components.isEmpty }
+    var breadcrumb: String { ([rootName] + components).joined(separator: " › ") }
 
     func item(_ name: String) -> URL { url.appending(path: name) }
 
@@ -36,6 +37,8 @@ struct BrowserFolder: Sendable {
     static var documents: BrowserFolder {
         BrowserFolder(location: WorkspaceAccess(.documentsDirectory), isDocuments: true)
     }
+
+    static var extractionDocuments: BrowserFolder { documents.child("Extracted Archives") }
 }
 
 @MainActor @Observable
@@ -191,16 +194,4 @@ enum ArchiveNames {
         return stem + "." + preferred
     }
 
-    static func extractionFolder(for file: String) -> String {
-        var name = file
-        let lower = name.lowercased()
-        if lower.hasSuffix(".001") { name = (name as NSString).deletingPathExtension }
-        name = (name as NSString).deletingPathExtension
-        if name.lowercased().hasSuffix(".tar") { name = (name as NSString).deletingPathExtension }
-        if let range = name.range(of: #"\.part[0-9]+$"#, options: [.regularExpression, .caseInsensitive]) {
-            name.removeSubrange(range)
-        }
-        if name.isEmpty || name == "." || name == ".." || name.hasPrefix(".") { return String(localized: "Extracted Archive") }
-        return name
-    }
 }

@@ -36,7 +36,9 @@
 		D37E608D8CAB0569DD86935A /* WorkspaceChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4715C78D9BA108C26DE39E1A /* WorkspaceChrome.swift */; };
 		DACECE03A8E6E3BAAFAFEE21 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 012EB1C236EFAE8850D5B165 /* AboutView.swift */; };
 		DB0F7FF7563953DFCBE64551 /* ArchivePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94AA2548B9D3F8822210CC54 /* ArchivePreview.swift */; };
+		E784BAD1BF6EE1A3A8ACA87D /* ExtractionPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 792249201D903B22E31ABC5A /* ExtractionPlan.swift */; };
 		E895E90768F3442E162B4882 /* WorkspaceTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12A63F06D48D9162AC84D95 /* WorkspaceTextEditor.swift */; };
+		EA2F3FD094B06320DF473928 /* ExtractionPlanSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 943453051EE8FEEE67C175E8 /* ExtractionPlanSheet.swift */; };
 		F3EE9C0BF966DBAD808D271C /* PasswordLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21B1248155BC9337F0337AF4 /* PasswordLibraryView.swift */; };
 		FF375F42BA39D8A85A47F770 /* ArchiveRecognitionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9206CA8FC1DB4D6AA2720F1 /* ArchiveRecognitionSheet.swift */; };
 /* End PBXBuildFile section */
@@ -69,10 +71,12 @@
 		5B7D36EA0EAD8B2254158352 /* AetherUnzipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AetherUnzipApp.swift; sourceTree = "<group>"; };
 		5E9F414290289FC5EB974155 /* AetherUnzip.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AetherUnzip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		74316D504A60E427C9D49F05 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		792249201D903B22E31ABC5A /* ExtractionPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractionPlan.swift; sourceTree = "<group>"; };
 		836BEF06B5410252E433780E /* FormatSupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatSupportView.swift; sourceTree = "<group>"; };
 		8AA48FCB35FE73642A7341FB /* zstd.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = zstd.txt; sourceTree = "<group>"; };
 		8FB7949DE899C1B8BBC0FC69 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		91A79A67D2262FE1E8960939 /* FileBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileBrowserView.swift; sourceTree = "<group>"; };
+		943453051EE8FEEE67C175E8 /* ExtractionPlanSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractionPlanSheet.swift; sourceTree = "<group>"; };
 		94AA2548B9D3F8822210CC54 /* ArchivePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivePreview.swift; sourceTree = "<group>"; };
 		978FB6A63BAB38D3A4EF7C60 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A076A1D47D21FC2AA09A9842 /* WorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceView.swift; sourceTree = "<group>"; };
@@ -105,6 +109,7 @@
 			children = (
 				8FB7949DE899C1B8BBC0FC69 /* AppModel.swift */,
 				127EEF050BB87B3AAC9065C7 /* ArchiveTree.swift */,
+				792249201D903B22E31ABC5A /* ExtractionPlan.swift */,
 				3D85580DB03EEEB9705EB516 /* FileBrowserModel.swift */,
 				A7742028812C78B20682663F /* PasswordLibrary.swift */,
 			);
@@ -203,6 +208,7 @@
 				74316D504A60E427C9D49F05 /* ActivityView.swift */,
 				94AA2548B9D3F8822210CC54 /* ArchivePreview.swift */,
 				D9206CA8FC1DB4D6AA2720F1 /* ArchiveRecognitionSheet.swift */,
+				943453051EE8FEEE67C175E8 /* ExtractionPlanSheet.swift */,
 				91A79A67D2262FE1E8960939 /* FileBrowserView.swift */,
 				F1961AB93B86415BB78EA77D /* FilePreview.swift */,
 				836BEF06B5410252E433780E /* FormatSupportView.swift */,
@@ -350,6 +356,8 @@
 				DB0F7FF7563953DFCBE64551 /* ArchivePreview.swift in Sources */,
 				FF375F42BA39D8A85A47F770 /* ArchiveRecognitionSheet.swift in Sources */,
 				1DC0B39D6091190393307A24 /* ArchiveTree.swift in Sources */,
+				E784BAD1BF6EE1A3A8ACA87D /* ExtractionPlan.swift in Sources */,
+				EA2F3FD094B06320DF473928 /* ExtractionPlanSheet.swift in Sources */,
 				ACFE53EE15ED65451F6E62CB /* FileBrowserModel.swift in Sources */,
 				17D2D1B5660AB53282E258C7 /* FileBrowserView.swift in Sources */,
 				CBE777362F4881B627FA2E46 /* FilePreview.swift in Sources */,

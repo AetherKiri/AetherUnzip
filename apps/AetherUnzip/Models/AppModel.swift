@@ -24,7 +24,7 @@ struct TaskRecord: Identifiable, Codable {
 
     let id: UUID
     let archive: String
-    let destination: String
+    var destination: String
     let started: Date
     var state: State
     var details: String?
@@ -53,6 +53,8 @@ final class AppModel {
     var cancelling = false
     var error: String?
     var notice: String?
+    private(set) var noticeIsPartial = false
+    private(set) var batchPosition: (index: Int, total: Int)?
     private(set) var archiveOrigin: BrowserFolder?
     private(set) var lastOutput: BrowserFolder?
 
@@ -166,6 +168,14 @@ final class AppModel {
             }
         }
         throw rejection
+    }
+
+    func inspectArchive(_ urls: [URL], limits: ExtractionOptions.Limits,
+                        usePasswordLibrary: Bool) async throws -> ArchiveManifest {
+        do { return try await unlock(urls, profile: nil, limits: limits, password: .automatic) }
+        catch let error as ArchiveError where error.needsArchivePassword && usePasswordLibrary {
+            return try await unlock(urls, profile: nil, limits: limits, password: .library(remember: false))
+        }
     }
 
     func rememberedPassword(for archive: ArchiveManifest) async -> UUID? {
@@ -286,58 +296,165 @@ final class AppModel {
         closeArchive()
     }
 
-    func extract(_ archive: ArchiveManifest, to output: BrowserFolder, ids: Set<ArchiveEntry.ID>?,
-                 options: ExtractionOptions, sourceAccess: WorkspaceAccess?,
-                 password: PasswordChoice = .automatic,
-                 authenticationFailed: (() -> Void)? = nil) {
-        guard extraction == nil else { return }
-        let destination = output.url
-        var record = TaskRecord(id: UUID(), archive: archive.displayName,
-                                destination: destination.lastPathComponent, started: .now,
-                                state: .running)
-        current = record
+    func extract(_ run: ExtractionRun, limits: ExtractionOptions.Limits,
+                 password: PasswordChoice, existingOutput: BrowserFolder?,
+                 conflictOverride: ExtractionOptions.ConflictPolicy?,
+                 finished: @escaping (ArchiveError?, BrowserFolder?) -> Void) {
+        guard extraction == nil, let first = run.items.first else { return }
+        current = record(for: first.archive.displayName, at: run.destination)
         progress = nil
         cancelling = false
         notice = nil
+        noticeIsPartial = false
         lastOutput = nil
+
         extraction = Task {
-            defer { withExtendedLifetime((sourceAccess, output.location)) {} }
-            do {
-                let candidates = try await passwords.candidates(for: password)
-                try Task.checkCancellation()
-                let task = service.extract(archive, to: destination, selecting: ids, options: options,
-                                           passwordCandidates: candidates.map(\.value))
-                let accepted = try await withTaskCancellationHandler {
-                    for await update in task.progress { progress = update }
-                    return try await task.acceptedPasswordCandidateIndex()
-                } onCancel: { task.cancel() }
-                if let accepted { await remember(candidates[accepted], for: archive) }
-                record.state = .success
-                lastOutput = output
-                notice = String(localized: "Extraction completed in \(destination.lastPathComponent).")
-            } catch let error where error is CancellationError || (error as? ArchiveError) == .cancelled {
-                record.state = .cancelled
-                notice = String(localized: "Extraction cancelled. Files already extracted are kept.")
-            } catch {
-                record.state = .failed
-                let isAuthenticationFailure = (error as? ArchiveError)?.needsArchivePassword == true
-                if isAuthenticationFailure || error is PasswordLibrary.Failure {
-                    authenticationFailed?()
-                }
-                if isAuthenticationFailure, case .library = password {
-                    record.details = String(localized: "None of the saved passwords could unlock this archive.")
-                } else {
-                    record.details = error.localizedDescription
-                }
-                self.error = record.details
+            defer {
+                extraction = nil
+                current = nil
+                batchPosition = nil
+                cancelling = false
             }
-            history.insert(record, at: 0)
-            history = Array(history.prefix(20))
-            persist(history, for: "taskHistory")
-            extraction = nil
-            current = nil
-            cancelling = false
+            let policy = conflictOverride ?? run.conflict
+            let total = run.items.count + run.issues.count
+            var completed = 0
+            var cancelled = false
+            var hasOutput = false
+            var preparedBase = false
+            for issue in run.issues {
+                var failed = record(for: issue.name, at: run.destination)
+                failed.state = .failed
+                failed.details = issue.reason
+                recordResult(failed)
+            }
+            for (index, item) in run.items.enumerated() {
+                var record = record(for: item.archive.displayName, at: run.destination)
+                current = record
+                progress = nil
+                if run.isBatch { batchPosition = (index + 1, run.items.count) }
+                var output = existingOutput
+                var candidate = password
+                do {
+                    try Task.checkCancellation()
+                    guard let placement = item.layout.placement(for: run.mode) else {
+                        throw ArchiveError.invalidInput
+                    }
+                    if run.isBatch, policy == .replace,
+                       await item.layout.wouldReplaceInput(run.inputURLs, at: run.destination.url,
+                                                           placement: placement) {
+                        throw ArchiveError.fileAccess(String(localized: "An output file would replace one of the selected archives."))
+                    }
+                    if !preparedBase {
+                        try await prepareBase(run.destination)
+                        preparedBase = true
+                    }
+                    if run.isBatch && item.needsPassword {
+                        if let id = await rememberedPassword(for: item.archive) {
+                            candidate = .saved(id, remember: false)
+                        } else if run.usePasswordLibrary {
+                            candidate = .library(remember: false)
+                        } else {
+                            throw ArchiveError.encrypted
+                        }
+                    }
+                    try Task.checkCancellation()
+                    if output == nil { output = try await outputFolder(for: placement, in: run.destination) }
+                    guard let output else { throw ArchiveError.invalidInput }
+                    record.destination = output.name
+                    current = record
+                    let options = ExtractionOptions(conflictPolicy: policy, limits: limits, stripRoot: placement.stripRoot)
+                    try await performExtraction(item, to: output, options: options, password: candidate)
+                    record.state = .success
+                    completed += 1
+                    hasOutput = true
+                    if !run.isBatch {
+                        lastOutput = output
+                        notice = String(localized: "Extraction completed in \(output.name).")
+                    }
+                } catch let error where error is CancellationError || (error as? ArchiveError) == .cancelled {
+                    record.state = .cancelled
+                    cancelled = true
+                } catch {
+                    record.state = .failed
+                    let failure = error as? ArchiveError
+                    if failure?.needsArchivePassword == true, case .library = candidate {
+                        record.details = String(localized: "None of the saved passwords could unlock this archive.")
+                    } else {
+                        record.details = error.localizedDescription
+                    }
+                    if !run.isBatch {
+                        self.error = record.details
+                        finished(error is PasswordLibrary.Failure ? .encrypted : failure, output)
+                    }
+                }
+                if record.state != .success, let output, (progress?.entriesDone ?? 0) > 0 {
+                    hasOutput = true
+                    if !run.isBatch {
+                        lastOutput = output
+                        noticeIsPartial = true
+                        notice = String(localized: "Extraction stopped. Files already extracted are kept.")
+                    }
+                }
+                recordResult(record)
+                if cancelled { break }
+            }
+            if run.isBatch {
+                if hasOutput { lastOutput = run.destination }
+                noticeIsPartial = completed != total
+                if cancelled {
+                    notice = String(localized: "Batch cancelled. \(completed) of \(total) archives extracted.")
+                } else {
+                    notice = String(localized: "\(completed) of \(total) archives extracted.")
+                }
+                finished(nil, nil)
+            } else if cancelled {
+                notice = String(localized: "Extraction cancelled. Files already extracted are kept.")
+                finished(nil, nil)
+            } else if completed > 0 {
+                finished(nil, nil)
+            }
         }
+    }
+
+    private func prepareBase(_ folder: BrowserFolder) async throws {
+        if folder.identity == BrowserFolder.extractionDocuments.identity {
+            do {
+                _ = try await FileWorkspace().makeFolder(named: folder.name,
+                    in: folder.url.deletingLastPathComponent(), access: folder.location)
+            } catch let error as CocoaError where error.code == .fileWriteFileExists {
+                // Core opens the existing root without following symlinks.
+            }
+        }
+    }
+
+    private func outputFolder(for placement: ExtractionPlacement, in folder: BrowserFolder) async throws -> BrowserFolder {
+        guard let name = placement.folderName else { return folder }
+        let unique = try await FileWorkspace().makeUniqueFolder(named: name, in: folder.url, access: folder.location)
+        return folder.child(unique.lastPathComponent)
+    }
+
+    private func performExtraction(_ item: ExtractionItem, to folder: BrowserFolder, options: ExtractionOptions,
+                                   password: PasswordChoice) async throws {
+        defer { withExtendedLifetime((item.access, folder.location)) {} }
+        let candidates = try await passwords.candidates(for: password)
+        try Task.checkCancellation()
+        let task = service.extract(item.archive, to: folder.url, selecting: item.selection, options: options,
+                                   passwordCandidates: candidates.map(\.value))
+        let accepted = try await withTaskCancellationHandler {
+            for await update in task.progress { progress = update }
+            return try await task.acceptedPasswordCandidateIndex()
+        } onCancel: { task.cancel() }
+        if let accepted { await remember(candidates[accepted], for: item.archive) }
+    }
+
+    private func record(for name: String, at directory: BrowserFolder) -> TaskRecord {
+        TaskRecord(id: UUID(), archive: name, destination: directory.name, started: .now, state: .running)
+    }
+
+    private func recordResult(_ record: TaskRecord) {
+        history.insert(record, at: 0)
+        history = Array(history.prefix(20))
+        persist(history, for: "taskHistory")
     }
 
     func cancelExtraction() {

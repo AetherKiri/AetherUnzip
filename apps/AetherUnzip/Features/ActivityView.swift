@@ -73,8 +73,9 @@ struct TaskBanner: View {
 
     private func result(_ notice: String) -> some View {
         HStack(spacing: 8) {
-            WorkspaceGlyph(symbol: model.lastOutput == nil ? "stop" : "checkmark",
-                           tint: model.lastOutput == nil ? .orange : .green)
+            let partial = model.noticeIsPartial || model.lastOutput == nil
+            WorkspaceGlyph(symbol: partial ? "exclamationmark.circle" : "checkmark",
+                           tint: partial ? .orange : .green)
             Text(notice).font(.subheadline)
             Spacer(minLength: 0)
             if let openOutput, model.lastOutput != nil {
@@ -96,6 +97,11 @@ private struct TaskProgress: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
+            if let batch = model.batchPosition {
+                Text("Archive \(batch.index) of \(batch.total)")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("batch-extraction-progress")
+            }
             if let progress = model.progress {
                 if progress.totalEntries > 0 {
                     ProgressView(value: progress.fractionCompleted)

@@ -4,7 +4,7 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 enum ArchiveFileAction {
-    case browse, extractHere, extractToNewFolder
+    case browse, extractSmart, extractHere, extractToNewFolder
 }
 
 struct FileBrowserView: View {
@@ -14,6 +14,7 @@ struct FileBrowserView: View {
     let openProfile: () -> Void
     let addLocation: () -> Void
     let openArchive: ([URL], BrowserFolder, ArchiveFileAction) -> Void
+    let extractSelected: ([URL], BrowserFolder) -> Void
     let showError: (String) -> Void
 
     private enum Sort: String, CaseIterable {
@@ -571,6 +572,7 @@ struct FileBrowserView: View {
         if file.kind == .file {
             if ArchiveNames.matches(file.name) {
                 Button("Open Archive", systemImage: "archivebox") { open(file, action: .browse) }
+                Button("Smart Extract Here…", systemImage: "wand.and.sparkles") { open(file, action: .extractSmart) }
                 Button("Extract Here", systemImage: "arrow.down.to.line") { open(file, action: .extractHere) }
                 Button("Extract to New Folder", systemImage: "folder.badge.plus") { open(file, action: .extractToNewFolder) }
             } else {
@@ -608,6 +610,12 @@ struct FileBrowserView: View {
             Spacer()
             Menu("Actions", systemImage: "ellipsis.circle") {
                 if selectedArchives {
+                    Button("Extract Selected…", systemImage: "arrow.down.to.line") {
+                        let folder = model.folder
+                        extractSelected(selectedNames.map(folder.item), folder)
+                        clearSelection()
+                    }
+                    .accessibilityIdentifier("extract-workspace-selection")
                     Button(selection.count == 1 ? "Open Archive" : "Open as Volume Set", systemImage: "archivebox") {
                         let folder = model.folder
                         openArchive(selectedNames.map(folder.item), folder, .browse)
@@ -618,6 +626,7 @@ struct FileBrowserView: View {
                 Button("Move to…", systemImage: "folder") { chooseTransfer(.move, names: selectedNames) }
                 Button(deleteAction, systemImage: "trash", role: .destructive) { confirmDelete(selectedNames) }
             }
+            .accessibilityIdentifier("workspace-selection-actions")
             .disabled(selection.isEmpty || model.working)
         }
         .padding(.horizontal, 16)

@@ -50,6 +50,14 @@ cat tests/fixtures/workspace-photo.jpg tests/fixtures/sample.zip > "$app_data/Do
 cp tests/fixtures/sample.zip "$app_data/Documents/Recognition Copy.mp3"
 cp tests/fixtures/sample.tar.gz "$app_data/Documents/Recognition Backup.mp4"
 cp tests/fixtures/rar5-aes-picker.rar "$app_data/Documents/Recognition Locked.jpg"
+layout="$app_data/Documents/Layout Workflow"
+batch="$app_data/Documents/Batch Workflow"
+mkdir -p "$layout" "$batch"
+cp tests/fixtures/layout.zip "$layout/Top Layout.zip"
+printf '%s\n' 'Existing notes' > "$layout/notes.txt"
+cp tests/fixtures/sample.zip "$batch/Batch First.zip"
+cp tests/fixtures/layout.tar.gz "$batch/Batch Second.tar.gz"
+printf '%s\n' 'Invalid archive fixture' > "$batch/Batch Corrupt.zip"
 workspace="$app_data/Documents/Project Downloads"
 mkdir -p "$workspace/Guides"
 cp tests/fixtures/sample.zip "$workspace/Project Assets.zip"
@@ -62,9 +70,11 @@ xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
 
 归档识别用例覆盖 Quick Look、手动确认更名、保留原名打开和密码提示。更名用例会将测试文件 `Recognition Hybrid.jpg` 更名为 `Recognition Hybrid.zip`。重新运行前，清理该用例生成的 ZIP 并重新导入原测试文件。
 
+布局用例在 `Layout Workflow` 去除顶层目录并保留两个同名文件，核对 `notes.txt` 和 `notes (2).txt`。批量用例在 `Batch Workflow` 保留归档内已有的 `Layout` 目录，为散落条目创建 `Batch First` 目录，并在活动中记录损坏的归档。重复运行前，从这两个测试目录清理旧的测试输出。
+
 App 和 Swift SDK 使用 String Catalog，支持英文、简体中文和日文。系统按 App 的语言设置选择界面，按地区设置显示日期和数字。新增界面文案时同步更新 App 或 SDK 的 `Localizable.xcstrings`。三个 `test*Localization` 用例分别验证本地化排序、搜索计数和解压密码错误。
 
-SDK 在 Swift 并发后台任务内完成系统文件协调和 C 调用。读写期间分别持有输入和目标安全作用域，访问协调器返回的 URL。最近打开记录储存书签，权限过期时可以重新选择。目标可由每次提取时选择，也可通过设置使用 App Documents 下的 `Extracted Archives` 目录。
+SDK 在 Swift 并发后台任务内完成系统文件协调和 C 调用。读写期间分别持有输入和目标安全作用域，访问协调器返回的 URL。最近打开记录储存书签，权限过期时可以重新选择。解压确认页默认选中已授权的归档目录，否则使用 App Documents 下的 `Extracted Archives`。用户可在设置中指定仅使用 App 文档或每次手动选择。
 
 文件工作区默认显示 App Documents。添加位置时通过系统文件面板获得目录访问权。清单、文件编辑和传输在 SDK 的文件协调回调中执行。用户从授权目录打开压缩包时，目录权限会持续到预览和提取完成。macOS 的删除操作使用系统废纸篓，iOS/iPadOS 的删除操作在确认后直接移除项目。
 

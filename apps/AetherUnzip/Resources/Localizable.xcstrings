@@ -49,6 +49,22 @@
         }
       }
     },
+    "%lld archives": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 件のアーカイブ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个归档"
+          }
+        }
+      }
+    },
     "%lld items": {
       "localizations": {
         "en": {
@@ -79,6 +95,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld 项"
+          }
+        }
+      }
+    },
+    "%lld of %lld archives extracted.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$lld 件中 %1$lld 件のアーカイブを展開しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已解压 %1$lld 个归档，共 %2$lld 个。"
           }
         }
       }
@@ -129,6 +161,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "已选 %lld 项"
+          }
+        }
+      }
+    },
+    "%lld will be skipped": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 件をスキップします"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将跳过 %lld 个归档"
           }
         }
       }
@@ -357,6 +405,22 @@
         }
       }
     },
+    "An output file would replace one of the selected archives.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開先のファイルが、選択したアーカイブと重複しています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输出文件会覆盖一个已选中的归档。"
+          }
+        }
+      }
+    },
     "App Documents": {
       "localizations": {
         "ja": {
@@ -417,6 +481,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "压缩包"
+          }
+        }
+      }
+    },
+    "Archive %lld of %lld": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブ %1$lld / %2$lld"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$lld 个归档，共 %2$lld 个"
           }
         }
       }
@@ -533,6 +613,22 @@
         }
       }
     },
+    "Archive’s Folder": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブと同じフォルダ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "归档所在文件夹"
+          }
+        }
+      }
+    },
     "Ascending": {
       "localizations": {
         "ja": {
@@ -565,6 +661,22 @@
         }
       }
     },
+    "Batch cancelled. %lld of %lld archives extracted.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一括展開を中止しました。%2$lld 件中 %1$lld 件を展開しました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "批量解压已取消。已解压 %1$lld 个归档，共 %2$lld 个。"
+          }
+        }
+      }
+    },
     "BSD and bundled notices": {
       "localizations": {
         "ja": {
@@ -593,6 +705,70 @@
           "stringUnit": {
             "state": "translated",
             "value": "构建编号"
+          }
+        }
+      }
+    },
+    "Change": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更改"
+          }
+        }
+      }
+    },
+    "Choose a destination to see the output path.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存先を選ぶと出力先が表示されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择目标文件夹后即可查看输出路径。"
+          }
+        }
+      }
+    },
+    "Choose Folder…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダを選択…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择文件夹…"
+          }
+        }
+      }
+    },
+    "Create a folder named after each archive and preserve its contents inside.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブごとに同じ名前のフォルダを作成し、元の構成で展開します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为每个归档创建同名文件夹，并保留原有目录结构。"
           }
         }
       }
@@ -1399,6 +1575,22 @@
         }
       }
     },
+    "Existing files with the same name will be overwritten.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ名前の既存ファイルを上書きします。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标中的同名文件会被覆盖。"
+          }
+        }
+      }
+    },
     "Expansion Ratio": {
       "localizations": {
         "ja": {
@@ -1463,6 +1655,38 @@
         }
       }
     },
+    "Extract and Replace": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開して上書き"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压并替换"
+          }
+        }
+      }
+    },
+    "Extract Directly": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直接展開"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直接解压"
+          }
+        }
+      }
+    },
     "Extract Here": {
       "localizations": {
         "ja": {
@@ -1491,6 +1715,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "解压所选 %lld 项"
+          }
+        }
+      }
+    },
+    "Extract Selected…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択したアーカイブを展開…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压所选归档…"
           }
         }
       }
@@ -1683,6 +1923,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "已解压到“%@”。"
+          }
+        }
+      }
+    },
+    "Extraction stopped. Files already extracted are kept.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開を停止しました。すでに展開したファイルは残ります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压已停止。已解压的文件会保留。"
           }
         }
       }
@@ -1927,6 +2183,22 @@
         }
       }
     },
+    "Give incoming files a numbered name and preserve both versions.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開するファイルに番号を付け、両方のファイルを残します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为新文件添加编号，保留两个版本。"
+          }
+        }
+      }
+    },
     "Hide Password": {
       "localizations": {
         "ja": {
@@ -1987,6 +2259,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "识别归档格式…"
+          }
+        }
+      }
+    },
+    "If a folder with this name exists, a numbered folder will be created.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同名のフォルダがある場合は、番号を付けて新規作成します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果已有同名文件夹，会创建带编号的新文件夹。"
           }
         }
       }
@@ -2071,6 +2359,38 @@
         }
       }
     },
+    "Keep a shared top folder or group loose items into one folder. Single files go directly into the destination.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共通の最上位フォルダを維持し、複数の項目はひとつのフォルダにまとめます。単一ファイルは保存先に直接展開します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沿用共同的顶层目录，或把分散的项目归到一个文件夹。单个文件直接解压到目标。"
+          }
+        }
+      }
+    },
+    "Keep both files": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "両方のファイルを保持"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留两个文件"
+          }
+        }
+      }
+    },
     "Keep Editing": {
       "localizations": {
         "ja": {
@@ -2103,6 +2423,22 @@
         }
       }
     },
+    "Keep Existing and Retry": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既存のファイルを残して再試行"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留已有文件并重试"
+          }
+        }
+      }
+    },
     "Keep the existing file and continue extracting the remaining files.": {
       "localizations": {
         "ja": {
@@ -2131,6 +2467,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "类型"
+          }
+        }
+      }
+    },
+    "Layout": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開方法"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压方式"
           }
         }
       }
@@ -2743,6 +3095,22 @@
         }
       }
     },
+    "Output Preview": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "出力先のプレビュー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输出预览"
+          }
+        }
+      }
+    },
     "Parent Archive": {
       "localizations": {
         "ja": {
@@ -2931,6 +3299,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "单个文件"
+          }
+        }
+      }
+    },
+    "Place the contents of the shared top folder directly in the destination.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共通の最上位フォルダの中身を保存先に直接展開します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把共同顶层目录中的内容直接放入目标文件夹。"
           }
         }
       }
@@ -3139,6 +3523,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "请移除名称中的斜线（/）。"
+          }
+        }
+      }
+    },
+    "Remove Top Folder": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最上位フォルダを取り除く"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去除顶层目录"
           }
         }
       }
@@ -3463,6 +3863,22 @@
         }
       }
     },
+    "Separate Folder": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "専用フォルダに展開"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压到独立文件夹"
+          }
+        }
+      }
+    },
     "Settings": {
       "localizations": {
         "ja": {
@@ -3495,6 +3911,22 @@
         }
       }
     },
+    "Show All Archives": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてのアーカイブを表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示全部归档"
+          }
+        }
+      }
+    },
     "Show All Recent Archives": {
       "localizations": {
         "ja": {
@@ -3507,6 +3939,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "显示全部最近打开的压缩包"
+          }
+        }
+      }
+    },
+    "Show Fewer Archives": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示するアーカイブを減らす"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "收起其余归档"
           }
         }
       }
@@ -3587,6 +4035,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "最小优先"
+          }
+        }
+      }
+    },
+    "Smart Extract Here…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここにスマート展開…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智能解压到此处…"
+          }
+        }
+      }
+    },
+    "Smart Extraction": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スマート展開"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "智能解压"
           }
         }
       }
@@ -4103,6 +4583,54 @@
         }
       }
     },
+    "Try Saved Passwords": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済みのパスワードを試す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尝试已保存的密码"
+          }
+        }
+      }
+    },
+    "Use the archive’s folder when available. Otherwise use App Documents.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "許可されていればアーカイブと同じフォルダを使います。それ以外はアプリ内に保存します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "优先使用已授权的归档所在文件夹，其余情况保存到 App 的文档目录。"
+          }
+        }
+      }
+    },
+    "Uses passwords in your library for locked archives. Failed archives appear in Activity.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ロックされたアーカイブにパスワードライブラリを使用します。展開できなかった項目は履歴で確認できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为加密归档尝试密码库中的密码。失败的归档会显示在活动记录里。"
+          }
+        }
+      }
+    },
     "USTAR archives (.tar).": {
       "localizations": {
         "ja": {
@@ -4243,6 +4771,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在处理"
+          }
+        }
+      }
+    },
+    "Write directly into the destination, preserving archive paths.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブ内のパスを維持して保存先に直接展開します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直接写入目标文件夹，保留归档内的原始路径。"
           }
         }
       }

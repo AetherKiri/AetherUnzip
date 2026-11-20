@@ -137,12 +137,13 @@ struct SettingsView: View {
     }
 }
 
-private extension ExtractionOptions.ConflictPolicy {
+extension ExtractionOptions.ConflictPolicy {
     var settingsTitle: String {
         switch self {
         case .fail: String(localized: "Stop on conflict")
         case .skip: String(localized: "Keep existing")
         case .replace: String(localized: "Replace files")
+        case .keepBoth: String(localized: "Keep both files")
         }
     }
 
@@ -151,6 +152,7 @@ private extension ExtractionOptions.ConflictPolicy {
         case .fail: String(localized: "Stop when a file already exists. Files already extracted are kept.")
         case .skip: String(localized: "Keep the existing file and continue extracting the remaining files.")
         case .replace: String(localized: "Replace existing files with files of the same name from the archive.")
+        case .keepBoth: String(localized: "Give incoming files a numbered name and preserve both versions.")
         }
     }
 }
@@ -160,6 +162,7 @@ private extension DestinationPolicy {
         switch self {
         case .choose: String(localized: "Choose where to save files when you tap Extract.")
         case .documents: String(localized: "Save to Extracted Archives in My Files.")
+        case .nearby: String(localized: "Use the archive’s folder when available. Otherwise use App Documents.")
         }
     }
 }

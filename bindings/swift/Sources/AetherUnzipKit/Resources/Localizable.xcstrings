@@ -145,6 +145,22 @@
         }
       }
     },
+    "Extracted Archive": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開したアーカイブ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "解压的归档"
+          }
+        }
+      }
+    },
     "File or storage I/O failed": {
       "localizations": {
         "ja": {

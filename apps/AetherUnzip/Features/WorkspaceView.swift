@@ -6,12 +6,13 @@ import UIKit
 #endif
 
 enum DestinationPolicy: Int, CaseIterable {
-    case choose, documents
+    case choose, documents, nearby
 
     var title: String {
         switch self {
         case .choose: String(localized: "Ask each time")
         case .documents: String(localized: "App Documents")
+        case .nearby: String(localized: "Archive’s Folder")
         }
     }
 }
@@ -39,24 +40,16 @@ struct WorkspaceView: View {
         }
     }
 
-    private struct Request {
-        let manifest: ArchiveManifest
-        let selection: Set<ArchiveEntry.ID>?
-        let sourceAccess: WorkspaceAccess?
-        var choosePassword = false
-
-        var needsPassword: Bool {
-            manifest.capabilities.contains(.encryption) && !manifest.hasOpeningPassphrase && manifest.entries.contains { entry in
-                entry.kind == .file && entry.isEncrypted && (selection?.contains(entry.id) ?? true)
-            }
-        }
-    }
-
     private struct PasswordRequest: Identifiable {
         let id = UUID()
-        let extraction: Request
-        let directory: BrowserFolder
-        var subfolder: String? = nil
+        let extraction: ExtractionRun
+        var existingOutput: BrowserFolder? = nil
+    }
+
+    private struct ConflictRetry {
+        let extraction: ExtractionRun
+        let password: PasswordChoice
+        let output: BrowserFolder?
     }
 
     private struct NestedPasswordRequest: Identifiable {
@@ -89,14 +82,17 @@ struct WorkspaceView: View {
     @State private var archiveProfile: FormatProfile?
     @State private var profileConfirmation: ProfileConfirmation?
     @State private var loadingProfile = false
-    @State private var request: Request?
+    @State private var extractionDraft: ExtractionDraft?
+    @State private var confirmedExtraction: ExtractionRun?
+    @State private var lastExtractionDestination: BrowserFolder?
     @State private var openingPassword: OpeningPasswordRequest?
     @State private var passwordRequest: PasswordRequest?
     @State private var retryPassword: PasswordRequest?
+    @State private var retryConflict: ConflictRetry?
     @State private var nestedPassword: NestedPasswordRequest?
     @State private var retryNested: NestedPasswordRequest?
-    @AppStorage("conflictPolicy") private var conflict = ExtractionOptions.ConflictPolicy.fail
-    @AppStorage("destinationPolicy") private var destination = DestinationPolicy.choose
+    @AppStorage("conflictPolicy") private var conflict = ExtractionOptions.ConflictPolicy.keepBoth
+    @AppStorage("destinationPolicy") private var destination = DestinationPolicy.nearby
     @AppStorage("entryLimitGiB") private var entryLimitGiB = AppSafetyLimits.defaults.entryGiB
     @AppStorage("totalLimitGiB") private var totalLimitGiB = AppSafetyLimits.defaults.totalGiB
     @AppStorage("entryCountLimit") private var entryCountLimit = AppSafetyLimits.defaults.entries
@@ -122,36 +118,46 @@ struct WorkspaceView: View {
     var body: some View {
         workspace
         .fileImporter(isPresented: $showPicker,
-                      allowedContentTypes: choosingProfile ? [.json] : (request != nil || addingLocation ? [.folder] : [.item]),
-                      allowsMultipleSelection: request == nil && !choosingProfile && !addingLocation && archiveProfile == nil) { result in
-            let pending = request
+                      allowedContentTypes: choosingProfile ? [.json] : (addingLocation ? [.folder] : [.item]),
+                      allowsMultipleSelection: !choosingProfile && !addingLocation && archiveProfile == nil) { result in
             let isProfile = choosingProfile
             let isLocation = addingLocation
             let profile = archiveProfile
-            request = nil
             choosingProfile = false
             addingLocation = false
             archiveProfile = nil
             switch result {
             case .success(let urls):
                 guard let url = urls.first else { return }
-                if let pending {
-                    start(pending, at: BrowserFolder(location: WorkspaceAccess(url)))
-                } else if isLocation {
+                if isLocation {
                     addFileLocation(url)
                 } else if isProfile {
                     loadProfile(url)
                 } else {
                     page = .archives
-                    openArchive(urls, profile: profile)
+                    let groups = ArchiveService().archiveGroups(in: urls)
+                    if groups.count > 1 {
+                        prepareBatch(groups, origin: nil)
+                    } else {
+                        openArchive(urls, profile: profile)
+                    }
                 }
             case .failure(let error): model.error = error.localizedDescription
             }
         } onCancellation: {
-            request = nil
             choosingProfile = false
             addingLocation = false
             archiveProfile = nil
+        }
+        .sheet(item: $extractionDraft, onDismiss: {
+            guard let extraction = confirmedExtraction else { return }
+            confirmedExtraction = nil
+            start(extraction)
+        }) { draft in
+            ExtractionPlanSheet(draft: draft, inspect: { try await inspect(draft, usePasswords: $0) }) { extraction in
+                confirmedExtraction = extraction
+                extractionDraft = nil
+            }
         }
         .sheet(item: $profileConfirmation, onDismiss: {
             if archiveProfile != nil { showPicker = true }
@@ -180,10 +186,11 @@ struct WorkspaceView: View {
             #endif
         }
         .sheet(item: $passwordRequest) { pending in
-            PasswordPrompt(archiveName: pending.extraction.manifest.displayName, actionTitle: "Extract",
+            PasswordPrompt(archiveName: pending.extraction.items.first?.archive.displayName ?? "",
+                           actionTitle: "Extract",
                            library: model.passwords) { choice in
                 passwordRequest = nil
-                run(pending.extraction, at: pending.directory, subfolder: pending.subfolder, password: choice)
+                run(pending.extraction, password: choice, existingOutput: pending.existingOutput)
             }
         }
         .sheet(item: $nestedPassword) { pending in
@@ -208,6 +215,13 @@ struct WorkspaceView: View {
             get: { model.error != nil },
             set: { if !$0 { model.error = nil } }
         )) {
+            if let plan = retryConflict {
+                Button("Keep Existing and Retry") {
+                    model.error = nil
+                    retryConflict = nil
+                    run(plan.extraction, password: plan.password, existingOutput: plan.output, conflictOverride: .skip)
+                }
+            }
             if let retry = retryPassword {
                 Button("Try Again") {
                     model.error = nil
@@ -226,6 +240,7 @@ struct WorkspaceView: View {
                 model.error = nil
                 retryPassword = nil
                 retryNested = nil
+                retryConflict = nil
             }
         } message: {
             Text(model.error ?? "")
@@ -415,7 +430,7 @@ struct WorkspaceView: View {
                            openNested: { openNested($0) }, extract: { extract(archive, ids: $0) },
                            extractWithPassword: { extract(archive, ids: $0, choosePassword: true) },
                            nearbyDestination: model.archiveOrigin?.name,
-                           extractNearby: { ids, action in extractNearby(archive, ids: ids, action: action) })
+                           extractNearby: { ids, action in extract(archive, ids: ids, action: action) })
                 .id(model.archiveID)
             #else
             ArchivePreview(archive: archive, selection: $model.selection,
@@ -423,7 +438,7 @@ struct WorkspaceView: View {
                            openNested: { openNested($0) }, extract: { extract(archive, ids: $0) },
                            extractWithPassword: { extract(archive, ids: $0, choosePassword: true) },
                            nearbyDestination: model.archiveOrigin?.name,
-                           extractNearby: { ids, action in extractNearby(archive, ids: ids, action: action) })
+                           extractNearby: { ids, action in extract(archive, ids: ids, action: action) })
                 .id(model.archiveID)
             #endif
         } else {
@@ -431,6 +446,13 @@ struct WorkspaceView: View {
                             addLocation: pickLocation,
                             openArchive: { urls, origin, action in
                                 openArchive(urls, profile: nil, origin: origin, action: action)
+                            }, extractSelected: { urls, origin in
+                                let groups = ArchiveService().archiveGroups(in: urls)
+                                if let group = groups.first, groups.count == 1 {
+                                    openArchive(group, profile: nil, origin: origin, action: .extractSmart)
+                                } else {
+                                    prepareBatch(groups, origin: origin)
+                                }
                             }, showError: { model.error = $0 })
         }
     }
@@ -448,34 +470,64 @@ struct WorkspaceView: View {
         }
     }
 
-    private func extract(_ archive: ArchiveManifest, ids: Set<ArchiveEntry.ID>?, choosePassword: Bool = false) {
-        let pending = Request(manifest: archive, selection: ids, sourceAccess: model.archiveOrigin?.location,
-                              choosePassword: choosePassword)
-        if destination == .documents {
-            preparingOutput = true
-            Task {
-                defer { preparingOutput = false }
-                do {
-                    let target = BrowserFolder.documents.child("Extracted Archives")
-                    try await Task.detached(priority: .utility) {
-                        try FileManager.default.createDirectory(at: target.url, withIntermediateDirectories: true)
-                    }.value
-                    preparingOutput = false
-                    start(pending, at: target)
-                } catch { model.error = error.localizedDescription }
-            }
-        } else {
-            request = pending
-            showPicker = true
+    private func extract(_ archive: ArchiveManifest, ids: Set<ArchiveEntry.ID>?,
+                         choosePassword: Bool = false, action: ArchiveFileAction = .browse) {
+        guard model.current == nil, !preparingOutput else { return }
+        let origin = model.archiveOrigin
+        let mode: ExtractionMode = switch action {
+        case .browse, .extractSmart: .smart
+        case .extractHere: .direct
+        case .extractToNewFolder: .separateFolder
+        }
+        extractionDraft = .init(source: .archive(archive, ids), origin: origin,
+            destination: action == .browse ? preferredDestination(origin) : origin,
+            lastDestination: lastExtractionDestination, mode: mode, conflict: conflict,
+            access: [origin?.location].compactMap { $0 }, choosePassword: choosePassword)
+    }
+
+    private func prepareBatch(_ groups: [[URL]], origin: BrowserFolder?) {
+        guard model.current == nil, !preparingOutput, !groups.isEmpty else { return }
+        let access = origin.map { [$0.location] } ?? groups.flatMap { $0 }.map(WorkspaceAccess.init)
+        extractionDraft = .init(source: .batch(groups), origin: origin,
+            destination: preferredDestination(origin), lastDestination: lastExtractionDestination,
+            mode: .smart, conflict: conflict, access: access)
+    }
+
+    private func preferredDestination(_ origin: BrowserFolder?) -> BrowserFolder? {
+        switch destination {
+        case .choose: nil
+        case .documents: .extractionDocuments
+        case .nearby: origin ?? .extractionDocuments
         }
     }
 
-    private func extractNearby(_ archive: ArchiveManifest, ids: Set<ArchiveEntry.ID>?, action: ArchiveFileAction) {
-        guard let origin = model.archiveOrigin, model.current == nil, !preparingOutput else { return }
-        let pending = Request(manifest: archive, selection: ids, sourceAccess: origin.location)
-        let subfolder = action == .extractToNewFolder
-            ? ArchiveNames.extractionFolder(for: archive.displayName) : nil
-        start(pending, at: origin, subfolder: subfolder)
+    private func inspect(_ draft: ExtractionDraft, usePasswords: Bool) async throws
+        -> ([ExtractionItem], [ExtractionIssue]) {
+        let service = ArchiveService()
+        let limits = self.limits
+        switch draft.source {
+        case .archive(let archive, let selection):
+            let layout = try await service.extractionLayout(for: archive, selecting: selection, limits: limits)
+            return ([.init(archive: archive, selection: selection, access: draft.access, layout: layout)], [])
+        case .batch(let groups):
+            var items: [ExtractionItem] = []
+            var issues: [ExtractionIssue] = []
+            for urls in groups {
+                try Task.checkCancellation()
+                do {
+                    let archive = try await model.inspectArchive(urls, limits: limits, usePasswordLibrary: usePasswords)
+                    guard archive.capabilities.contains(.extract) else { throw ArchiveError.unsupported }
+                    let layout = try await service.extractionLayout(for: archive, limits: limits)
+                    items.append(.init(archive: archive, selection: nil, access: draft.access, layout: layout))
+                } catch {
+                    try Task.checkCancellation()
+                    issues.append(.init(name: urls.first?.lastPathComponent ?? String(localized: "Archive"),
+                        reason: error.localizedDescription,
+                        needsPassword: (error as? ArchiveError)?.needsArchivePassword == true))
+                }
+            }
+            return (items, issues)
+        }
     }
 
     private func openArchive(_ urls: [URL], profile: FormatProfile?, password: PasswordChoice = .automatic,
@@ -496,7 +548,7 @@ struct WorkspaceView: View {
             } else {
                 openingPassword = nil
                 if action != .browse, model.archiveID != previous, let archive = model.manifest {
-                    extractNearby(archive, ids: nil, action: action)
+                    extract(archive, ids: nil, action: action)
                 }
             }
         }
@@ -516,7 +568,6 @@ struct WorkspaceView: View {
 
     private func openPicker() {
         openingPassword = nil
-        request = nil
         archiveProfile = nil
         choosingProfile = false
         addingLocation = false
@@ -525,7 +576,6 @@ struct WorkspaceView: View {
 
     private func openProfilePicker() {
         openingPassword = nil
-        request = nil
         archiveProfile = nil
         choosingProfile = true
         addingLocation = false
@@ -533,7 +583,6 @@ struct WorkspaceView: View {
     }
 
     private func pickLocation() {
-        request = nil
         archiveProfile = nil
         choosingProfile = false
         addingLocation = true
@@ -571,50 +620,41 @@ struct WorkspaceView: View {
         }
     }
 
-    private func start(_ request: Request, at directory: BrowserFolder, subfolder: String? = nil) {
-        guard model.current == nil, !preparingOutput else { return }
-        let prompt = PasswordRequest(extraction: request, directory: directory, subfolder: subfolder)
-        if request.choosePassword {
-            passwordRequest = prompt
-        } else if !request.needsPassword {
-            run(request, at: directory, subfolder: subfolder)
+    private func start(_ extraction: ExtractionRun) {
+        guard model.current == nil, !preparingOutput, let item = extraction.items.first else { return }
+        lastExtractionDestination = extraction.destination
+        if extraction.isBatch || (!item.needsPassword && !extraction.choosePassword) {
+            run(extraction)
+        } else if extraction.choosePassword {
+            passwordRequest = PasswordRequest(extraction: extraction)
         } else {
             preparingOutput = true
             Task {
-                let remembered = await model.rememberedPassword(for: request.manifest)
+                let remembered = await model.rememberedPassword(for: item.archive)
                 preparingOutput = false
                 if let remembered {
-                    run(request, at: directory, subfolder: subfolder, password: .saved(remembered, remember: false))
+                    run(extraction, password: .saved(remembered, remember: false))
+                } else {
+                    passwordRequest = PasswordRequest(extraction: extraction)
                 }
-                else { passwordRequest = prompt }
             }
         }
     }
 
-    private func run(_ request: Request, at directory: BrowserFolder, subfolder: String? = nil,
-                     password: PasswordChoice = .automatic) {
+    private func run(_ extraction: ExtractionRun, password: PasswordChoice = .automatic,
+                     existingOutput: BrowserFolder? = nil,
+                     conflictOverride: ExtractionOptions.ConflictPolicy? = nil) {
         guard model.current == nil, !preparingOutput else { return }
-        if let subfolder {
-            preparingOutput = true
-            Task {
-                defer { preparingOutput = false }
-                do {
-                    let target = try await FileWorkspace().makeUniqueFolder(named: subfolder,
-                        in: directory.url, access: directory.location)
-                    begin(request, at: directory.child(target.lastPathComponent), password: password)
-                } catch { model.error = error.localizedDescription }
-            }
-        } else {
-            begin(request, at: directory, password: password)
-        }
-    }
-
-    private func begin(_ request: Request, at directory: BrowserFolder, password: PasswordChoice) {
         retryPassword = nil
-        model.extract(request.manifest, to: directory, ids: request.selection,
-                      options: .init(conflictPolicy: conflict, limits: limits),
-                      sourceAccess: request.sourceAccess, password: password) {
-            retryPassword = PasswordRequest(extraction: request, directory: directory)
+        retryConflict = nil
+        model.extract(extraction, limits: limits, password: password, existingOutput: existingOutput,
+                      conflictOverride: conflictOverride) { failure, output in
+            if failure?.needsArchivePassword == true {
+                retryPassword = PasswordRequest(extraction: extraction, existingOutput: output)
+            } else if failure == .conflict && (conflictOverride ?? extraction.conflict) == .fail {
+                retryConflict = ConflictRetry(extraction: extraction, password: password, output: output)
+            }
+            files.reload()
         }
     }
 
