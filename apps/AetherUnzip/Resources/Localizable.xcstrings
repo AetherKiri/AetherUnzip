@@ -272,7 +272,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "关于 AetherUnzip"
+            "value": "关于以太解压"
           }
         }
       }
@@ -368,7 +368,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "AetherUnzip"
+            "value": "以太解压"
           }
         }
       }

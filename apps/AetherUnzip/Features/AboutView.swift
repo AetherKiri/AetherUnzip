@@ -90,13 +90,14 @@ struct AboutView: View {
         HStack(spacing: 14) {
             WorkspaceGlyph(symbol: "archivebox", tint: .accentColor, size: 52)
             VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: "AetherUnzip").font(.title2.weight(.semibold))
+                Text("AetherUnzip").font(.title2.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
                 Text("Archive and File Manager").font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("about-app-identity")
     }
 
     private func versionRow(_ label: LocalizedStringKey, value: String?, identifier: String) -> some View {

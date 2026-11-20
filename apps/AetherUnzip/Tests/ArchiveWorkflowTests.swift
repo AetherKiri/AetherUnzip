@@ -389,16 +389,17 @@ final class ArchiveWorkflowTests: XCTestCase {
 
     func testSimplifiedChineseSettings() {
         checkSettings(language: "zh-Hans", locale: "zh_CN", settings: "设置", safety: "安全限制", file: "单个文件",
-                      about: "关于 AetherUnzip", build: "构建编号", licenses: "开源许可证")
+                      about: "关于以太解压", appName: "以太解压", build: "构建编号", licenses: "开源许可证")
     }
 
     func testJapaneseSettings() {
         checkSettings(language: "ja", locale: "ja_JP", settings: "設定", safety: "安全上限", file: "ファイル単位",
-                      about: "AetherUnzip について", build: "ビルド番号", licenses: "オープンソースライセンス")
+                      about: "AetherUnzip について", appName: "AetherUnzip",
+                      build: "ビルド番号", licenses: "オープンソースライセンス")
     }
 
     private func checkSettings(language: String, locale: String, settings: String, safety: String, file: String,
-                               about: String, build: String, licenses: String) {
+                               about: String, appName: String, build: String, licenses: String) {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         app.launch()
@@ -417,6 +418,9 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(aboutRow.waitForExistence(timeout: 8), app.debugDescription)
         XCTAssertEqual(aboutRow.label, about)
         aboutRow.tap()
+        let identity = app.descendants(matching: .any)["about-app-identity"].firstMatch
+        XCTAssertTrue(identity.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(identity.label.contains(appName), identity.debugDescription)
         let buildRow = app.staticTexts["about-build"].firstMatch
         XCTAssertTrue(buildRow.waitForExistence(timeout: 8), app.debugDescription)
         XCTAssertTrue(buildRow.label.contains(build), buildRow.debugDescription)
@@ -1224,7 +1228,8 @@ final class ArchiveWorkflowTests: XCTestCase {
             let local = app.staticTexts.matching(NSPredicate(format: "label IN %@",
                 ["On My iPhone", "On My iPad", "我的iPhone", "我的iPad", "我的 iPhone", "我的 iPad"])).firstMatch
             if local.waitForExistence(timeout: 4) { local.tap() }
-            let folder = app.cells["AetherUnzip, Container"].firstMatch
+            let folder = app.cells.matching(NSPredicate(format: "identifier IN %@",
+                ["AetherUnzip, Container", "以太解压, Container", "以太解压, 容器"])).firstMatch
             if folder.waitForExistence(timeout: 4) { folder.tap() }
         }
         XCTAssertTrue(fixtureCell.waitForExistence(timeout: 8), app.debugDescription)

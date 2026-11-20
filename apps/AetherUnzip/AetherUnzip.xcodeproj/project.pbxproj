@@ -28,6 +28,7 @@
 		90FB80381CB3BD633833D846 /* xp3-wrapped.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4D8829ECC9D2611EA0A214F1 /* xp3-wrapped.bin */; };
 		9E7FD50F338F1A8910C37A4E /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74316D504A60E427C9D49F05 /* ActivityView.swift */; };
 		ACFE53EE15ED65451F6E62CB /* FileBrowserModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D85580DB03EEEB9705EB516 /* FileBrowserModel.swift */; };
+		AE8D6EC249E34611A5F75E50 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 5369D8EFB7873655B07B921C /* InfoPlist.xcstrings */; };
 		B32254CE04D363C40EDA78B6 /* format-profile.json in Resources */ = {isa = PBXBuildFile; fileRef = 2E0196CE7B038DF2391C2A45 /* format-profile.json */; };
 		C2331E1B2B4F2B5E41731515 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 978FB6A63BAB38D3A4EF7C60 /* SettingsView.swift */; };
 		C7CD595FCDC297D24EB69068 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F6274CE9E6D76C323D0FCADF /* Localizable.xcstrings */; };
@@ -68,6 +69,7 @@
 		4715C78D9BA108C26DE39E1A /* WorkspaceChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceChrome.swift; sourceTree = "<group>"; };
 		47454222EDB218BD2E8C0262 /* libarchive.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = libarchive.txt; sourceTree = "<group>"; };
 		4D8829ECC9D2611EA0A214F1 /* xp3-wrapped.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; path = "xp3-wrapped.bin"; sourceTree = "<group>"; };
+		5369D8EFB7873655B07B921C /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		5454BF515BB4212FF2650EB7 /* swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = swift; path = ../../bindings/swift; sourceTree = SOURCE_ROOT; };
 		5B7D36EA0EAD8B2254158352 /* AetherUnzipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AetherUnzipApp.swift; sourceTree = "<group>"; };
 		5E9F414290289FC5EB974155 /* AetherUnzip.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AetherUnzip.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -148,6 +150,7 @@
 			isa = PBXGroup;
 			children = (
 				69F3C4E42DE12D5301AF5D67 /* Assets.xcassets */,
+				5369D8EFB7873655B07B921C /* InfoPlist.xcstrings */,
 				F6274CE9E6D76C323D0FCADF /* Localizable.xcstrings */,
 			);
 			path = Resources;
@@ -336,6 +339,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6B03D272EA3F84F47E034655 /* Assets.xcassets in Resources */,
+				AE8D6EC249E34611A5F75E50 /* InfoPlist.xcstrings in Resources */,
 				7A90B46A26F598346632E780 /* LICENSE in Resources */,
 				C7CD595FCDC297D24EB69068 /* Localizable.xcstrings in Resources */,
 				749DC58A221FF1AC9C3C9289 /* brotli.txt in Resources */,
