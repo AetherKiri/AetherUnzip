@@ -27,3 +27,16 @@ RAR5 对单个密钥限定 PBKDF2 迭代指数至 20，每个密码解码状态�
 GZIP 解码器读取到每个成员的尾部时会校验 CRC-32 和 ISIZE。独立 `.gz` 提取会读完整个流，验证失败时清理暂存文件。提前结束的读取、选定 TAR 条目提取以及已经发布的文件仍遵循逐文件提交规则。
 
 嵌套挂载由调用方显式发起。Core 使用现有解码上限，并检查祖先链的嵌套层数及暂存字节数。嵌套归档完整读取后才进入下一层识别。调用方提供自己控制的暂存目录，文件在写入之前解除目录链接，随最后一个读取句柄关闭而释放。
+
+## Apple 隐私清单
+
+App 的 [PrivacyInfo.xcprivacy](../apps/AetherUnzip/Resources/PrivacyInfo.xcprivacy) 覆盖 App、Swift SDK 和静态链接的 Core 与归档库。公开说明见[隐私政策](../PRIVACY.md)。
+
+| API 类别 | 原因 | 使用位置 |
+| --- | --- | --- |
+| User Defaults | `CA92.1` | App 自己的偏好设置、历史、已授权位置和解压中断记录 |
+| File Timestamp | `C617.1` | App 容器内的归档、预览缓存元数据和临时文件核对 |
+| File Timestamp | `3B52.1` | 对用户授权的归档和目录检查文件身份、版本和条目元数据 |
+| File Timestamp | `DDA9.1` | 文件工作区显示修改时间并按时间排序 |
+
+对 iOS Release 归档检查了最终可执行文件及其静态链接依赖。相关导入为 `NSUserDefaults`、`AppStorage`、`fstat` 和 `fstatat`。预览缓存统计使用单个文件的磁盘块数。检查未发现卷剩余容量、系统启动时间、活动键盘或分析网络 SDK 的使用。App 的清单声明无跟踪及无数据收集。更改依赖或数据流时，重新检查最终归档并更新清单及 App Store Connect 标签。[Apple 必填原因 API](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api)

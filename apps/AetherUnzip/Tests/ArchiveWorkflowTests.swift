@@ -348,6 +348,7 @@ final class ArchiveWorkflowTests: XCTestCase {
             XCTAssertTrue(announcement.contains(where: \.isNumber), value.debugDescription)
         }
         capture("About AetherUnzip", in: app)
+        XCTAssertTrue(app.descendants(matching: .any)["about-privacy"].firstMatch.exists, app.debugDescription)
         let copy = app.buttons["about-copy-versions"].firstMatch
         copy.tap()
         XCTAssertEqual(copy.label, "Copied")
@@ -396,6 +397,30 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertEqual(xp3.value as? String, "Supported")
         app.navigationBars["Supported Formats"].buttons.firstMatch.tap()
         XCTAssertTrue(formats.waitForExistence(timeout: 8), app.debugDescription)
+    }
+
+    func testClearsActivityAndKeepsExtractedFiles() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-destinationPolicy", "1"]
+        app.launch()
+        openWorkspaceArchive("MobileSample.zip", in: app)
+        app.buttons["extract-all"].firstMatch.tap()
+        confirmExtraction(in: app)
+        XCTAssertTrue(app.buttons["view-extraction-folder"].firstMatch.waitForExistence(timeout: 12))
+
+        openWorkspacePage("Activity", sidebarID: "activity", in: app)
+        XCTAssertTrue(app.staticTexts["Recently Opened"].firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["Extraction History"].firstMatch.exists)
+        let clear = app.buttons["activity-clear"].firstMatch
+        XCTAssertTrue(clear.waitForExistence(timeout: 8))
+        clear.tap()
+        app.buttons["Clear Activity"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["No Activity Yet"].firstMatch.waitForExistence(timeout: 8))
+
+        app.terminate()
+        app.launch()
+        openWorkspacePage("Activity", sidebarID: "activity", in: app)
+        XCTAssertTrue(app.staticTexts["No Activity Yet"].firstMatch.waitForExistence(timeout: 8))
     }
 
     func testSettingsAskDestinationUsesNativeFolderPicker() {

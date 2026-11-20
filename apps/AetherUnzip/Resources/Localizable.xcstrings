@@ -901,6 +901,54 @@
         }
       }
     },
+    "Clear Activity": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "履歴を消去"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除活动记录"
+          }
+        }
+      }
+    },
+    "Clear Activity?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "履歴を消去しますか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除活动记录？"
+          }
+        }
+      }
+    },
+    "Clear Activity…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "履歴を消去…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除活动记录…"
+          }
+        }
+      }
+    },
     "Clear Unused Cache": {
       "localizations": {
         "ja": {
@@ -3911,6 +3959,22 @@
         }
       }
     },
+    "Privacy Policy": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プライバシーポリシー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私政策"
+          }
+        }
+      }
+    },
     "Reading archive…": {
       "localizations": {
         "ja": {
@@ -5139,6 +5203,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "第三方库"
+          }
+        }
+      }
+    },
+    "This clears recently opened archives and extraction history from the activity list.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近開いたアーカイブと展開履歴をアクティビティの一覧から消去します。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从活动列表移除最近打开的压缩包和解压记录。"
           }
         }
       }

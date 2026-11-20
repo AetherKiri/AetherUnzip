@@ -61,6 +61,10 @@ struct AboutView: View {
                         Label("Open-source Licenses", systemImage: "doc.text")
                     }
                     .accessibilityIdentifier("about-licenses")
+                    Link(destination: URL(string: "https://github.com/AetherKiri/AetherUnzip/blob/main/PRIVACY.md")!) {
+                        Label("Privacy Policy", systemImage: "hand.raised")
+                    }
+                    .accessibilityIdentifier("about-privacy")
                 }
             }
             .modifier(WorkspaceListSurface())

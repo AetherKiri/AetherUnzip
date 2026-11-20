@@ -9,7 +9,7 @@
 <p align="center">A native archive extractor and file manager for Mac, iPhone, and iPad<br>Available in English, Simplified Chinese, and Japanese</p>
 
 <p align="center">
-  macOS 14+ · iOS 17+ · iPadOS 17+ · <a href="LICENSE">GPL-3.0-only</a>
+  macOS 14+ · iOS 17+ · iPadOS 17+ · <a href="LICENSE">GPL-3.0-only</a> · <a href="PRIVACY.md#english">Privacy Policy</a>
 </p>
 
 <p align="center">

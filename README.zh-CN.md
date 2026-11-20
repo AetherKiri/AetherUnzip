@@ -9,7 +9,7 @@
 <p align="center">面向 Mac、iPhone 和 iPad 的原生解压工具<br>支持简体中文、English、日本語</p>
 
 <p align="center">
-  macOS 14+ · iOS 17+ · iPadOS 17+ · <a href="LICENSE">GPL-3.0-only</a>
+  macOS 14+ · iOS 17+ · iPadOS 17+ · <a href="LICENSE">GPL-3.0-only</a> · <a href="PRIVACY.md#简体中文">隐私政策</a>
 </p>
 
 <p align="center">

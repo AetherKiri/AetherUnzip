@@ -153,6 +153,7 @@ struct ActivityView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var details: TaskRecord?
     @State private var showAllRecents = false
+    @State private var confirmingClearActivity = false
     private let recentPreviewCount = 4
 
     var body: some View {
@@ -218,11 +219,26 @@ struct ActivityView: View {
                             }
                         }
                     }
+                    if !model.recents.isEmpty || !model.history.isEmpty {
+                        Section {
+                            Button("Clear Activity…", systemImage: "trash", role: .destructive) {
+                                confirmingClearActivity = true
+                            }
+                            .disabled(model.current != nil)
+                            .accessibilityIdentifier("activity-clear")
+                        }
+                    }
                 }
                 .modifier(WorkspaceListSurface())
             }
         }
         .modifier(WorkspaceCanvas())
+        .confirmationDialog("Clear Activity?", isPresented: $confirmingClearActivity, titleVisibility: .visible) {
+            Button("Clear Activity", role: .destructive, action: model.clearActivity)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This clears recently opened archives and extraction history from the activity list.")
+        }
         #if os(iOS)
         .toolbar(.hidden, for: .navigationBar)
         #endif

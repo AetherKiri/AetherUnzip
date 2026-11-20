@@ -306,6 +306,17 @@ final class AppModel {
         persist(recents, for: "recentArchives")
     }
 
+    func clearActivity() {
+        guard current == nil else { return }
+        recents.removeAll()
+        history.removeAll()
+        batchResult = nil
+        lastOutput = nil
+        notice = nil
+        UserDefaults.standard.removeObject(forKey: "recentArchives")
+        UserDefaults.standard.removeObject(forKey: "taskHistory")
+    }
+
     func closeArchive() {
         let parent = parents.popLast()
         manifest = parent?.archive

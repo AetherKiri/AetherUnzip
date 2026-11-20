@@ -14,6 +14,7 @@
 		153107EA72AF3CFF425429EE /* sample.xp3 in Resources */ = {isa = PBXBuildFile; fileRef = FE240D387C1B5BEDDC316620 /* sample.xp3 */; };
 		17D2D1B5660AB53282E258C7 /* FileBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91A79A67D2262FE1E8960939 /* FileBrowserView.swift */; };
 		1DC0B39D6091190393307A24 /* ArchiveTree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127EEF050BB87B3AAC9065C7 /* ArchiveTree.swift */; };
+		29C0561EA86E5B3F544B4BBA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 21DB33FBE4F3EA84098A41CC /* PrivacyInfo.xcprivacy */; };
 		34BC84B5049BE1318279B89B /* liblzma.txt in Resources */ = {isa = PBXBuildFile; fileRef = 2E6B0EC70586181B6F48865D /* liblzma.txt */; };
 		58677CCF1B17D21DCBEC9569 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FB7949DE899C1B8BBC0FC69 /* AppModel.swift */; };
 		6147D3B40C70CCC3A1196811 /* AetherUnzipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B7D36EA0EAD8B2254158352 /* AetherUnzipApp.swift */; };
@@ -63,6 +64,7 @@
 		0BF62C2CB0C36535DE2DC1DD /* ArchiveWorkflowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveWorkflowTests.swift; sourceTree = "<group>"; };
 		127EEF050BB87B3AAC9065C7 /* ArchiveTree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveTree.swift; sourceTree = "<group>"; };
 		21B1248155BC9337F0337AF4 /* PasswordLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordLibraryView.swift; sourceTree = "<group>"; };
+		21DB33FBE4F3EA84098A41CC /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		291CBAAFF81717C3E7BFA179 /* AetherUnzipUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = AetherUnzipUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2E0196CE7B038DF2391C2A45 /* format-profile.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "format-profile.json"; sourceTree = "<group>"; };
 		2E6B0EC70586181B6F48865D /* liblzma.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = liblzma.txt; sourceTree = "<group>"; };
@@ -159,6 +161,7 @@
 				69F3C4E42DE12D5301AF5D67 /* Assets.xcassets */,
 				5369D8EFB7873655B07B921C /* InfoPlist.xcstrings */,
 				F6274CE9E6D76C323D0FCADF /* Localizable.xcstrings */,
+				21DB33FBE4F3EA84098A41CC /* PrivacyInfo.xcprivacy */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -351,6 +354,7 @@
 				AE8D6EC249E34611A5F75E50 /* InfoPlist.xcstrings in Resources */,
 				7A90B46A26F598346632E780 /* LICENSE in Resources */,
 				C7CD595FCDC297D24EB69068 /* Localizable.xcstrings in Resources */,
+				29C0561EA86E5B3F544B4BBA /* PrivacyInfo.xcprivacy in Resources */,
 				749DC58A221FF1AC9C3C9289 /* brotli.txt in Resources */,
 				C87F90729E11D0A790FEEA14 /* libarchive-aether-helpers.txt in Resources */,
 				71153B5BF9DBB7E4BEEAA1AE /* libarchive.txt in Resources */,
