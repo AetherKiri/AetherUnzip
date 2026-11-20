@@ -427,7 +427,7 @@ struct WorkspaceView: View {
                 .id(model.archiveID)
             #endif
         } else {
-            FileBrowserView(model: files, openPicker: openPicker, openProfile: openProfilePicker,
+            FileBrowserView(model: files, limits: limits, openPicker: openPicker, openProfile: openProfilePicker,
                             addLocation: pickLocation,
                             openArchive: { urls, origin, action in
                                 openArchive(urls, profile: nil, origin: origin, action: action)

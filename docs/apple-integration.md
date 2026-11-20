@@ -45,6 +45,11 @@ cp tests/fixtures/rar5-aes-solid-header.rar "$app_data/Documents/MobileSolidRAR.
 cp tests/fixtures/rar5-aes-picker.rar "$app_data/Documents/Library Locked.rar"
 cp tests/fixtures/rar5-aes-picker.rar "$app_data/Documents/Library Renamed.rar"
 cp tests/fixtures/aes256.zip "$app_data/Documents/Library Payload.zip"
+cp tests/fixtures/workspace-photo.jpg "$app_data/Documents/Recognition Photo.jpg"
+cat tests/fixtures/workspace-photo.jpg tests/fixtures/sample.zip > "$app_data/Documents/Recognition Hybrid.jpg"
+cp tests/fixtures/sample.zip "$app_data/Documents/Recognition Copy.mp3"
+cp tests/fixtures/sample.tar.gz "$app_data/Documents/Recognition Backup.mp4"
+cp tests/fixtures/rar5-aes-picker.rar "$app_data/Documents/Recognition Locked.jpg"
 workspace="$app_data/Documents/Project Downloads"
 mkdir -p "$workspace/Guides"
 cp tests/fixtures/sample.zip "$workspace/Project Assets.zip"
@@ -54,6 +59,8 @@ xcodebuild -project apps/AetherUnzip/AetherUnzip.xcodeproj -scheme AetherUnzip \
   -destination "platform=iOS Simulator,id=$destination_id" -derivedDataPath build/app-ios-ui \
   -parallel-testing-enabled NO -testLanguage en -testRegion US test-without-building
 ```
+
+归档识别用例覆盖 Quick Look、手动确认更名、保留原名打开和密码提示。更名用例会将测试文件 `Recognition Hybrid.jpg` 更名为 `Recognition Hybrid.zip`。重新运行前，清理该用例生成的 ZIP 并重新导入原测试文件。
 
 App 和 Swift SDK 使用 String Catalog，支持英文、简体中文和日文。系统按 App 的语言设置选择界面，按地区设置显示日期和数字。新增界面文案时同步更新 App 或 SDK 的 `Localizable.xcstrings`。三个 `test*Localization` 用例分别验证本地化排序、搜索计数和解压密码错误。
 

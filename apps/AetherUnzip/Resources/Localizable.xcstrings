@@ -149,6 +149,22 @@
         }
       }
     },
+    "A password is required to verify this archive.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアーカイブを確認するにはパスワードが必要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要密码才能验证此压缩包。"
+          }
+        }
+      }
+    },
     "A to Z": {
       "localizations": {
         "ja": {
@@ -1191,6 +1207,22 @@
         }
       }
     },
+    "Detected Format": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検出された形式"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "识别格式"
+          }
+        }
+      }
+    },
     "Discard Changes": {
       "localizations": {
         "ja": {
@@ -1907,6 +1939,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "隐藏密码"
+          }
+        }
+      }
+    },
+    "Identify Again": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もう一度識別"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新识别"
+          }
+        }
+      }
+    },
+    "Identify Archive": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブ形式の識別"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "识别归档"
+          }
+        }
+      }
+    },
+    "Identify Archive Format…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アーカイブ形式を識別…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "识别归档格式…"
           }
         }
       }
@@ -2631,6 +2711,22 @@
         }
       }
     },
+    "Original Name": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のファイル名"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文件名"
+          }
+        }
+      }
+    },
     "Other Destinations": {
       "localizations": {
         "ja": {
@@ -3059,6 +3155,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "重命名"
+          }
+        }
+      }
+    },
+    "Rename and Open": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を変更して開く"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更名并打开"
+          }
+        }
+      }
+    },
+    "Renaming preserves the file contents. It may change which app opens the file by default.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を変更してもファイルの内容は保持されます。デフォルトで開くアプリが変わる場合があります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更名会保留文件内容。默认打开此文件的应用可能会改变。"
+          }
+        }
+      }
+    },
+    "Renaming…": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を変更中…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在更名…"
           }
         }
       }
@@ -3655,6 +3799,22 @@
         }
       }
     },
+    "Suggested Name": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "推奨ファイル名"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议文件名"
+          }
+        }
+      }
+    },
     "Supported": {
       "localizations": {
         "ja": {
@@ -3715,6 +3875,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "这些条目使用的加密方式不受支持。"
+          }
+        }
+      }
+    },
+    "The file changed after identification. Identify it again before renaming.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "識別後にファイルが変更されました。名前を変更する前にもう一度識別してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "识别后文件已发生变化。请重新识别后再更名。"
           }
         }
       }

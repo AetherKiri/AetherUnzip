@@ -718,6 +718,95 @@ final class ArchiveWorkflowTests: XCTestCase {
         return row
     }
 
+    func testRecognitionPreviewsRenamesAndExtractsJPEGWithZIP() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-destinationPolicy", "1", "-conflictPolicy", "2"]
+        app.launch()
+        let photo = workspaceFile(named: "Recognition Hybrid.jpg", in: app)
+        app.buttons["workspace-search-done"].firstMatch.tap()
+        photo.tap()
+        XCTAssertTrue(app.otherElements["QLPreviewControllerView"].firstMatch.waitForExistence(timeout: 8),
+                      app.debugDescription)
+        app.terminate()
+        app.launch()
+
+        identifyArchive(workspaceFile(named: "Recognition Hybrid.jpg", in: app), in: app)
+        checkRecognitionValue("recognition-original-name", contains: "Recognition Hybrid.jpg", in: app)
+        checkRecognitionValue("recognition-format", contains: "ZIP", in: app)
+        checkRecognitionValue("recognition-suggested-name", contains: "Recognition Hybrid.zip", in: app)
+        capture("Archive Identification", in: app)
+        app.buttons["recognition-cancel"].firstMatch.tap()
+        XCTAssertTrue(photo.waitForExistence(timeout: 8))
+
+        identifyArchive(photo, in: app)
+        let rename = app.buttons["recognition-rename"].firstMatch
+        XCTAssertTrue(rename.waitForExistence(timeout: 8), app.debugDescription)
+        rename.tap()
+        let extract = app.buttons["extract-all"].firstMatch
+        XCTAssertTrue(extract.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Recognition Hybrid.zip"].firstMatch.exists)
+        extract.tap()
+        XCTAssertTrue(app.staticTexts["Extraction completed in Extracted Archives."].firstMatch
+            .waitForExistence(timeout: 12), app.debugDescription)
+    }
+
+    func testRecognitionRejectsNormalJPEGAndOpensZIPWithoutRenaming() {
+        let app = XCUIApplication()
+        app.launch()
+        identifyArchive(workspaceFile(named: "Recognition Photo.jpg", in: app), in: app)
+        XCTAssertTrue(app.staticTexts["recognition-error"].firstMatch.waitForExistence(timeout: 8),
+                      app.debugDescription)
+        XCTAssertFalse(app.buttons["recognition-rename"].exists)
+        XCTAssertFalse(app.buttons["recognition-open"].exists)
+        app.buttons["recognition-cancel"].firstMatch.tap()
+        app.buttons["clear-workspace-search"].firstMatch.tap()
+
+        let archive = workspaceFile(named: "Recognition Copy.mp3", in: app)
+        identifyArchive(archive, in: app)
+        checkRecognitionValue("recognition-suggested-name", contains: "Recognition Copy.zip", in: app)
+        app.buttons["recognition-open"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["extract-all"].firstMatch.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Recognition Copy.mp3"].firstMatch.exists)
+    }
+
+    func testRecognitionShowsBothTARAndItsCompression() {
+        let app = XCUIApplication()
+        app.launch()
+        identifyArchive(workspaceFile(named: "Recognition Backup.mp4", in: app), in: app)
+        checkRecognitionValue("recognition-format", contains: "TAR · GZIP", in: app)
+        checkRecognitionValue("recognition-suggested-name", contains: "Recognition Backup.tar.gz", in: app)
+    }
+
+    func testRecognitionUsesTheExistingPasswordPrompt() {
+        let app = launchWithIsolatedPasswordLibrary()
+        identifyArchive(workspaceFile(named: "Recognition Locked.jpg", in: app), in: app)
+        let open = app.buttons["recognition-open"].firstMatch
+        XCTAssertTrue(open.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertFalse(app.buttons["recognition-rename"].exists)
+        open.tap()
+        let password = app.secureTextFields["archive-password"].firstMatch
+        XCTAssertTrue(password.waitForExistence(timeout: 8), app.debugDescription)
+        password.tap()
+        password.typeText("fixture-pass")
+        app.buttons["submit-archive-password"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["extract-all"].firstMatch.waitForExistence(timeout: 10), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Recognition Locked.jpg"].firstMatch.exists)
+    }
+
+    private func identifyArchive(_ row: XCUIElement, in app: XCUIApplication) {
+        row.press(forDuration: 1)
+        let identify = app.buttons["identify-workspace-archive"].firstMatch
+        XCTAssertTrue(identify.waitForExistence(timeout: 8), app.debugDescription)
+        identify.tap()
+    }
+
+    private func checkRecognitionValue(_ identifier: String, contains expected: String, in app: XCUIApplication) {
+        let value = app.descendants(matching: .any)[identifier].firstMatch
+        XCTAssertTrue(value.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue([value.label, value.value as? String ?? ""].joined(separator: " ").contains(expected),
+                      value.debugDescription)
+    }
+
     func testBrowseAndSelectAcrossFolders() {
         let app = XCUIApplication()
         app.launch()

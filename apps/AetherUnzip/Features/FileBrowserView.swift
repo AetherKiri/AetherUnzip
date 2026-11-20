@@ -9,6 +9,7 @@ enum ArchiveFileAction {
 
 struct FileBrowserView: View {
     @Bindable var model: FileBrowserModel
+    let limits: ExtractionOptions.Limits
     let openPicker: () -> Void
     let openProfile: () -> Void
     let addLocation: () -> Void
@@ -102,6 +103,8 @@ struct FileBrowserView: View {
     @State private var preview: URL?
     @State private var details: WorkspaceFile?
     @State private var rename: RenameTarget?
+    @State private var recognition: ArchiveRecognitionRequest?
+    @State private var recognizedFileToOpen: (URL, BrowserFolder)?
     @State private var creatingFile = false
     @State private var createdFile: WorkspaceTextFile?
     @State private var editor: WorkspaceTextRequest?
@@ -174,6 +177,17 @@ struct FileBrowserView: View {
                           location: folder.name) { name in
                 try await applyName(name, to: target, in: folder)
                 rename = nil
+            }
+        }
+        .sheet(item: $recognition, onDismiss: {
+            guard let (url, folder) = recognizedFileToOpen else { return }
+            recognizedFileToOpen = nil
+            openArchive([url], folder, .browse)
+        }) { request in
+            ArchiveRecognitionSheet(request: request, limits: limits) { url, renamed in
+                if renamed { model.reload() }
+                recognizedFileToOpen = (url, request.folder)
+                recognition = nil
             }
         }
         .sheet(isPresented: $creatingFile, onDismiss: {
@@ -563,6 +577,11 @@ struct FileBrowserView: View {
                 Button("Preview", systemImage: "eye") { preview = model.folder.item(file.name) }
                 Button("Open as Archive", systemImage: "archivebox") { open(file, action: .browse) }
             }
+            Button("Identify Archive Format…", systemImage: "doc.text.magnifyingglass") {
+                recognition = ArchiveRecognitionRequest(name: file.name, folder: model.folder)
+            }
+            .disabled(model.working)
+            .accessibilityIdentifier("identify-workspace-archive")
             Button("Edit Text", systemImage: "square.and.pencil") { edit(file) }
                 .accessibilityIdentifier("edit-workspace-text")
             ShareLink(item: model.folder.item(file.name)) { Label("Share", systemImage: "square.and.arrow.up") }
