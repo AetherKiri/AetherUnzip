@@ -3,6 +3,68 @@ import Testing
 import AetherUnzipKit
 
 struct ArchiveServiceTests {
+    @Test func createsAndEditsTextFilesWithoutOverwritingChanges() async throws {
+        try await temporaryDirectory { folder in
+            let workspace = FileWorkspace()
+            let access = WorkspaceAccess(folder)
+            let initial = try await workspace.makeTextFile(named: "Notes.custom", in: folder, contents: "こんにちは\n", access: access)
+            await #expect(throws: CocoaError.self) {
+                try await workspace.makeTextFile(named: "Notes.custom", in: folder, contents: "replacement", access: access)
+            }
+            let opened = try await workspace.readText(at: initial.url, access: access)
+            #expect(opened.text == "こんにちは\n")
+            let saved = try await workspace.saveText("你好\n", for: opened)
+            #expect(try await workspace.readText(at: saved.url, access: access).text == "你好\n")
+            await #expect(throws: WorkspaceTextError.changed) {
+                try await workspace.saveText("outdated", for: opened)
+            }
+            try Data("external".utf8).write(to: saved.url)
+            await #expect(throws: WorkspaceTextError.changed) {
+                try await workspace.saveText("draft", for: saved)
+            }
+            #expect(try await workspace.readText(at: saved.url, access: access).text == "external")
+        }
+    }
+
+    @Test func validatesTextSizeAndTypeAndPreservesUTF8BOM() async throws {
+        try await temporaryDirectory { folder in
+            let workspace = FileWorkspace()
+            let access = WorkspaceAccess(folder)
+            let text = folder.appending(path: "BOM.txt")
+            let bom: [UInt8] = [0xef, 0xbb, 0xbf]
+            try Data(bom + Array("alpha\r\n".utf8)).write(to: text)
+            let snapshot = try await workspace.readText(at: text, access: access)
+            #expect(snapshot.text == "alpha\r\n")
+            _ = try await workspace.saveText("beta\r\n", for: snapshot)
+            let savedBytes = try Data(contentsOf: text)
+            #expect(savedBytes == Data(bom + Array("beta\r\n".utf8)))
+
+            let binary = folder.appending(path: "Binary.txt")
+            try Data([0x41, 0x00, 0x42]).write(to: binary)
+            await #expect(throws: WorkspaceTextError.unsupported) {
+                try await workspace.readText(at: binary, access: access)
+            }
+            let linked = folder.appending(path: "Linked.txt")
+            try FileManager.default.createSymbolicLink(at: linked, withDestinationURL: text)
+            await #expect(throws: WorkspaceTextError.unsupported) {
+                try await workspace.readText(at: linked, access: access)
+            }
+            await #expect(throws: CocoaError.self) {
+                try await workspace.makeTextFile(named: "Linked.txt", in: folder, contents: "replace", access: access)
+            }
+            let oversized = String(repeating: "a", count: 1024 * 1024 + 1)
+            let large = folder.appending(path: "Large.txt")
+            try Data(oversized.utf8).write(to: large)
+            await #expect(throws: WorkspaceTextError.tooLarge) {
+                try await workspace.readText(at: large, access: access)
+            }
+            await #expect(throws: WorkspaceTextError.tooLarge) {
+                try await workspace.makeTextFile(named: "Too large.txt", in: folder, contents: oversized, access: access)
+            }
+            #expect(!FileManager.default.fileExists(atPath: folder.appending(path: "Too large.txt").path))
+        }
+    }
+
     @Test func fingerprintsArchiveBytesAcrossRenamesAndRejectsChangedRevisions() async throws {
         let fixture = try #require(Bundle.module.url(forResource: "aes256", withExtension: "zip", subdirectory: "Fixtures"))
         let expected = try await service.archiveFingerprint(for: [fixture])

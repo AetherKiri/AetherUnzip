@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 /// Keeps access to one user-selected directory alive for its current consumers.
@@ -44,8 +45,31 @@ public struct WorkspaceFile: Identifiable, Sendable {
     public var id: String { name }
 }
 
+/// The editable text and the file revision it was read from.
+public struct WorkspaceTextFile: Sendable {
+    public let url: URL
+    public let text: String
+    fileprivate let access: WorkspaceAccess
+    fileprivate let revision: FileRevision
+    fileprivate let bytes: Data
+}
+
+public enum WorkspaceTextError: LocalizedError, Equatable, Sendable {
+    case unsupported, tooLarge, changed
+
+    public var errorDescription: String? {
+        switch self {
+        case .unsupported: String(localized: "Only UTF-8 text files can be edited.", bundle: .module)
+        case .tooLarge: String(localized: "The text editor supports files up to 1 MiB.", bundle: .module)
+        case .changed: String(localized: "The file changed on disk. Reopen it before saving.", bundle: .module)
+        }
+    }
+}
+
 public struct FileWorkspace: Sendable {
     public enum Transfer: Sendable { case copy, move }
+    private static let textLimit = 1024 * 1024
+    private static let utf8BOM = Data([0xef, 0xbb, 0xbf])
 
     public init() {}
 
@@ -79,6 +103,48 @@ public struct FileWorkspace: Sendable {
             let target = urls[0].appending(path: name, directoryHint: .isDirectory)
             try FileManager.default.createDirectory(at: target, withIntermediateDirectories: false)
             return target
+        }
+    }
+
+    /// Creates a UTF-8 file and fails if the name is already taken.
+    public func makeTextFile(named name: String, in folder: URL, contents: String = "",
+                             access: WorkspaceAccess) async throws -> WorkspaceTextFile {
+        try Self.checkName(name)
+        let bytes = try Self.textData(contents)
+        let intent = NSFileAccessIntent.writingIntent(with: folder, options: [])
+        return try await coordinate([intent], accesses: [access]) { urls, _ in
+            try Self.requireDirectory(urls[0])
+            let target = urls[0].appending(path: name, directoryHint: .notDirectory)
+            try bytes.write(to: target, options: .withoutOverwriting)
+            return WorkspaceTextFile(url: folder.appending(path: name, directoryHint: .notDirectory),
+                                     text: contents, access: access, revision: try FileRevision(target), bytes: bytes)
+        }
+    }
+
+    public func readText(at url: URL, access: WorkspaceAccess) async throws -> WorkspaceTextFile {
+        let intent = NSFileAccessIntent.readingIntent(with: url, options: [.withoutChanges])
+        return try await coordinate([intent], accesses: [access]) { urls, _ in
+            let (bytes, revision) = try Self.readTextBytes(urls[0])
+            let body = bytes.starts(with: Self.utf8BOM) ? bytes.dropFirst(Self.utf8BOM.count) : bytes
+            guard let text = String(bytes: body, encoding: .utf8), Self.isText(text) else {
+                throw WorkspaceTextError.unsupported
+            }
+            return WorkspaceTextFile(url: url, text: text, access: access, revision: revision, bytes: bytes)
+        }
+    }
+
+    /// Atomically replaces a text file if it still matches the supplied snapshot.
+    public func saveText(_ text: String, for file: WorkspaceTextFile) async throws -> WorkspaceTextFile {
+        let bytes = try Self.textData(text, includeBOM: file.bytes.starts(with: Self.utf8BOM))
+        let intent = NSFileAccessIntent.writingIntent(with: file.url, options: [.forReplacing])
+        return try await coordinate([intent], accesses: [file.access]) { urls, _ in
+            let url = urls[0]
+            guard (try? FileRevision(url)) == file.revision else { throw WorkspaceTextError.changed }
+            let (current, revision) = try Self.readTextBytes(url)
+            guard revision == file.revision, current == file.bytes else { throw WorkspaceTextError.changed }
+            try bytes.write(to: url, options: .atomic)
+            return WorkspaceTextFile(url: file.url, text: text, access: file.access,
+                                     revision: try FileRevision(url), bytes: bytes)
         }
     }
 
@@ -172,6 +238,45 @@ public struct FileWorkspace: Sendable {
               !name.utf8.contains(0), !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ArchiveError.invalidInput
         }
+    }
+
+    private static func isText(_ text: String) -> Bool {
+        text.unicodeScalars.allSatisfy { scalar in
+            switch scalar.value {
+            case 0...8, 11...12, 14...31, 127: false
+            default: true
+            }
+        }
+    }
+
+    private static func textData(_ text: String, includeBOM: Bool = false) throws -> Data {
+        var bytes = includeBOM ? utf8BOM : Data()
+        guard text.utf8.count <= textLimit - bytes.count else { throw WorkspaceTextError.tooLarge }
+        guard isText(text) else { throw WorkspaceTextError.unsupported }
+        bytes.append(contentsOf: text.utf8)
+        return bytes
+    }
+
+    private static func readTextBytes(_ url: URL) throws -> (Data, FileRevision) {
+        let revision = try FileRevision(url)
+        let descriptor = open(url.path, O_RDONLY | O_NOFOLLOW | O_NONBLOCK)
+        if descriptor == -1 {
+            if errno == ELOOP { throw WorkspaceTextError.unsupported }
+            throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno), userInfo: [NSURLErrorKey: url])
+        }
+        let file = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? file.close() }
+        var info = stat()
+        guard fstat(descriptor, &info) == 0 else { throw ArchiveError.inputOutput }
+        guard info.st_mode & S_IFMT == S_IFREG else { throw WorkspaceTextError.unsupported }
+        guard info.st_size <= textLimit else { throw WorkspaceTextError.tooLarge }
+        var bytes = Data()
+        while let chunk = try file.read(upToCount: min(64 * 1024, textLimit - bytes.count + 1)), !chunk.isEmpty {
+            bytes.append(chunk)
+            guard bytes.count <= textLimit else { throw WorkspaceTextError.tooLarge }
+        }
+        guard try FileRevision(url) == revision else { throw WorkspaceTextError.changed }
+        return (bytes, revision)
     }
 
     private static func requireDirectory(_ url: URL) throws {

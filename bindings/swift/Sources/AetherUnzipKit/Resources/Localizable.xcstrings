@@ -177,6 +177,22 @@
         }
       }
     },
+    "Only UTF-8 text files can be edited.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集できるのは UTF-8 のテキストファイルです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只能编辑 UTF-8 文本文件。"
+          }
+        }
+      }
+    },
     "Operation cancelled": {
       "localizations": {
         "ja": {
@@ -273,6 +289,22 @@
         }
       }
     },
+    "The file changed on disk. Reopen it before saving.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルが変更されました。保存する前に開き直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "磁盘上的文件已更改，请重新打开再保存。"
+          }
+        }
+      }
+    },
     "The file does not match the format profile": {
       "localizations": {
         "ja": {
@@ -333,6 +365,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "密码不正确，或加密数据已损坏"
+          }
+        }
+      }
+    },
+    "The text editor supports files up to 1 MiB.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テキストエディタで編集できるファイルは最大 1 MiB です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文本编辑器支持最大 1 MiB 的文件。"
           }
         }
       }

@@ -59,6 +59,8 @@
 
 `WorkspaceAccess` 持有系统选择器授予的目录访问权。使用 `bookmark()` 保存位置，使用 `restore(_:)` 恢复访问。`FileWorkspace` 在后台协调目录枚举、新建文件夹、重命名、复制、移动和删除。批量传输会先检查目标重名，传输途中发生 I/O 错误时，已经完成的项目保留。从授权目录访问归档时，调用方应在 `ArchiveService` 操作期间保留对应的 `WorkspaceAccess`。
 
+`FileWorkspace.makeTextFile` 独占创建一个 UTF-8 文件。`readText` 返回文本和用于保存的 `WorkspaceTextFile` 快照，快照保留目录授权。`saveText` 在协调写入中核对文件版本和原始字节，匹配时原子替换，并返回可供下次编辑使用的新快照。读写上限为 1 MiB。编辑会保留已有的 UTF-8 BOM。二进制数据、符号链接和其他非普通文件无法作为文本打开。文件发生外部变更时，`WorkspaceTextError.changed` 保留磁盘上的内容。
+
 ## 加密归档
 
 用 `aether_unzip_context_create_with_passphrase` 创建带密码的上下文。密码为非空、NUL 结尾的 UTF-8 字符串，Core 复制输入。读取归档的驱动持有自己的密码副本。资源挂载保留上下文，以便为每个打开的条目创建独立读取游标。结束时关闭这些句柄并释放上下文。
