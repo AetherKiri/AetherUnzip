@@ -2,7 +2,7 @@
 
 ## 产品目标
 
-AetherUnzip 是一个 MIT 许可的归档与资源处理 Monorepo。首个产品是 macOS、iOS 和 iPadOS 原生 SwiftUI App。相同的 Core 可通过 C ABI 独立集成，服务于归档识别、流式读取、资源枚举和安全提取。
+AetherUnzip 是一个采用 [GPL-3.0-only](../LICENSE) 的归档与资源处理 Monorepo。首个产品是 macOS、iOS 和 iPadOS 原生 SwiftUI App。相同的 Core 可通过 C ABI 独立集成，服务于归档识别、流式读取、资源枚举和安全提取。各组件的独立许可见[第三方声明](../third_party/README.md)。
 
 ## 当前版本 0.1.x
 

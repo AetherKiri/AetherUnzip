@@ -355,11 +355,12 @@ final class ArchiveWorkflowTests: XCTestCase {
         app.buttons["about-licenses"].firstMatch.tap()
         let project = app.buttons["license-LICENSE"].firstMatch
         XCTAssertTrue(project.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(project.label.contains("GPL-3.0-only"), project.debugDescription)
         let library = app.buttons["license-liblzma"].firstMatch
         XCTAssertTrue(library.exists)
         capture("License Notices", in: app)
         project.tap()
-        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Permission is hereby granted"))
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "GNU GENERAL PUBLIC LICENSE"))
             .firstMatch.waitForExistence(timeout: 8), app.debugDescription)
         app.navigationBars["AetherUnzip"].buttons.firstMatch.tap()
         XCTAssertTrue(library.waitForExistence(timeout: 8), app.debugDescription)

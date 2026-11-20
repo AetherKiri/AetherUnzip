@@ -117,4 +117,8 @@ open apps/AetherUnzip/AetherUnzip.xcodeproj
 - [安全策略与文件提交](docs/security.md)
 - [依赖版本与许可证](third_party/README.md)
 
-项目代码采用 [MIT](LICENSE)，第三方组件保留各自的许可证。
+## 许可证
+
+Copyright © 2026 AetherUnzip contributors.
+
+项目主体采用 [GNU General Public License v3.0 only（GPL-3.0-only）](LICENSE)。第三方组件和已单独标注的 libarchive AES 辅助代码适用各自的许可。[依赖与许可声明](third_party/README.md)

@@ -140,11 +140,12 @@ private struct LicenseNotice: Identifiable, Sendable {
 
     var id: String { resource }
 
-    static let application = Self(title: "AetherUnzip", resource: "LICENSE", fileExtension: nil, license: "MIT")
+    static let application = Self(title: "AetherUnzip", resource: "LICENSE", fileExtension: nil, license: "GPL-3.0-only")
     static let dependencies: [Self] = [
         .init(title: "Brotli", resource: "brotli", fileExtension: "txt", license: "MIT"),
         .init(title: "libarchive", resource: "libarchive", fileExtension: "txt",
               license: String(localized: "BSD and bundled notices")),
+        .init(title: "libarchive AES Helpers", resource: "libarchive-aether-helpers", fileExtension: "txt", license: "MIT"),
         .init(title: "liblzma", resource: "liblzma", fileExtension: "txt", license: "0BSD"),
         .init(title: "LZ4", resource: "lz4", fileExtension: "txt", license: "BSD-2-Clause"),
         .init(title: "Zstandard", resource: "zstd", fileExtension: "txt", license: "BSD")
@@ -154,8 +155,15 @@ private struct LicenseNotice: Identifiable, Sendable {
 private struct LicenseNoticesView: View {
     var body: some View {
         List {
-            Section("Application") {
+            Section {
                 noticeRow(.application)
+            } header: {
+                Text("Application")
+            } footer: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verbatim: "Copyright © 2026 AetherUnzip contributors")
+                    Text("You may redistribute this software under GPL-3.0-only. It comes without warranty.")
+                }
             }
             Section("Third-party Libraries") {
                 ForEach(LicenseNotice.dependencies, content: noticeRow)

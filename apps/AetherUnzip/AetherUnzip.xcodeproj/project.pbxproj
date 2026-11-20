@@ -34,6 +34,7 @@
 		B32254CE04D363C40EDA78B6 /* format-profile.json in Resources */ = {isa = PBXBuildFile; fileRef = 2E0196CE7B038DF2391C2A45 /* format-profile.json */; };
 		C2331E1B2B4F2B5E41731515 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 978FB6A63BAB38D3A4EF7C60 /* SettingsView.swift */; };
 		C7CD595FCDC297D24EB69068 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F6274CE9E6D76C323D0FCADF /* Localizable.xcstrings */; };
+		C87F90729E11D0A790FEEA14 /* libarchive-aether-helpers.txt in Resources */ = {isa = PBXBuildFile; fileRef = FDC44CA17C2CEF5C0CCCCF7E /* libarchive-aether-helpers.txt */; };
 		CBDCCB30ED555C808E8D1FE0 /* profile-box.bin in Resources */ = {isa = PBXBuildFile; fileRef = CFA50D622AF4CD1F5E51BC0C /* profile-box.bin */; };
 		CBE777362F4881B627FA2E46 /* FilePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1961AB93B86415BB78EA77D /* FilePreview.swift */; };
 		CD07864FF17C1DF1A07FB4D3 /* lz4.txt in Resources */ = {isa = PBXBuildFile; fileRef = C9C73F90FB3F9D2B922FC920 /* lz4.txt */; };
@@ -97,6 +98,7 @@
 		EDDBA02285EDEF9F339F8C89 /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
 		F1961AB93B86415BB78EA77D /* FilePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePreview.swift; sourceTree = "<group>"; };
 		F6274CE9E6D76C323D0FCADF /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		FDC44CA17C2CEF5C0CCCCF7E /* libarchive-aether-helpers.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "libarchive-aether-helpers.txt"; sourceTree = "<group>"; };
 		FE240D387C1B5BEDDC316620 /* sample.xp3 */ = {isa = PBXFileReference; path = sample.xp3; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -203,6 +205,7 @@
 			isa = PBXGroup;
 			children = (
 				447FB49568A16F1153CB51ED /* brotli.txt */,
+				FDC44CA17C2CEF5C0CCCCF7E /* libarchive-aether-helpers.txt */,
 				47454222EDB218BD2E8C0262 /* libarchive.txt */,
 				2E6B0EC70586181B6F48865D /* liblzma.txt */,
 				C9C73F90FB3F9D2B922FC920 /* lz4.txt */,
@@ -349,6 +352,7 @@
 				7A90B46A26F598346632E780 /* LICENSE in Resources */,
 				C7CD595FCDC297D24EB69068 /* Localizable.xcstrings in Resources */,
 				749DC58A221FF1AC9C3C9289 /* brotli.txt in Resources */,
+				C87F90729E11D0A790FEEA14 /* libarchive-aether-helpers.txt in Resources */,
 				71153B5BF9DBB7E4BEEAA1AE /* libarchive.txt in Resources */,
 				34BC84B5049BE1318279B89B /* liblzma.txt in Resources */,
 				CD07864FF17C1DF1A07FB4D3 /* lz4.txt in Resources */,

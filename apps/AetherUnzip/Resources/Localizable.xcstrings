@@ -5335,6 +5335,22 @@
         }
       }
     },
+    "You may redistribute this software under GPL-3.0-only. It comes without warranty.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このソフトウェアは GPL-3.0-only の条件で再配布できます。保証はありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你可以按 GPL-3.0-only 的条款重新分发此软件。软件不附带任何担保。"
+          }
+        }
+      }
+    },
     "Z to A": {
       "localizations": {
         "ja": {
