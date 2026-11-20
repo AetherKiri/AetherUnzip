@@ -23,6 +23,7 @@
 		79649D7E5909493C38C3ED29 /* PasswordLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7742028812C78B20682663F /* PasswordLibrary.swift */; };
 		7A90B46A26F598346632E780 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = EDDBA02285EDEF9F339F8C89 /* LICENSE */; };
 		8D6C35CAAD9D7BE9E4643BD9 /* WorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A076A1D47D21FC2AA09A9842 /* WorkspaceView.swift */; };
+		8D7152F50A9E21298174F8C3 /* FormatSupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 836BEF06B5410252E433780E /* FormatSupportView.swift */; };
 		90FB80381CB3BD633833D846 /* xp3-wrapped.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4D8829ECC9D2611EA0A214F1 /* xp3-wrapped.bin */; };
 		9E7FD50F338F1A8910C37A4E /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74316D504A60E427C9D49F05 /* ActivityView.swift */; };
 		ACFE53EE15ED65451F6E62CB /* FileBrowserModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D85580DB03EEEB9705EB516 /* FileBrowserModel.swift */; };
@@ -67,6 +68,7 @@
 		5B7D36EA0EAD8B2254158352 /* AetherUnzipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AetherUnzipApp.swift; sourceTree = "<group>"; };
 		5E9F414290289FC5EB974155 /* AetherUnzip.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AetherUnzip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		74316D504A60E427C9D49F05 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		836BEF06B5410252E433780E /* FormatSupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormatSupportView.swift; sourceTree = "<group>"; };
 		8AA48FCB35FE73642A7341FB /* zstd.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = zstd.txt; sourceTree = "<group>"; };
 		8FB7949DE899C1B8BBC0FC69 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		91A79A67D2262FE1E8960939 /* FileBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileBrowserView.swift; sourceTree = "<group>"; };
@@ -200,6 +202,7 @@
 				94AA2548B9D3F8822210CC54 /* ArchivePreview.swift */,
 				91A79A67D2262FE1E8960939 /* FileBrowserView.swift */,
 				F1961AB93B86415BB78EA77D /* FilePreview.swift */,
+				836BEF06B5410252E433780E /* FormatSupportView.swift */,
 				21B1248155BC9337F0337AF4 /* PasswordLibraryView.swift */,
 				978FB6A63BAB38D3A4EF7C60 /* SettingsView.swift */,
 				4715C78D9BA108C26DE39E1A /* WorkspaceChrome.swift */,
@@ -346,6 +349,7 @@
 				ACFE53EE15ED65451F6E62CB /* FileBrowserModel.swift in Sources */,
 				17D2D1B5660AB53282E258C7 /* FileBrowserView.swift in Sources */,
 				CBE777362F4881B627FA2E46 /* FilePreview.swift in Sources */,
+				8D7152F50A9E21298174F8C3 /* FormatSupportView.swift in Sources */,
 				79649D7E5909493C38C3ED29 /* PasswordLibrary.swift in Sources */,
 				F3EE9C0BF966DBAD808D271C /* PasswordLibraryView.swift in Sources */,
 				C2331E1B2B4F2B5E41731515 /* SettingsView.swift in Sources */,

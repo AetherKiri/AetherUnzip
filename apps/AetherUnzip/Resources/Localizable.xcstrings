@@ -165,6 +165,22 @@
         }
       }
     },
+    "AES-256 for single volumes, including encrypted file names. Volume sets require unencrypted files.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単一ファイルはファイル名を含む AES-256 暗号化に対応。分割ファイルは暗号化されていないものに対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单卷支持 AES-256 和文件名加密。分卷支持未加密文件。"
+          }
+        }
+      }
+    },
     "About": {
       "localizations": {
         "ja": {
@@ -853,6 +869,22 @@
         }
       }
     },
+    "Compressed Streams": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圧縮ストリーム"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "独立压缩流"
+          }
+        }
+      }
+    },
     "Contains locked files": {
       "localizations": {
         "ja": {
@@ -1025,6 +1057,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "默认"
+          }
+        }
+      }
+    },
+    "Deflate, ZipCrypto, WinZip AES-256, and split ZIP volumes.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deflate、ZipCrypto、WinZip AES-256、分割 ZIP に対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持 Deflate、ZipCrypto、WinZip AES-256 和 ZIP 分卷。"
           }
         }
       }
@@ -1799,6 +1847,38 @@
         }
       }
     },
+    "Format Support Unavailable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応形式を取得できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取格式支持情况"
+          }
+        }
+      }
+    },
+    "Game Resources": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゲームリソース"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "游戏资源"
+          }
+        }
+      }
+    },
     "Hide Password": {
       "localizations": {
         "ja": {
@@ -1827,6 +1907,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "INI（.ini）"
+          }
+        }
+      }
+    },
+    "ISO 9660 disc images with Rock Ridge support.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ISO 9660 ディスクイメージと Rock Ridge 拡張に対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持 ISO 9660 磁盘映像和 Rock Ridge 扩展。"
           }
         }
       }
@@ -1939,6 +2035,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "类型"
+          }
+        }
+      }
+    },
+    "LH7 files (.lha, .lzh).": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LH7 方式のファイル（.lha、.lzh）に対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持采用 LH7 的 .lha 和 .lzh 文件。"
+          }
+        }
+      }
+    },
+    "LZMA2, AES-256, and numbered volumes. Encrypted BCJ2 is unsupported.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LZMA2、AES-256、連番の分割ファイルに対応。暗号化された BCJ2 には対応していません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持 LZMA2、AES-256 和编号分卷。加密的 BCJ2 暂不支持。"
           }
         }
       }
@@ -2275,6 +2403,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "暂无活动"
+          }
+        }
+      }
+    },
+    "No Extraction Formats Available": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開できる形式がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无可解压格式"
           }
         }
       }
@@ -3239,6 +3383,22 @@
         }
       }
     },
+    "Single-volume archives with MSZIP or LZX.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MSZIP または LZX の単一ファイルに対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持采用 MSZIP 或 LZX 的单卷归档。"
+          }
+        }
+      }
+    },
     "Size": {
       "localizations": {
         "ja": {
@@ -3287,6 +3447,22 @@
         }
       }
     },
+    "Some variants require specific compression methods or encryption support.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "形式の種類によって、対応する圧縮方式や暗号化方式が異なります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分变体需满足特定的压缩或加密条件。"
+          }
+        }
+      }
+    },
     "Sort By": {
       "localizations": {
         "ja": {
@@ -3319,6 +3495,118 @@
         }
       }
     },
+    "Standalone .br streams. Extracting .tar.br produces a TAR file.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単体の .br に対応。.tar.br を解凍すると TAR ファイルになります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持独立 .br 流。解压 .tar.br 会得到 TAR 文件。"
+          }
+        }
+      }
+    },
+    "Standalone .bz2 files and compressed TAR archives.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単体の .bz2 と .tar.bz2 アーカイブに対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持独立 .bz2 流和 .tar.bz2 归档。"
+          }
+        }
+      }
+    },
+    "Standalone .gz files and compressed TAR archives.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単体の .gz と .tar.gz アーカイブに対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持独立 .gz 流和 .tar.gz 归档。"
+          }
+        }
+      }
+    },
+    "Standalone .lz4 files and compressed TAR archives.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単体の .lz4 と .tar.lz4 アーカイブに対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持独立 .lz4 流和 .tar.lz4 归档。"
+          }
+        }
+      }
+    },
+    "Standalone .xz files and compressed TAR archives.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単体の .xz と .tar.xz アーカイブに対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持独立 .xz 流和 .tar.xz 归档。"
+          }
+        }
+      }
+    },
+    "Standalone .zst files and compressed TAR archives.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単体の .zst と .tar.zst アーカイブに対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持独立 .zst 流和 .tar.zst 归档。"
+          }
+        }
+      }
+    },
+    "Standard KiriKiri archives. Game-specific protected entries require dedicated support.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標準の吉里吉里アーカイブに対応。ゲーム固有の保護方式には個別対応が必要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持标准 KiriKiri 归档。受游戏专用方案保护的条目需要单独适配。"
+          }
+        }
+      }
+    },
     "Stop on conflict": {
       "localizations": {
         "ja": {
@@ -3347,6 +3635,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "遇到同名文件时停止。已解压的文件会保留。"
+          }
+        }
+      }
+    },
+    "Supported Formats": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応する圧縮形式"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持的压缩格式"
           }
         }
       }
@@ -3587,6 +3891,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "尝试所有已保存的密码"
+          }
+        }
+      }
+    },
+    "USTAR archives (.tar).": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "USTAR アーカイブ（.tar）に対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持 USTAR 归档（.tar）。"
+          }
+        }
+      }
+    },
+    "Unencrypted single archives and volume sets.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暗号化されていない単一ファイルと分割ファイルに対応。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持未加密的单卷和分卷归档。"
           }
         }
       }

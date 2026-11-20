@@ -23,6 +23,8 @@ AetherUnzip 是一个跨平台归档与资源处理框架。原生 SwiftUI App �
 
 格式范围以 [驱动文档](docs/drivers.md) 和实测样本为准。加密范围扩展、分卷、游戏容器和多层挂载见 [路线图](docs/roadmap.md)。
 
+在 App 的 **设置 → 支持的压缩格式** 可以查看当前构建支持的归档、压缩流和游戏资源格式，以及相关的加密和分卷限制。
+
 在 App 的文件选择器中一次选中同组的所有分卷。支持 `name.7z.001` 和 `name.zip.001` 编号字节分片、`name.z01` 加末卷 `name.zip` 的磁盘编号 ZIP，以及 `name.part1.rar` 或 `name.rar` 加 `name.r00` 的 RAR 分卷。
 
 在目录树中点按文件旁的眼睛按钮，即可用 Quick Look 预览常见文本、图片和 PDF。单个文件的预览上限为 32 MiB，同时遵循设置中的解压限制。

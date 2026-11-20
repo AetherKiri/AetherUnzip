@@ -289,6 +289,25 @@ final class ArchiveWorkflowTests: XCTestCase {
             .firstMatch.waitForExistence(timeout: 8), app.debugDescription)
     }
 
+    func testSettingsShowsSupportedExtractionFormats() {
+        let app = XCUIApplication()
+        app.launch()
+        openSettings(in: app, title: "Settings")
+        let formats = app.buttons["settings-formats"].firstMatch
+        XCTAssertTrue(formats.waitForExistence(timeout: 8), app.debugDescription)
+        formats.tap()
+
+        let zip = app.descendants(matching: .any)["supported-format-1"].firstMatch
+        XCTAssertTrue(zip.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(zip.label.contains("ZIP / ZIP64"))
+        XCTAssertTrue(zip.label.contains("WinZip AES-256"))
+        capture("Supported Archive Formats", in: app)
+        let xp3 = app.descendants(matching: .any)["supported-format-15"].firstMatch
+        for _ in 0..<4 where !xp3.isHittable { app.swipeUp() }
+        XCTAssertTrue(xp3.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(xp3.label.contains("KiriKiri"))
+    }
+
     func testSettingsAskDestinationUsesNativeFolderPicker() {
         let app = XCUIApplication()
         app.launchArguments = ["-conflictPolicy", "2"]

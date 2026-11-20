@@ -8,7 +8,7 @@ struct SettingsView: View {
     let saveSafetyLimits: (AppSafetyLimits) -> Void
 
     private enum Page: Hashable, Identifiable {
-        case conflict, destination, safety, about
+        case conflict, destination, formats, safety, about
         var id: Self { self }
     }
 
@@ -32,6 +32,8 @@ struct SettingsView: View {
             case .destination:
                 choicePage("Destination", options: DestinationPolicy.allCases,
                            selection: $destination, title: \.title, detail: \.settingsDetail)
+            case .formats:
+                FormatSupportView()
             case .safety:
                 SafetyLimitsEditor(limits: safetyLimits, save: saveSafetyLimits)
             case .about:
@@ -47,6 +49,8 @@ struct SettingsView: View {
                         route: .conflict, identifier: "settings-conflict")
                 setting("Destination", symbol: "folder", value: destination.title,
                         route: .destination, identifier: "settings-destination")
+                setting("Supported Formats", symbol: "doc.zipper",
+                        route: .formats, identifier: "settings-formats")
             }
             Section("Safety") {
                 setting("Safety Limits", symbol: "shield",
