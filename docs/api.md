@@ -59,11 +59,13 @@
 
 ## Swift 文件工作区
 
-`WorkspaceAccess` 持有系统选择器授予的目录访问权。使用 `bookmark()` 保存位置，使用 `restore(_:)` 恢复访问。`FileWorkspace` 在后台协调目录枚举、新建文件夹、重命名、复制、移动和删除。批量传输会先检查目标重名，传输途中发生 I/O 错误时，已经完成的项目保留。从授权目录访问归档时，调用方应在 `ArchiveService` 操作期间保留对应的 `WorkspaceAccess`。
+`WorkspaceAccess` 持有系统授予的文件或目录访问权。使用 `bookmark()` 保存位置，使用 `restore(_:)` 恢复访问。`FileWorkspace` 在后台协调目录枚举、新建文件夹、重命名、复制、移动和删除。批量传输会先检查目标重名，传输途中发生 I/O 错误时，已经完成的项目保留。从授权目录访问归档时，调用方应在 `ArchiveService` 操作期间保留对应的 `WorkspaceAccess`。
 
 `ArchiveService.extractionLayout(for:selecting:limits:)` 使用 Core 的路径规则分析选定条目的实际顶层结构。`ExtractionLayout.placement(for:)` 返回建议创建的新文件夹及传给 `ExtractionOptions.stripRoot` 的共同前缀。调用者可用 `FileWorkspace.makeUniqueFolder` 独占创建新文件夹。`archiveGroups(in:)` 归并同目录、同名的已选归档分卷，打开每组时验证卷号与内容。
 
 C 调用者可用 `aether_unzip_normalize_entry_path` 获取归档条目的安全路径字节范围。`aether_unzip_extract_stripping_root` 可在现有目标目录中移除一个匹配的共同顶层目录，先验证全部选定路径。传入 NULL 时与 `aether_unzip_extract` 行为一致。`AU_CONFLICT_KEEP_BOTH` 在现有文件同名时独占发布编号副本。直接替换时 Core 会保护当前文件、切片与拼接源的输入文件身份。
+
+目标文件系统空间用尽或达到配额时，Core 返回 `AU_NO_SPACE`，Swift SDK 映射为 `ArchiveError.insufficientSpace`。正常返回此错误前会清理正在写入的暂存文件，已提交的文件保留。
 
 `FileWorkspace.makeTextFile` 独占创建一个 UTF-8 文件。`readText` 返回文本和用于保存的 `WorkspaceTextFile` 快照，快照保留目录授权。`saveText` 在协调写入中核对文件版本和原始字节，匹配时原子替换，并返回可供下次编辑使用的新快照。读写上限为 1 MiB。编辑会保留已有的 UTF-8 BOM。二进制数据、符号链接和其他非普通文件无法作为文本打开。文件发生外部变更时，`WorkspaceTextError.changed` 保留磁盘上的内容。
 

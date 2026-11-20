@@ -53,5 +53,6 @@ au_status au_normalize_path(const char *path, uint32_t kind, uint32_t max_depth,
 au_status au_safe_parent(int root, const char *name, size_t length,
                          int *parent, char **leaf);
 au_status au_write_all(int fd, const void *data, size_t size);
+au_status au_output_error(int error);
 int au_open_temp(int parent, const char *reserved, char *name, size_t capacity, int access);
 #endif

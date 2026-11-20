@@ -36,6 +36,7 @@ const char *aether_unzip_error_message(au_status status) {
     case AU_BAD_PASSPHRASE: return "The password is incorrect or the encrypted data is damaged";
     case AU_UNSUPPORTED_ENCRYPTION: return "This archive uses an unsupported encryption method";
     case AU_PROFILE_MISMATCH: return "The file does not match the format profile";
+    case AU_NO_SPACE: return "Not enough storage space";
     default: return "Unknown archive error";
     }
 }

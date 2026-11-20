@@ -9,7 +9,7 @@
 
 static au_status make_directory(int parent, const char *name) {
     if (mkdirat(parent, name, 0700) == 0) return AU_OK;
-    if (errno != EEXIST) return AU_IO;
+    if (errno != EEXIST) return au_output_error(errno);
     struct stat info;
     if (fstatat(parent, name, &info, AT_SYMLINK_NOFOLLOW)) return AU_IO;
     return S_ISDIR(info.st_mode) ? AU_OK : AU_UNSAFE_PATH;
@@ -34,7 +34,7 @@ static au_status publish_exclusive(int parent, const char *temporary, const char
     {
         if (!linkat(parent, temporary, parent, name, 0)) return AU_OK;
     }
-    return errno == EEXIST ? AU_EXISTS : AU_IO;
+    return errno == EEXIST ? AU_EXISTS : au_output_error(errno);
 }
 
 static au_status publish_numbered(int parent, const char *temporary, const char *name) {
@@ -76,7 +76,7 @@ static au_status publish(int parent, const char *temporary, const char *name, ui
     if (policy == AU_CONFLICT_REPLACE) {
         au_status status = existing_file(parent, name, &exists, source);
         if (status != AU_OK) return status;
-        return renameat(parent, temporary, parent, name) ? AU_IO : AU_OK;
+        return renameat(parent, temporary, parent, name) ? au_output_error(errno) : AU_OK;
     }
     au_status status = publish_exclusive(parent, temporary, name);
     if (status != AU_EXISTS || policy == AU_CONFLICT_FAIL) return status;
@@ -101,7 +101,7 @@ static au_status write_file(au_archive *archive, const au_source *source, int pa
 
     char temporary[96];
     int fd = au_open_temp(parent, name, temporary, sizeof(temporary), O_WRONLY);
-    if (fd < 0) return AU_IO;
+    if (fd < 0) return au_output_error(errno);
     unsigned char buffer[65536];
     uint64_t staged = 0;
     size_t n;
@@ -112,7 +112,7 @@ static au_status write_file(au_archive *archive, const au_source *source, int pa
         if (options->progress)
             options->progress(options->user, &archive->entry, *written + staged, staged, done);
     }
-    if (close(fd) && status == AU_OK) status = AU_IO;
+    if (close(fd) && status == AU_OK) status = au_output_error(errno);
     if (status == AU_OK && au_cancelled(options)) status = AU_CANCELLED;
     if (status == AU_OK) status = publish(parent, temporary, name, policy, source);
     if (unlinkat(parent, temporary, 0) && errno != ENOENT && (status == AU_OK || status == AU_END)) status = AU_IO;

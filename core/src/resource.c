@@ -600,12 +600,13 @@ static au_status stage_nested(au_resource_file *file, const char *scratch_direct
     if (directory < 0) return errno == ELOOP || errno == ENOTDIR ? AU_UNSAFE_PATH : AU_IO;
     char name[96];
     int fd = au_open_temp(directory, NULL, name, sizeof(name), O_RDWR);
+    int open_error = errno;
     int unlink_result = -1;
     if (fd >= 0) {
         do { unlink_result = unlinkat(directory, name, 0); } while (unlink_result && errno == EINTR);
     }
     close(directory);
-    if (fd < 0) return AU_IO;
+    if (fd < 0) return au_output_error(open_error);
     if (unlink_result) {
         close(fd);
         return AU_IO;

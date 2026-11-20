@@ -193,6 +193,22 @@
         }
       }
     },
+    "Not enough storage space": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ストレージの空き容量が不足しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储空间不足"
+          }
+        }
+      }
+    },
     "Only UTF-8 text files can be edited.": {
       "localizations": {
         "ja": {

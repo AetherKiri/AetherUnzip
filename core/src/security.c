@@ -38,11 +38,15 @@ int au_open_temp(int parent, const char *reserved, char *name, size_t capacity, 
     for (int attempt = 0; attempt < 128; ++attempt) {
         uint_fast64_t id = atomic_fetch_add_explicit(&counter, 1, memory_order_relaxed);
         int length = snprintf(name, capacity, ".aetherunzip-%ld-%" PRIuFAST64, (long)getpid(), id);
-        if (length < 0 || (size_t)length >= capacity) return -1;
+        if (length < 0 || (size_t)length >= capacity) {
+            errno = ENAMETOOLONG;
+            return -1;
+        }
         if (reserved && !strcmp(name, reserved)) continue;
         int fd = openat(parent, name, access | O_CREAT | O_EXCL | O_CLOEXEC | O_NOFOLLOW, 0600);
         if (fd >= 0 || errno != EEXIST) return fd;
     }
+    errno = EEXIST;
     return -1;
 }
 
@@ -97,7 +101,7 @@ au_status au_safe_parent(int root, const char *name, size_t length, int *parent,
         close(current);
         if (child < 0) {
             free(path);
-            return error == ENOTDIR || error == ELOOP ? AU_UNSAFE_PATH : AU_IO;
+            return error == ENOTDIR || error == ELOOP ? AU_UNSAFE_PATH : au_output_error(error);
         }
         current = child;
         component = separator + 1;
@@ -108,12 +112,16 @@ au_status au_safe_parent(int root, const char *name, size_t length, int *parent,
     return AU_OK;
 }
 
+au_status au_output_error(int error) {
+    return error == ENOSPC || error == EDQUOT ? AU_NO_SPACE : AU_IO;
+}
+
 au_status au_write_all(int fd, const void *data, size_t size) {
     const unsigned char *bytes = data;
     while (size) {
         ssize_t n = write(fd, bytes, size);
         if (n < 0 && errno == EINTR) continue;
-        if (n <= 0) return AU_IO;
+        if (n <= 0) return n < 0 ? au_output_error(errno) : AU_IO;
         bytes += n;
         size -= (size_t)n;
     }

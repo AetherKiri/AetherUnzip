@@ -368,6 +368,7 @@ final class AppModel {
             }
             var completed = 0
             var cancelled = false
+            var outOfSpace = false
             var preparedBase = false
             for issue in run.issues {
                 var skipped = record(for: issue.name, at: run.destination)
@@ -436,6 +437,7 @@ final class AppModel {
                 } catch {
                     record.state = .failed
                     let failure = error as? ArchiveError
+                    outOfSpace = failure == .insufficientSpace
                     needsPassword = isPasswordFailure(error)
                     if failure?.needsArchivePassword == true, case .library = candidate {
                         record.details = String(localized: "None of the saved passwords could unlock this archive.")
@@ -443,7 +445,7 @@ final class AppModel {
                         record.details = error.localizedDescription
                     }
                     if !run.isBatch {
-                        self.error = record.details
+                        if !outOfSpace { self.error = record.details }
                         finished(error is PasswordLibrary.Failure ? .encrypted : failure, output)
                     }
                 }
@@ -463,11 +465,14 @@ final class AppModel {
                 } else {
                     recordResult(record)
                 }
-                if cancelled {
+                if cancelled || outOfSpace {
                     if run.isBatch {
                         for pending in items.dropFirst(index + 1) {
                             var skipped = self.record(for: pending.archive.displayName, at: run.destination)
-                            skipped.state = .cancelled
+                            skipped.state = outOfSpace ? .skipped : .cancelled
+                            if outOfSpace {
+                                skipped.details = String(localized: "Skipped because the destination ran out of space.")
+                            }
                             saveBatchEntry(.init(record: skipped, urls: pending.archive.sourceURLs,
                                                  access: pending.access, output: nil, needsPassword: false))
                         }
@@ -476,8 +481,12 @@ final class AppModel {
                 }
             }
             if run.isBatch {
-                showBatchOutcome(cancelled: cancelled)
+                showBatchOutcome(cancelled: cancelled, outOfSpace: outOfSpace)
                 finished(nil, nil)
+            } else if outOfSpace {
+                notice = lastOutput != nil
+                    ? String(localized: "Not enough space. Completed output is kept.")
+                    : String(localized: "Not enough space. Free up space or choose another destination.")
             } else if cancelled {
                 notice = String(localized: "Extraction cancelled. Files already extracted are kept.")
                 finished(nil, nil)
@@ -512,13 +521,15 @@ final class AppModel {
         recordResult(entry.record)
     }
 
-    private func showBatchOutcome(cancelled: Bool) {
+    private func showBatchOutcome(cancelled: Bool, outOfSpace: Bool = false) {
         guard let batchResult else { return }
         let completed = batchResult.entries.filter { $0.record.state == .success }.count
         let total = batchResult.entries.count
         if batchResult.entries.contains(where: { $0.output != nil }) { lastOutput = batchResult.destination }
         noticeIsPartial = completed != total
-        if cancelled {
+        if outOfSpace {
+            notice = String(localized: "Not enough space. \(completed) of \(total) archives extracted.")
+        } else if cancelled {
             notice = String(localized: "Batch cancelled. \(completed) of \(total) archives extracted.")
         } else {
             notice = String(localized: "\(completed) of \(total) archives extracted.")

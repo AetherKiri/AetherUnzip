@@ -215,7 +215,7 @@ public struct ExtractionProgress: Sendable {
 }
 
 public enum ArchiveError: LocalizedError, Equatable, Sendable {
-    case invalidInput, inputOutput, outOfMemory, unknownFormat, corrupt
+    case invalidInput, inputOutput, outOfMemory, insufficientSpace, unknownFormat, corrupt
     case unsupported, unsafePath, limitExceeded, cancelled, conflict, missingEntry, encrypted
     case incorrectPassphrase, unsupportedEncryption, ambiguousResource, invalidProfile, profileMismatch
     case changed, invalidVolumeSet, missingVolume(Int), missingVolumeFile(String), fileAccess(String), core(Int32)
@@ -225,6 +225,7 @@ public enum ArchiveError: LocalizedError, Equatable, Sendable {
         case AU_INVALID: self = .invalidInput
         case AU_IO: self = .inputOutput
         case AU_NOMEM: self = .outOfMemory
+        case AU_NO_SPACE: self = .insufficientSpace
         case AU_UNKNOWN_FORMAT: self = .unknownFormat
         case AU_CORRUPT: self = .corrupt
         case AU_UNSUPPORTED: self = .unsupported
@@ -246,6 +247,7 @@ public enum ArchiveError: LocalizedError, Equatable, Sendable {
         case .invalidInput: String(localized: "Invalid argument", bundle: .module)
         case .inputOutput: String(localized: "File or storage I/O failed", bundle: .module)
         case .outOfMemory: String(localized: "Out of memory", bundle: .module)
+        case .insufficientSpace: String(localized: "Not enough storage space", bundle: .module)
         case .unknownFormat: String(localized: "Archive format could not be identified", bundle: .module)
         case .corrupt: String(localized: "Archive is incomplete, corrupt, or uses an unreadable encoding", bundle: .module)
         case .unsupported: String(localized: "Archive feature or entry type is unsupported", bundle: .module)
@@ -278,5 +280,22 @@ public enum ArchiveError: LocalizedError, Equatable, Sendable {
                 }
             }
         }
+    }
+
+    static func isOutOfSpace(_ error: any Error) -> Bool {
+        if (error as? ArchiveError) == .insufficientSpace { return true }
+        var cause: NSError? = error as NSError
+        for _ in 0..<4 {
+            guard let current = cause else { break }
+            if current.domain == NSCocoaErrorDomain && current.code == CocoaError.Code.fileWriteOutOfSpace.rawValue {
+                return true
+            }
+            if current.domain == NSPOSIXErrorDomain,
+               [POSIXErrorCode.ENOSPC, .EDQUOT].contains(where: { Int($0.rawValue) == current.code }) {
+                return true
+            }
+            cause = current.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        return false
     }
 }

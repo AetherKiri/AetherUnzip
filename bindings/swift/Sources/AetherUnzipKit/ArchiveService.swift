@@ -936,7 +936,10 @@ private func coordinated<T: Sendable>(reading inputs: [URL], writing output: URL
         let accessor: @Sendable (Error?) -> Void = { error in
             do {
                 if control.isCancelled { throw ArchiveError.cancelled }
-                if let error { throw ArchiveError.fileAccess(error.localizedDescription) }
+                if let error {
+                    if ArchiveError.isOutOfSpace(error) { throw ArchiveError.insufficientSpace }
+                    throw ArchiveError.fileAccess(error.localizedDescription)
+                }
                 continuation.resume(returning: try body(reads.map(\.url), write?.url))
             } catch {
                 continuation.resume(throwing: error)

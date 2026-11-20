@@ -12,7 +12,7 @@ enum {
     AU_CORRUPT = -5, AU_UNSUPPORTED = -6, AU_UNSAFE_PATH = -7,
     AU_LIMIT = -8, AU_CANCELLED = -9, AU_EXISTS = -10, AU_NOT_FOUND = -11,
     AU_ENCRYPTED = -12, AU_BAD_PASSPHRASE = -13, AU_UNSUPPORTED_ENCRYPTION = -14,
-    AU_PROFILE_MISMATCH = -15
+    AU_PROFILE_MISMATCH = -15, AU_NO_SPACE = -16
 };
 /* Static, NUL-terminated UTF-8 message. */
 const char *aether_unzip_error_message(au_status status);

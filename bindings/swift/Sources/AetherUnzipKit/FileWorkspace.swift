@@ -316,8 +316,12 @@ public struct FileWorkspace: Sendable {
         let result: T = try await withCheckedThrowingContinuation { continuation in
             coordinator.coordinate(with: intents, queue: queue) { error in
                 continuation.resume(with: Result {
-                    if let error { throw error }
-                    return try work(intents.map(\.url), coordinator)
+                    do {
+                        if let error { throw error }
+                        return try work(intents.map(\.url), coordinator)
+                    } catch where ArchiveError.isOutOfSpace(error) {
+                        throw ArchiveError.insufficientSpace
+                    }
                 })
             }
         }
