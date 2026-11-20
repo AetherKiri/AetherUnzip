@@ -3,6 +3,12 @@ import Testing
 import AetherUnzipKit
 
 struct ArchiveServiceTests {
+    @Test func reportsExtractionFormatsFromTheLinkedCore() throws {
+        let formats = try ArchiveService.supportedExtractionFormats()
+        #expect(formats == [.zip, .sevenZip, .rar, .rar5, .tar, .cab, .iso9660, .lha,
+                            .gzip, .lz4, .zstandard, .xz, .bzip2, .brotli, .xp3])
+    }
+
     @Test func createsAndEditsTextFilesWithoutOverwritingChanges() async throws {
         try await temporaryDirectory { folder in
             let workspace = FileWorkspace()

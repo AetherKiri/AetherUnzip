@@ -31,6 +31,25 @@ public struct ArchiveService: Sendable {
 
     public static var coreVersion: String { String(cString: aether_unzip_version()) }
 
+    /// Formats registered by extraction drivers in the linked Core.
+    /// Individual files can still require unsupported codecs or encryption methods.
+    public static func supportedExtractionFormats() throws -> Set<ArchiveFormat> {
+        try withContext { context in
+            var formats: Set<ArchiveFormat> = []
+            for index in 0..<aether_unzip_driver_count(context) {
+                guard let driver = aether_unzip_driver_at(context, index)?.pointee,
+                      ArchiveCapabilities(rawValue: driver.capabilities).contains(.extract),
+                      let registered = driver.formats else { continue }
+                for rawFormat in UnsafeBufferPointer(start: registered, count: Int(driver.format_count)) {
+                    if let format = ArchiveFormat(rawValue: rawFormat), format != .unknown {
+                        formats.insert(format)
+                    }
+                }
+            }
+            return formats
+        }
+    }
+
     /// Fingerprints the bytes of one archive or an ordered volume set for local password associations.
     public func archiveFingerprint(for urls: [URL], profile: FormatProfile? = nil) async throws -> String {
         let input: ArchiveInput
