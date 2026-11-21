@@ -97,15 +97,21 @@ struct AboutView: View {
     }
 
     private var identity: some View {
-        HStack(spacing: 14) {
-            WorkspaceGlyph(symbol: "archivebox", tint: .accentColor, size: 52)
-            VStack(alignment: .leading, spacing: 3) {
+        VStack(spacing: 10) {
+            Image(.aboutAppIcon)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 72, height: 72)
+                .clipShape(.rect(cornerRadius: 16))
+                .accessibilityHidden(true)
+            VStack(spacing: 3) {
                 Text("AetherUnzip").font(.title2.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
                 Text("Archive and File Manager").font(.subheadline).foregroundStyle(.secondary)
             }
-            Spacer(minLength: 0)
+            .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("about-app-identity")
     }
