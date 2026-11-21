@@ -1,0 +1,114 @@
+:root {
+  color-scheme: light dark;
+  --background: #f6f8fb;
+  --surface: #fff;
+  --ink: #182131;
+  --muted: #495970;
+  --line: #dbe2ec;
+  --link: #1e59aa;
+  --selection: #e7eef8;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #111620;
+    --surface: #191f2b;
+    --ink: #ebeff7;
+    --muted: #b3c0d4;
+    --line: #344157;
+    --link: #a3c8fc;
+    --selection: #273951;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--background);
+  line-height: 1.65;
+}
+
+.container {
+  width: min(100% - 2rem, 50rem);
+  margin-inline: auto;
+}
+
+.page-bar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.bar-content, .brand, .languages {
+  display: flex;
+  align-items: center;
+}
+
+.bar-content {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .25rem 1rem;
+  min-height: 4rem;
+  padding-block: .5rem;
+}
+
+.brand {
+  gap: .5rem;
+  min-height: 2.75rem;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 650;
+}
+
+.languages { flex-wrap: wrap; gap: .15rem; }
+
+.languages a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding-inline: .65rem;
+  border-radius: .45rem;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .9375rem;
+  white-space: nowrap;
+}
+
+.languages a[aria-current="page"], .languages a:hover {
+  background: var(--selection);
+  color: var(--ink);
+}
+
+article {
+  margin-block: clamp(1.75rem, 6vw, 4rem);
+  padding: clamp(1.25rem, 5vw, 3.25rem);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  margin: 0 0 .45rem;
+  font-size: clamp(2rem, 5.5vw, 3.25rem);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.policy > p:first-child { margin-top: 0; color: var(--muted); }
+.policy p, .policy ul { margin-block: 1rem; }
+.policy ul { padding-inline-start: 1.2rem; }
+.policy li + li { margin-top: .85rem; }
+.policy > :last-child { margin-bottom: 0; }
+.policy a { color: var(--link); text-underline-offset: .15em; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
+
+@media (max-width: 30rem) {
+  article {
+    margin-block: 1.5rem 2rem;
+    padding: 1.05rem;
+    border-radius: .75rem;
+  }
+}
