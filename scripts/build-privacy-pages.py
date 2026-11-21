@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render the repository privacy policy to a standalone GitHub Pages site."""
+"""Build the AetherUnzip landing page and privacy policy for GitHub Pages."""
 
 import argparse
 import re
@@ -56,17 +56,13 @@ def main():
     shutil.copyfile(template_dir / "style.css", privacy / "style.css")
     shutil.copyfile(ROOT / "apps/AetherUnzip/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon-Mac-128.png",
                     privacy / "icon.png")
+    landing = output / "landing"
+    landing.mkdir(exist_ok=True)
+    landing_source = ROOT / "docs/landing-site"
+    shutil.copyfile(landing_source / "index.html", output / "index.html")
+    shutil.copyfile(landing_source / "style.css", landing / "style.css")
+    shutil.copyfile(ROOT / "docs/images/smart-extraction.png", landing / "smart-extraction.png")
     (output / ".nojekyll").touch()
-    (output / "index.html").write_text(
-        '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">\n'
-        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        '<title>AetherUnzip Privacy Policy</title>\n'
-        f'<link rel="canonical" href="{SITE_URL}">\n'
-        '<link rel="icon" href="privacy/icon.png">\n'
-        '<meta http-equiv="refresh" content="0; url=privacy/">\n'
-        '</head><body><a href="privacy/">AetherUnzip Privacy Policy</a></body></html>\n',
-        encoding="utf-8",
-    )
 
 
 if __name__ == "__main__":
