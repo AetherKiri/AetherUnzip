@@ -2,6 +2,8 @@ import AetherUnzipKit
 import SwiftUI
 
 struct SettingsView: View {
+    private static let feedbackAddress = "unzip@colorcard.cc"
+
     @Binding var conflict: ExtractionOptions.ConflictPolicy
     @Binding var destination: DestinationPolicy
     let safetyLimits: AppSafetyLimits
@@ -69,6 +71,14 @@ struct SettingsView: View {
             Section {
                 setting("About AetherUnzip", symbol: "info.circle", tint: .indigo, value: AboutView.versionSummary,
                         route: .about, identifier: "settings-about")
+                Link(destination: URL(string: "mailto:\(Self.feedbackAddress)")!) {
+                    settingsLabel("Email Feedback", symbol: "envelope", tint: .accentColor,
+                                  value: Self.feedbackAddress, trailingSymbol: "arrow.up.right")
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Email Feedback"))
+                .accessibilityValue(Text(verbatim: Self.feedbackAddress))
+                .accessibilityIdentifier("settings-email-feedback")
             }
         }
         .modifier(WorkspaceListSurface())
@@ -77,26 +87,31 @@ struct SettingsView: View {
     private func setting(_ title: LocalizedStringKey, symbol: String, tint: Color = .accentColor, value: String? = nil,
                          route: Page, identifier: String) -> some View {
         Button { page = route } label: {
-            HStack(spacing: 10) {
-                WorkspaceGlyph(symbol: symbol, tint: tint)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.body.weight(.medium))
-                    if let value { Text(value).font(.subheadline).foregroundStyle(.secondary) }
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.forward")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-            }
-            .frame(minHeight: 44)
-            .padding(.vertical, 3)
-            .contentShape(Rectangle())
+            settingsLabel(title, symbol: symbol, tint: tint, value: value)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(title))
         .accessibilityValue(Text(value ?? ""))
         .accessibilityIdentifier(identifier)
+    }
+
+    private func settingsLabel(_ title: LocalizedStringKey, symbol: String, tint: Color,
+                               value: String?, trailingSymbol: String = "chevron.forward") -> some View {
+        HStack(spacing: 10) {
+            WorkspaceGlyph(symbol: symbol, tint: tint)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.body.weight(.medium))
+                if let value { Text(verbatim: value).font(.subheadline).foregroundStyle(.secondary) }
+            }
+            Spacer(minLength: 8)
+            Image(systemName: trailingSymbol)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+        }
+        .frame(minHeight: 44)
+        .padding(.vertical, 3)
+        .contentShape(Rectangle())
     }
 
     private func choicePage<Option: Hashable>(

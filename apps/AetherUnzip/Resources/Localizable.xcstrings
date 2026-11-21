@@ -1735,6 +1735,22 @@
         }
       }
     },
+    "Email Feedback": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メールでフィードバック"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "邮件反馈"
+          }
+        }
+      }
+    },
     "Empty Archive": {
       "localizations": {
         "ja": {

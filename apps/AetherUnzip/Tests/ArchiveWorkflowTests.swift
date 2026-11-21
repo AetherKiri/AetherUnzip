@@ -486,21 +486,27 @@ final class ArchiveWorkflowTests: XCTestCase {
 
     func testSimplifiedChineseSettings() {
         checkSettings(language: "zh-Hans", locale: "zh_CN", settings: "设置", safety: "安全限制", file: "单个文件",
+                      feedback: "邮件反馈",
                       about: "关于以太解压", appName: "以太解压", build: "构建编号", licenses: "开源许可证")
     }
 
     func testJapaneseSettings() {
         checkSettings(language: "ja", locale: "ja_JP", settings: "設定", safety: "安全上限", file: "ファイル単位",
+                      feedback: "メールでフィードバック",
                       about: "AetherUnzip について", appName: "AetherUnzip",
                       build: "ビルド番号", licenses: "オープンソースライセンス")
     }
 
     private func checkSettings(language: String, locale: String, settings: String, safety: String, file: String,
-                               about: String, appName: String, build: String, licenses: String) {
+                               feedback: String, about: String, appName: String, build: String, licenses: String) {
         let app = XCUIApplication()
         app.launchArguments = ["-AppleLanguages", "(\(language))", "-AppleLocale", locale]
         app.launch()
         openSettings(in: app, title: settings)
+        let feedbackLink = app.descendants(matching: .any)["settings-email-feedback"].firstMatch
+        XCTAssertTrue(feedbackLink.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertEqual(feedbackLink.label, feedback)
+        XCTAssertEqual(feedbackLink.value as? String, "unzip@colorcard.cc")
         let row = app.buttons["settings-safety"].firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 8), app.debugDescription)
         XCTAssertEqual(row.label, safety)
