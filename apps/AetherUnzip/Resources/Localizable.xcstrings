@@ -2567,6 +2567,22 @@
         }
       }
     },
+    "Hide Sidebar": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サイドバーを隠す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏边栏"
+          }
+        }
+      }
+    },
     "Identify Again": {
       "localizations": {
         "ja": {
@@ -4611,6 +4627,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "显示密码"
+          }
+        }
+      }
+    },
+    "Show Sidebar": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サイドバーを表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示边栏"
           }
         }
       }

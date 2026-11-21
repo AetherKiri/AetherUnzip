@@ -75,6 +75,9 @@ struct WorkspaceView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var sidebarVisibility: NavigationSplitViewVisibility = .all
+    #else
+    @State private var sidebarVisibility: NavigationSplitViewVisibility = .automatic
     #endif
     @State private var page: Page? = .archives
     @State private var showPicker = false
@@ -308,7 +311,7 @@ struct WorkspaceView: View {
     }
 
     private var splitWorkspace: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $sidebarVisibility) {
             List(selection: $page) {
                 Section {
                     ForEach(Page.allCases) { item in
@@ -348,47 +351,77 @@ struct WorkspaceView: View {
                 }
             }
             .navigationTitle("AetherUnzip")
-            #if os(macOS)
+            #if os(iOS)
+            .toolbar(removing: .sidebarToggle)
+            #else
             .navigationSplitViewColumnWidth(min: 175, ideal: 200)
             #endif
         } detail: {
-            Group {
-                switch page ?? .archives {
-                #if os(iOS)
-                case .archives: mobileArchiveWorkspace
-                case .passwords: workspaceNavigation { passwordPage }
-                case .activity: workspaceNavigation(showTaskBanner: false) { activityPage }
-                case .settings: workspaceNavigation { settingsPage }
-                #else
-                case .archives: archivePage
-                case .passwords: passwordPage
-                case .activity: activityPage
-                case .settings: settingsPage
-                #endif
-                }
+            #if os(iOS)
+            // Detail pages manage their own navigation bars. Keep the sidebar control outside them.
+            VStack(spacing: 0) {
+                sidebarToggle
+                splitPage
             }
-            #if os(macOS)
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: openPicker) {
-                        Label("Open Archive", systemImage: "folder.badge.plus")
+            .modifier(WorkspaceCanvas())
+            .toolbar(removing: .sidebarToggle)
+            #else
+            splitPage
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button(action: openPicker) {
+                            Label("Open Archive", systemImage: "folder.badge.plus")
+                        }
+                        .keyboardShortcut("o", modifiers: .command)
+                        .disabled(model.loading || loadingProfile)
+                        .accessibilityIdentifier("open-archive")
                     }
-                    .keyboardShortcut("o", modifiers: .command)
-                    .disabled(model.loading || loadingProfile)
-                    .accessibilityIdentifier("open-archive")
-                }
-                ToolbarItem(placement: .secondaryAction) {
-                    Button(action: openProfilePicker) {
-                        Label("Open with Format Profile…", systemImage: "doc.badge.gearshape")
+                    ToolbarItem(placement: .secondaryAction) {
+                        Button(action: openProfilePicker) {
+                            Label("Open with Format Profile…", systemImage: "doc.badge.gearshape")
+                        }
+                        .keyboardShortcut("o", modifiers: [.command, .shift])
+                        .disabled(model.loading || loadingProfile)
+                        .accessibilityIdentifier("open-format-profile")
                     }
-                    .keyboardShortcut("o", modifiers: [.command, .shift])
-                    .disabled(model.loading || loadingProfile)
-                    .accessibilityIdentifier("open-format-profile")
                 }
-            }
             #endif
         }
     }
+
+    @ViewBuilder private var splitPage: some View {
+        switch page ?? .archives {
+        #if os(iOS)
+        case .archives: mobileArchiveWorkspace
+        case .passwords: workspaceNavigation { passwordPage }
+        case .activity: workspaceNavigation(showTaskBanner: false) { activityPage }
+        case .settings: workspaceNavigation { settingsPage }
+        #else
+        case .archives: archivePage
+        case .passwords: passwordPage
+        case .activity: activityPage
+        case .settings: settingsPage
+        #endif
+        }
+    }
+
+    #if os(iOS)
+    private var sidebarToggle: some View {
+        let hidden = sidebarVisibility == .detailOnly
+        return Button {
+            withAnimation(reduceMotion ? nil : WorkspaceMotion.layout) {
+                sidebarVisibility = hidden ? .all : .detailOnly
+            }
+        } label: {
+            Label(hidden ? "Show Sidebar" : "Hide Sidebar", systemImage: "sidebar.leading")
+                .labelStyle(.iconOnly)
+        }
+        .modifier(WorkspaceButton())
+        .accessibilityIdentifier("workspace-sidebar-toggle")
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+    }
+    #endif
 
     private var settingsPage: some View {
         SettingsView(conflict: $conflict, destination: $destination,

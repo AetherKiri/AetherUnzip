@@ -185,9 +185,50 @@ final class ArchiveWorkflowTests: XCTestCase {
     }
 }
 #else
+import UIKit
 
 @MainActor
 final class ArchiveWorkflowTests: XCTestCase {
+    func testIPadSidebarCanBeRestoredFromEveryWorkspacePage() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad)
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let toggle = app.buttons["workspace-sidebar-toggle"]
+        let sidebar = app.descendants(matching: .any)["sidebar-add-folder-location"].firstMatch
+
+        func checkToggle() {
+            XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(toggle.waitForExistence(timeout: 5), app.debugDescription)
+            XCTAssertEqual(toggle.label, "Hide Sidebar")
+            toggle.tap()
+            XCTAssertTrue(sidebar.waitForNonExistence(timeout: 5), app.debugDescription)
+            XCTAssertTrue(toggle.isHittable, app.debugDescription)
+            XCTAssertEqual(toggle.label, "Show Sidebar")
+            toggle.tap()
+            XCTAssertTrue(sidebar.waitForExistence(timeout: 5), app.debugDescription)
+        }
+
+        checkToggle()
+        for page in ["passwords", "activity", "settings", "archives"] {
+            let entry = app.descendants(matching: .any)["workspace-sidebar-\(page)"].firstMatch
+            XCTAssertTrue(entry.waitForExistence(timeout: 5), app.debugDescription)
+            entry.tap()
+            checkToggle()
+        }
+        openWorkspaceArchive("MobileSample.zip", in: app)
+        XCTAssertTrue(app.buttons["extract-all"].firstMatch.waitForExistence(timeout: 8), app.debugDescription)
+        checkToggle()
+        XCTAssertTrue(app.buttons["extract-all"].firstMatch.isHittable)
+
+        XCUIDevice.shared.orientation = .portrait
+        checkToggle()
+        XCTAssertTrue(app.buttons["extract-all"].firstMatch.isHittable)
+    }
+
     func testSettingsEditsAndRestoresSafetyLimits() {
         let app = XCUIApplication()
         app.launch()
@@ -471,7 +512,7 @@ final class ArchiveWorkflowTests: XCTestCase {
             tabs.buttons[title].tap()
         } else {
             let page = app.descendants(matching: .any)["workspace-sidebar-\(sidebarID)"].firstMatch
-            let sidebar = app.buttons["Show Sidebar"].firstMatch
+            let sidebar = app.buttons["workspace-sidebar-toggle"].firstMatch
             if !page.exists && sidebar.waitForExistence(timeout: 5) { sidebar.tap() }
             XCTAssertTrue(page.waitForExistence(timeout: 8), app.debugDescription)
             page.tap()
