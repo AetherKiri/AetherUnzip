@@ -29,8 +29,11 @@ int au_valid_utf8(const char *text) {
 }
 
 static int open_directory(int parent, const char *name) {
+    const int flags = O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC;
+    int child = openat(parent, name, flags);
+    if (child >= 0 || errno != ENOENT) return child;
     if (mkdirat(parent, name, 0700) && errno != EEXIST) return -1;
-    return openat(parent, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+    return openat(parent, name, flags);
 }
 
 int au_open_temp(int parent, const char *reserved, char *name, size_t capacity, int access) {
@@ -87,18 +90,14 @@ au_status aether_unzip_normalize_entry_path(const char *name, uint32_t kind, uin
 au_status au_safe_parent(int root, const char *name, size_t length, int *parent, char **leaf) {
     char *path = strndup(name, length);
     if (!path) return AU_NOMEM;
-    int current = fcntl(root, F_DUPFD_CLOEXEC, 0);
-    if (current < 0) {
-        free(path);
-        return AU_IO;
-    }
+    int current = root;
     char *component = path;
     char *separator;
     while ((separator = strchr(component, '/'))) {
         *separator = '\0';
         int child = open_directory(current, component);
         int error = errno;
-        close(current);
+        if (current != root) close(current);
         if (child < 0) {
             free(path);
             return error == ENOTDIR || error == ELOOP ? AU_UNSAFE_PATH : au_output_error(error);

@@ -50,6 +50,7 @@ au_status au_archive_entry_access(const au_archive *archive);
 int au_valid_utf8(const char *text);
 au_status au_normalize_path(const char *path, uint32_t kind, uint32_t max_depth,
                             const char **name, size_t *length);
+/* The returned parent is owned by the caller unless it is the borrowed root. */
 au_status au_safe_parent(int root, const char *name, size_t length,
                          int *parent, char **leaf);
 au_status au_write_all(int fd, const void *data, size_t size);

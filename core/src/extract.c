@@ -26,9 +26,13 @@ static au_status existing_file(int parent, const char *name, int *exists, const 
     return protected_source && au_source_uses_file(protected_source, &info) ? AU_EXISTS : AU_OK;
 }
 
-static au_status publish_exclusive(int parent, const char *temporary, const char *name) {
+/* A successful exclusive rename consumes the staging name; a hard link leaves it in place. */
+static au_status publish_exclusive(int parent, char *temporary, const char *name) {
 #ifdef __APPLE__
-    if (!renameatx_np(parent, temporary, parent, name, RENAME_EXCL)) return AU_OK;
+    if (!renameatx_np(parent, temporary, parent, name, RENAME_EXCL)) {
+        temporary[0] = '\0';
+        return AU_OK;
+    }
     if (errno == ENOTSUP || errno == EINVAL)
 #endif
     {
@@ -37,7 +41,7 @@ static au_status publish_exclusive(int parent, const char *temporary, const char
     return errno == EEXIST ? AU_EXISTS : au_output_error(errno);
 }
 
-static au_status publish_numbered(int parent, const char *temporary, const char *name) {
+static au_status publish_numbered(int parent, char *temporary, const char *name) {
     size_t length = strlen(name);
     long limit = fpathconf(parent, _PC_NAME_MAX);
     size_t capacity = limit > 0 && (size_t)limit < length + 16 ? (size_t)limit : length + 16;
@@ -70,7 +74,7 @@ static au_status publish_numbered(int parent, const char *temporary, const char 
     return status;
 }
 
-static au_status publish(int parent, const char *temporary, const char *name, uint32_t policy,
+static au_status publish(int parent, char *temporary, const char *name, uint32_t policy,
                          const au_source *source) {
     int exists;
     if (policy == AU_CONFLICT_REPLACE) {
@@ -115,7 +119,8 @@ static au_status write_file(au_archive *archive, const au_source *source, int pa
     if (close(fd) && status == AU_OK) status = au_output_error(errno);
     if (status == AU_OK && au_cancelled(options)) status = AU_CANCELLED;
     if (status == AU_OK) status = publish(parent, temporary, name, policy, source);
-    if (unlinkat(parent, temporary, 0) && errno != ENOENT && (status == AU_OK || status == AU_END)) status = AU_IO;
+    if (temporary[0] && unlinkat(parent, temporary, 0) && errno != ENOENT &&
+        (status == AU_OK || status == AU_END)) status = AU_IO;
     if (status == AU_OK) *written += staged;
     return status == AU_END ? AU_OK : status;
 }
@@ -208,7 +213,7 @@ au_status aether_unzip_extract_stripping_root(const au_context *context, au_sour
                 status = entry->kind == AU_ENTRY_DIRECTORY ? make_directory(parent, leaf) :
                     write_file(archive, source, parent, leaf, &written, done);
                 free(leaf);
-                close(parent);
+                if (parent != root) close(parent);
             }
         }
         if (status != AU_OK && status != AU_END) break;
