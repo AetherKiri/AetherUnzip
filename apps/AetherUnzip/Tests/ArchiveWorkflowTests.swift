@@ -4,6 +4,20 @@ import AppKit
 
 @MainActor
 final class ArchiveWorkflowTests: XCTestCase {
+    func testPasswordLibraryAddButtonOpensForm() {
+        let app = XCUIApplication()
+        app.launch()
+
+        let passwords = app.descendants(matching: .any)["workspace-sidebar-passwords"].firstMatch
+        XCTAssertTrue(passwords.waitForExistence(timeout: 8), app.debugDescription)
+        passwords.click()
+        let add = app.buttons["password-library-add"].firstMatch
+        XCTAssertTrue(add.waitForExistence(timeout: 8), app.debugDescription)
+        add.click()
+        XCTAssertTrue(app.textFields["password-library-name"].firstMatch.waitForExistence(timeout: 8),
+                      app.debugDescription)
+    }
+
     func testOpenAndExtractWithFormatProfile() throws {
         let bundle = Bundle(for: Self.self)
         let profile = try XCTUnwrap(bundle.url(forResource: "format-profile", withExtension: "json"))
@@ -195,7 +209,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         defer { XCUIDevice.shared.orientation = .portrait }
 
         let app = XCUIApplication()
-        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"] + passwordLibraryArguments
         app.launch()
         let toggle = app.buttons["workspace-sidebar-toggle"]
         let sidebar = app.descendants(matching: .any)["sidebar-add-folder-location"].firstMatch
@@ -217,9 +231,12 @@ final class ArchiveWorkflowTests: XCTestCase {
             let entry = app.descendants(matching: .any)["workspace-sidebar-\(page)"].firstMatch
             XCTAssertTrue(entry.waitForExistence(timeout: 5), app.debugDescription)
             entry.tap()
+            if page == "passwords" {
+                addLibraryPassword("fixture-pass", named: "Sidebar test password", in: app)
+            }
             checkToggle()
         }
-        openWorkspaceArchive("MobileSample.zip", in: app)
+        openFromFiles("MobileSample.zip", in: app)
         XCTAssertTrue(app.buttons["extract-all"].firstMatch.waitForExistence(timeout: 8), app.debugDescription)
         checkToggle()
         XCTAssertTrue(app.buttons["extract-all"].firstMatch.isHittable)

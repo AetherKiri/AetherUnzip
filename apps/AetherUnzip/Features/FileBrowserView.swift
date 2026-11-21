@@ -262,7 +262,7 @@ struct FileBrowserView: View {
                             .font(.subheadline.weight(.semibold))
                             .lineLimit(1)
                     }
-                    .modifier(WorkspaceButton(prominent: true))
+                    .modifier(WorkspaceButton(prominent: true, liquidGlass: true))
                     .accessibilityLabel("Open Archive")
                     .accessibilityIdentifier("open-archive")
                     .help("Open Archive")

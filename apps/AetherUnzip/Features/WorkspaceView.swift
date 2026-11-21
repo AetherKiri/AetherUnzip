@@ -416,7 +416,7 @@ struct WorkspaceView: View {
             Label(hidden ? "Show Sidebar" : "Hide Sidebar", systemImage: "sidebar.leading")
                 .labelStyle(.iconOnly)
         }
-        .modifier(WorkspaceButton())
+        .modifier(WorkspaceButton(liquidGlass: true))
         .accessibilityIdentifier("workspace-sidebar-toggle")
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)

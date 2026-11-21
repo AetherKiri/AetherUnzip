@@ -53,7 +53,7 @@ struct PasswordLibraryView: View {
                     .labelStyle(.iconOnly)
                     .foregroundStyle(Color.accentColor)
             }
-            .modifier(WorkspaceButton())
+            .modifier(WorkspaceButton(liquidGlass: true))
             .help("Add Password")
             .accessibilityIdentifier("password-library-add")
         }

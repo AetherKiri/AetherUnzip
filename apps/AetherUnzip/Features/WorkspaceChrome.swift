@@ -129,8 +129,26 @@ struct WorkspaceHeaderLayout: ViewModifier {
 
 struct WorkspaceButton: ViewModifier {
     var prominent = false
+    var liquidGlass = false
 
     @ViewBuilder func body(content: Content) -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26, macOS 26, *), liquidGlass {
+            if prominent {
+                content.buttonStyle(.glassProminent).buttonBorderShape(.capsule)
+                    .controlSize(.large).tint(WorkspacePalette.accent)
+            } else {
+                content.buttonStyle(.glass).buttonBorderShape(.circle).controlSize(.large)
+            }
+        } else {
+            fallback(content)
+        }
+        #else
+        fallback(content)
+        #endif
+    }
+
+    @ViewBuilder private func fallback(_ content: Content) -> some View {
         if prominent {
             content.buttonStyle(.borderedProminent).buttonBorderShape(.capsule).tint(WorkspacePalette.accent)
         } else {
