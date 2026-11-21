@@ -67,7 +67,7 @@ struct AboutView: View {
                         Label("Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
                     .accessibilityIdentifier("about-source")
-                    Link(destination: URL(string: "https://github.com/AetherKiri/AetherUnzip/blob/main/PRIVACY.md")!) {
+                    Link(destination: URL(string: "https://aetherkiri.github.io/AetherUnzip/privacy/")!) {
                         Label("Privacy Policy", systemImage: "hand.raised")
                     }
                     .accessibilityIdentifier("about-privacy")

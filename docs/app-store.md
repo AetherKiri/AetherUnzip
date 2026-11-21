@@ -37,7 +37,7 @@ plutil -extract AetherUnzipSourceURL raw "$bundle/Info.plist"
 
 ## 隐私与审核资料
 
-- 在归档的 App bundle 根目录核对 `PrivacyInfo.xcprivacy`。App 中的隐私政策与 App Store Connect 使用同一个[公开政策页面](https://github.com/AetherKiri/AetherUnzip/blob/main/PRIVACY.md)。
+- 在归档的 App bundle 根目录核对 `PrivacyInfo.xcprivacy`。App 的「关于 → 隐私政策」指向 [GitHub Pages](https://aetherkiri.github.io/AetherUnzip/privacy/)。在 App Store Connect 的隐私政策网址栏使用同一地址。
 - 发布隐私标签前，对照实际归档和所有依赖。当前仓库版本在设备本地处理文件、密码及活动记录。Apple 的隐私标签以开发者或合作方实际收集的数据为准。新增任何上传、分析 SDK 或服务器后重新评估。[App 隐私标签](https://developer.apple.com/app-store/app-privacy-details/) · [管理隐私政策 URL](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy/)
 
 [GitHub Pages 隐私政策](https://aetherkiri.github.io/AetherUnzip/privacy/) 由根目录的 `PRIVACY.md` 生成，`gh-pages` 分支用于发布。修改政策后，使用 Python 3.10+ 和 Pandoc 重新生成静态页面，再提交并推送 `gh-pages`。
