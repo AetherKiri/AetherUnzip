@@ -88,6 +88,13 @@ struct FileBrowserView: View {
         let operation: FileWorkspace.Transfer
     }
 
+    private struct CompressionRequest: Identifiable {
+        let id = UUID()
+        let names: [String]
+        let folder: BrowserFolder
+        let suggestedName: String
+    }
+
     @AppStorage("fileBrowserSort") private var sort: Sort = .name
     @AppStorage("fileBrowserReverseSort") private var reverseSort = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -104,6 +111,7 @@ struct FileBrowserView: View {
     @State private var preview: URL?
     @State private var details: WorkspaceFile?
     @State private var rename: RenameTarget?
+    @State private var compression: CompressionRequest?
     @State private var recognition: ArchiveRecognitionRequest?
     @State private var recognizedFileToOpen: (URL, BrowserFolder)?
     @State private var creatingFile = false
@@ -178,6 +186,20 @@ struct FileBrowserView: View {
                           location: folder.name) { name in
                 try await applyName(name, to: target, in: folder)
                 rename = nil
+            }
+        }
+        .sheet(item: $compression) { request in
+            FileNameSheet(title: String(localized: "Compress to ZIP"), action: "Compress",
+                          initial: request.suggestedName, location: request.folder.name, creatingZIP: true) { name in
+                let folder = request.folder
+                let limits = limits
+                try await model.mutate { service in
+                    _ = try await service.compressZIP(request.names, named: name, in: folder.url,
+                                                      access: folder.location, limits: limits)
+                }
+                clearSelection()
+                query = ""
+                compression = nil
             }
         }
         .sheet(item: $recognition, onDismiss: {
@@ -592,6 +614,11 @@ struct FileBrowserView: View {
         Button("Info", systemImage: "info.circle") { details = file }
         Button("Rename", systemImage: "pencil") { rename = .item(file.name) }
             .disabled(model.working)
+        if file.kind == .file || file.kind == .folder {
+            Button("Compress to ZIP…", systemImage: "doc.zipper") { beginCompression([file]) }
+                .disabled(model.working)
+                .accessibilityIdentifier("compress-workspace-item")
+        }
         Button("Copy to…", systemImage: "document.on.document") { chooseTransfer(.copy, names: [file.name]) }
             .disabled(model.working)
         Button("Move to…", systemImage: "folder") { chooseTransfer(.move, names: [file.name]) }
@@ -622,6 +649,10 @@ struct FileBrowserView: View {
                     }
                     .accessibilityIdentifier("open-selected-files")
                 }
+                if selectedFiles.allSatisfy({ $0.kind == .file || $0.kind == .folder }) {
+                    Button("Compress to ZIP…", systemImage: "doc.zipper") { beginCompression(selectedFiles) }
+                        .accessibilityIdentifier("compress-workspace-selection")
+                }
                 Button("Copy to…", systemImage: "document.on.document") { chooseTransfer(.copy, names: selectedNames) }
                 Button("Move to…", systemImage: "folder") { chooseTransfer(.move, names: selectedNames) }
                 Button(deleteAction, systemImage: "trash", role: .destructive) { confirmDelete(selectedNames) }
@@ -639,10 +670,12 @@ struct FileBrowserView: View {
     }
 
     private var selectedArchives: Bool {
-        !selection.isEmpty && model.files.filter { selection.contains($0.id) }.allSatisfy {
+        !selection.isEmpty && selectedFiles.allSatisfy {
             $0.kind == .file && ArchiveNames.matches($0.name)
         }
     }
+
+    private var selectedFiles: [WorkspaceFile] { model.files.filter { selection.contains($0.id) } }
 
     private var filteredFiles: [WorkspaceFile] {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -777,6 +810,24 @@ struct FileBrowserView: View {
         showDestination = true
     }
 
+    private func beginCompression(_ files: [WorkspaceFile]) {
+        guard !files.isEmpty, !model.working else { return }
+        let base: String
+        if files.count == 1, let item = files.first {
+            base = item.kind == .folder ? item.name : (item.name as NSString).deletingPathExtension
+        } else {
+            base = String(localized: "Archive")
+        }
+        let existing = Set(model.files.map { $0.name.lowercased() })
+        var name = "\(base).zip"
+        var suffix = 2
+        while existing.contains(name.lowercased()) {
+            name = "\(base) (\(suffix)).zip"
+            suffix += 1
+        }
+        compression = CompressionRequest(names: files.map(\.name), folder: model.folder, suggestedName: name)
+    }
+
     private func perform(_ operation: @escaping @Sendable (FileWorkspace) async throws -> Void) {
         Task {
             do {
@@ -792,19 +843,21 @@ private struct FileNameSheet: View {
     let action: LocalizedStringKey
     let initial: String
     let location: String
+    let creatingZIP: Bool
     let save: (String) async throws -> Void
     @State private var name: String
     @State private var error: String?
-    @State private var saving = false
+    @State private var operation: Task<Void, Never>?
     @FocusState private var focused: Bool
     @Environment(\.dismiss) private var dismiss
 
-    init(title: String, action: LocalizedStringKey, initial: String, location: String,
+    init(title: String, action: LocalizedStringKey, initial: String, location: String, creatingZIP: Bool = false,
          save: @escaping (String) async throws -> Void) {
         self.title = title
         self.action = action
         self.initial = initial
         self.location = location
+        self.creatingZIP = creatingZIP
         self.save = save
         _name = State(initialValue: initial)
     }
@@ -846,9 +899,13 @@ private struct FileNameSheet: View {
             }
             HStack {
                 Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                    .keyboardShortcut(.cancelAction).disabled(saving)
-                if saving { ProgressView().controlSize(.small).accessibilityLabel("Saving") }
+                Button("Cancel", role: .cancel) {
+                    if let operation { operation.cancel() } else { dismiss() }
+                }
+                .keyboardShortcut(.cancelAction).disabled(saving && !creatingZIP)
+                if saving {
+                    ProgressView().controlSize(.small).accessibilityLabel(creatingZIP ? "Compressing…" : "Saving")
+                }
                 Button(action, action: commit)
                     .modifier(WorkspaceButton(prominent: true))
                     .disabled(!canSave)
@@ -872,26 +929,32 @@ private struct FileNameSheet: View {
     private var invalidName: String? {
         if name == "." || name == ".." { return String(localized: "Choose a name other than ‘.’ or ‘..’.") }
         if name.contains("/") { return String(localized: "Remove the slash (/) from the name.") }
-        if name.utf8.contains(0) { return String(localized: "This name contains a character that isn’t allowed.") }
+        if name.utf8.contains(0) || (creatingZIP && (name.contains("\\") || name.contains(":"))) {
+            return String(localized: "This name contains a character that isn’t allowed.")
+        }
         return nil
     }
 
     private var message: String? { invalidName ?? error }
+    private var saving: Bool { operation != nil }
 
     private var canSave: Bool {
-        !saving && name != initial && invalidName == nil &&
+        !saving && (creatingZIP || name != initial) && invalidName == nil &&
             !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func commit() {
         guard canSave else { return }
         let submittedName = name
-        saving = true
         error = nil
-        Task {
-            defer { saving = false }
+        operation = Task {
+            defer { operation = nil }
             do {
                 try await save(submittedName)
+            } catch let error as ArchiveError where error == .conflict {
+                self.error = String(localized: "That name is already in use in this folder.")
+            } catch let error where creatingZIP && (error is CancellationError || (error as? ArchiveError) == .cancelled) {
+                dismiss()
             } catch let error as CocoaError where error.code == .fileWriteFileExists {
                 self.error = String(localized: "That name is already in use in this folder.")
             } catch {

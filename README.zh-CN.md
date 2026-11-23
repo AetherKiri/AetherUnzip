@@ -27,6 +27,7 @@
 | 确认前看清目标位置。保留已有顶层目录，或给散落的文件建一个文件夹。 | 长按或右键识别实际格式。即使 ZIP 附在可正常打开的 JPEG 后面，也能识别并打开。 |
 
 - **文件管理与预览** 浏览系统授权目录，搜索、排序、复制、移动或编辑文件。归档内可按目录浏览、进入嵌套包，或用 Quick Look 查看常见文档和图片。超出预览上限时，可以直接解压该文件。
+- **ZIP 压缩** 长按或右键文件、文件夹，或多选后打开操作菜单，选择「压缩为 ZIP」。生成的 ZIP 保存在当前目录。
 - **批量解压与重试** 共用目标目录和重名策略，逐包查看结果。可以打开成功项的输出目录，也可以为失败项补输密码后单独重试。
 - **密码库** 通过系统钥匙串保存密码，归档改名后仍可匹配已记住的密码。解压时可选择一条或尝试整个密码库。ZIP 的中文密码编码兼容范围见 [驱动文档](docs/drivers.md)。
 - **缓存管理** 在设置中查看占用、清理闲置预览，或调整单文件预览和嵌套归档的暂存上限。
@@ -95,6 +96,13 @@ ctest --test-dir build/core --output-on-failure
 打开分卷归档时，在文件选择器中一次选中同组所有分卷，例如 `name.7z.001`、`name.zip.001`、`name.z01` 与末卷 `name.zip`、`name.part1.rar`，或 `name.rar` 与 `name.r00`。带固定签名和偏移的包装文件可通过[格式配置](docs/format-profiles.md)显式打开。完整支持范围见[驱动文档](docs/drivers.md)，当前 App 构建也可在「设置 → 关于 → 解压支持」查看。
 
 ## CLI 验证示例
+
+在 `workspace` 内将 `Notes.txt` 和 `Assets` 压缩为 `Project.zip`，并校验生成的归档。
+
+```sh
+build/core/aether-unzip --compress ./workspace Project.zip Notes.txt Assets
+build/core/aether-unzip --verify ./workspace/Project.zip
+```
 
 CLI 适合独立验证识别、解码和输出结果。以下命令使用仓库自带的样本。
 

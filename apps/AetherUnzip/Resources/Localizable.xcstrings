@@ -1317,6 +1317,30 @@
         }
       }
     },
+    "Compress": {
+      "localizations": {
+        "ja": { "stringUnit": { "state": "translated", "value": "圧縮" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "压缩" } }
+      }
+    },
+    "Compress to ZIP": {
+      "localizations": {
+        "ja": { "stringUnit": { "state": "translated", "value": "ZIP に圧縮" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "压缩为 ZIP" } }
+      }
+    },
+    "Compress to ZIP…": {
+      "localizations": {
+        "ja": { "stringUnit": { "state": "translated", "value": "ZIP に圧縮…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "压缩为 ZIP…" } }
+      }
+    },
+    "Compressing…": {
+      "localizations": {
+        "ja": { "stringUnit": { "state": "translated", "value": "圧縮中…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "正在压缩…" } }
+      }
+    },
     "Compressed Streams": {
       "localizations": {
         "ja": {

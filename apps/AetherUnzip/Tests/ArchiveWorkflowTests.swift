@@ -938,6 +938,49 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(app.buttons["workspace-file-notes.txt"].firstMatch.exists)
     }
 
+    func testCompressesWorkspaceSelectionAndOpensResult() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        workspaceFile(named: "Compression Workflow", in: app).tap()
+
+        let source = app.buttons["workspace-file-Release Notes.txt"].firstMatch
+        XCTAssertTrue(source.waitForExistence(timeout: 8), app.debugDescription)
+        source.press(forDuration: 1)
+        let compressItem = app.buttons["compress-workspace-item"].firstMatch
+        XCTAssertTrue(compressItem.waitForExistence(timeout: 8), app.debugDescription)
+        compressItem.tap()
+        let field = app.textFields["workspace-file-name"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertEqual(field.value as? String, "Release Notes.zip")
+        app.buttons["Cancel"].firstMatch.tap()
+
+        let actions = app.buttons["file-actions"].firstMatch
+        XCTAssertTrue(actions.waitForExistence(timeout: 8), app.debugDescription)
+        actions.tap()
+        app.buttons["select-workspace-files"].firstMatch.tap()
+        for name in ["Guides", "Release Notes.txt"] {
+            let file = app.buttons["workspace-file-\(name)"].firstMatch
+            XCTAssertTrue(file.waitForExistence(timeout: 8), app.debugDescription)
+            file.tap()
+        }
+        app.buttons["workspace-selection-actions"].firstMatch.tap()
+        let compress = app.buttons["compress-workspace-selection"].firstMatch
+        XCTAssertTrue(compress.waitForExistence(timeout: 8), app.debugDescription)
+        compress.tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 8), app.debugDescription)
+        let name = field.value as? String ?? "Archive.zip"
+        let save = app.buttons["workspace-save-name"].firstMatch
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+        let result = app.buttons["workspace-file-\(name)"].firstMatch
+        XCTAssertTrue(result.waitForExistence(timeout: 10), app.debugDescription)
+        result.tap()
+        XCTAssertTrue(app.buttons["extract-all"].firstMatch.waitForExistence(timeout: 8), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Guides"].firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["Release Notes.txt"].firstMatch.exists)
+    }
+
     func testBatchExtractsTwoArchivesAndReportsUnreadableInput() {
         let app = XCUIApplication()
         app.launchArguments = ["-destinationPolicy", "2", "-conflictPolicy", "3"]

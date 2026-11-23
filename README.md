@@ -27,6 +27,7 @@
 | See the output path before you extract. Smart Extraction keeps an existing top-level folder or groups loose files into a new one. | Identify archives by their contents from the context menu. AetherUnzip can open a valid ZIP appended to a viewable JPEG. |
 
 - **File management and previews.** Browse folders you have granted access to. Search, sort, copy, move, or edit files. Browse archive folders, open nested archives, and preview common documents and images with Quick Look. If a file is too large to preview, you can extract it on its own.
+- **ZIP compression.** Use the context menu on a file or folder, or select several items and choose **Compress to ZIP**. The new archive is saved beside the selected items.
 - **Batch extraction and retries.** Choose one destination and conflict policy for the batch. Open the output folder for any successful archive, or retry a failed archive on its own and enter a password if needed.
 - **Password library.** Store passwords in the system Keychain. A remembered password remains associated with its archive after a rename. During extraction, choose a saved password or try the entire library. The driver documentation covers Chinese password encodings for ZIP. [Archive drivers](docs/drivers.md)
 - **Cache controls.** Check disk usage, clear unused previews, and set separate limits for single-file previews and nested archive staging.
