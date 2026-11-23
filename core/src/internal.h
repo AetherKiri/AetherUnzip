@@ -57,4 +57,18 @@ au_status au_write_all(int fd, const void *data, size_t size);
 au_status au_output_error(int error);
 int au_open_temp(int parent, const char *reserved, char *name, size_t capacity, int access);
 au_status au_publish_exclusive(int parent, char *temporary, const char *name);
+
+typedef enum { AU_WRITE_ZIP, AU_WRITE_TAR, AU_WRITE_TAR_GZIP, AU_WRITE_TAR_ZSTD, AU_WRITE_XP3 } au_write_format;
+
+typedef struct {
+    void *state;
+    au_status (*begin)(void *, const char *, const struct stat *);
+    au_status (*write)(void *, const void *, size_t);
+    au_status (*end)(void *);
+    au_status (*finish)(void *);
+    void (*destroy)(void *);
+} au_encoder;
+
+au_status au_libarchive_encoder_open(int fd, au_write_format format, au_encoder *out);
+au_status au_xp3_encoder_open(int fd, au_encoder *out);
 #endif

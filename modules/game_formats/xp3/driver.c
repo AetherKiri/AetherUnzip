@@ -1,16 +1,14 @@
 #include "internal.h"
+#include "format.h"
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <zlib.h>
 
-enum { XP3_HEADER = 19, XP3_SEGMENT = 28, XP3_MAX_BLOCKS = 256 };
-#define XP3_INDEX_BUDGET (UINT64_C(32) * 1024 * 1024)
+enum { XP3_MAX_BLOCKS = 256 };
 #define XP3_PREFIX_BUDGET (UINT64_C(16) * 1024 * 1024)
 #define XP3_PROTECTED UINT32_C(0x80000000)
 #define XP3_CAPABILITIES (AU_CAN_LIST | AU_CAN_EXTRACT | AU_CAN_READ | AU_REQUIRES_SEEKABLE_SOURCE)
-
-static const uint8_t magic[] = {'X', 'P', '3', 13, 10, 32, 10, 26, 0x8b, 0x67, 1};
 
 typedef struct {
     const uint8_t *data;
@@ -261,7 +259,7 @@ static au_status read_item(reader *state, view payload) {
 }
 
 static au_status read_index(reader *state) {
-    uint64_t pointer = sizeof(magic);
+    uint64_t pointer = sizeof(xp3_magic);
     uint64_t used = 0, packed_total = 0;
     uint64_t visited[XP3_MAX_BLOCKS];
     for (size_t block = 0; block < XP3_MAX_BLOCKS; ++block) {
@@ -334,11 +332,11 @@ static void close_reader(void *opaque) {
 
 static au_status locate(au_source *source, uint64_t length, const au_options *options,
                         uint64_t *offset) {
-    uint8_t header[sizeof(magic)];
+    uint8_t header[sizeof(xp3_magic)];
     size_t count = 0;
     au_status status = aether_unzip_source_read_at(source, 0, header, sizeof(header), &count);
     if (status != AU_OK) return status;
-    if (count == sizeof(magic) && !memcmp(header, magic, sizeof(magic))) {
+    if (count == sizeof(xp3_magic) && !memcmp(header, xp3_magic, sizeof(xp3_magic))) {
         *offset = 0;
         return AU_OK;
     }
@@ -347,14 +345,14 @@ static au_status locate(au_source *source, uint64_t length, const au_options *op
     // KiriKiri aligns the XP3 signature on a 16-byte boundary in MZ wrappers.
     uint8_t block[32768];
     uint64_t end = length < XP3_PREFIX_BUDGET ? length : XP3_PREFIX_BUDGET;
-    for (uint64_t at = 16; at + sizeof(magic) <= end;) {
+    for (uint64_t at = 16; at + sizeof(xp3_magic) <= end;) {
         if (au_cancelled(options)) return AU_CANCELLED;
         size_t request = end - at < sizeof(block) ? (size_t)(end - at) : sizeof(block);
         status = aether_unzip_source_read_at(source, at, block, request, &count);
         if (status != AU_OK) return status;
         if (count != request) return AU_IO;
-        for (size_t i = 0; i + sizeof(magic) <= count; i += 16) {
-            if (!memcmp(block + i, magic, sizeof(magic))) {
+        for (size_t i = 0; i + sizeof(xp3_magic) <= count; i += 16) {
+            if (!memcmp(block + i, xp3_magic, sizeof(xp3_magic))) {
                 *offset = at + i;
                 return AU_OK;
             }

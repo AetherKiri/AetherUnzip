@@ -44,7 +44,7 @@ static void usage(FILE *stream, const char *program) {
                     "       %s --cat [OPTIONS] ARCHIVE RESOURCE_PATH\n"
                     "       %s --ls [OPTIONS] ARCHIVE DIRECTORY_PATH\n"
                     "       %s --compress [OPTIONS] DIRECTORY OUTPUT NAME...\n"
-                    "  Compression output suffixes: .zip, .tar, .tar.gz, .tar.zst\n"
+                    "  Archive output suffixes: .zip, .tar, .tar.gz, .tar.zst, .xp3\n"
                     "  --volume PATH          Add the next archive volume in order; repeat as needed.\n"
                     "  --entry INDEX          Verify or extract this zero-based entry index; repeat in ascending order.\n"
                     "  --password-stdin       Read one UTF-8 line from standard input.\n"

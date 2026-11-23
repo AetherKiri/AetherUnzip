@@ -135,7 +135,19 @@ struct ArchiveServiceTests {
             try await service.extract(archive, to: output).value()
             #expect(try Data(contentsOf: output.appending(path: "素材/说明.txt")) == contents)
             #expect(try Data(contentsOf: output.appending(path: "notes.txt")) == contents)
-            #expect(try FileManager.default.contentsOfDirectory(atPath: output.appending(path: "素材/空目录").path).isEmpty)
+            let emptyFolder = output.appending(path: "素材/空目录")
+            if format == .xp3 {
+                #expect(archive.format == .xp3)
+                #expect(!FileManager.default.fileExists(atPath: emptyFolder.path))
+                let emptySelection = folder.appending(path: "Empty")
+                try FileManager.default.createDirectory(at: emptySelection, withIntermediateDirectories: false)
+                await #expect(throws: ArchiveError.invalidInput) {
+                    try await workspace.compress(["Empty"], named: "Empty", format: .xp3, in: folder, access: access)
+                }
+                #expect(!FileManager.default.fileExists(atPath: folder.appending(path: "Empty.xp3").path))
+            } else {
+                #expect(try FileManager.default.contentsOfDirectory(atPath: emptyFolder.path).isEmpty)
+            }
         }
     }
 

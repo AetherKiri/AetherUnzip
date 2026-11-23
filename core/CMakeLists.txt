@@ -1,9 +1,10 @@
 add_library(aetherunzip STATIC
-    src/runtime.c src/io.c src/archive.c src/resource.c src/security.c src/extract.c
+    src/runtime.c src/io.c src/archive.c src/resource.c src/security.c src/extract.c src/create.c
     ../modules/archive/libarchive/driver.c
     ../modules/archive/libarchive/write_archive.c
     ../modules/codecs/brotli.c
     ../modules/game_formats/xp3/driver.c
+    ../modules/game_formats/xp3/write_xp3.c
     ../modules/profiles/profile.c)
 target_compile_features(aetherunzip PUBLIC c_std_17 PRIVATE cxx_std_17)
 set_target_properties(aetherunzip PROPERTIES C_EXTENSIONS OFF POSITION_INDEPENDENT_CODE ON)

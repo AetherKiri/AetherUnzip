@@ -17,7 +17,7 @@
 
 `aether_unzip_create_zip` 在指定目录中将一组互不重复的 UTF-8 文件名和文件夹名流式写入 ZIP。传入没有路径分隔符的直接子项名称，以及以 `.zip` 结尾的输出名称。选中的文件夹会保留为顶层目录。Core 只读普通文件和目录，按输入大小、条目数和路径深度限额执行，响应取消，在归档完成后独占发布输出。同名时返回 `AU_EXISTS`。同步调用期间参数及回调数据由调用方保有，回调在调用线程执行。Swift SDK 通过 `FileWorkspace.compressZIP(_:named:in:access:limits:)` 在授权目录内执行同一操作。
 
-`aether_unzip_create_archive` 使用相同的限制和发布规则，根据输出文件名后缀选择 `.zip`、`.tar`、`.tar.gz` 或 `.tar.zst`，匹配时忽略大小写。Swift SDK 用 `FileWorkspace.compress(_:named:format:in:access:limits:)` 显式传入 `CompressionFormat`。
+`aether_unzip_create_archive` 使用相同的限制和发布规则，根据输出文件名后缀选择 `.zip`、`.tar`、`.tar.gz`、`.tar.zst` 或 `.xp3`，匹配时忽略大小写。Swift SDK 用 `FileWorkspace.compress(_:named:format:in:access:limits:)` 显式传入 `CompressionFormat`。XP3 以未加密、未压缩方式打包普通文件，保留文件的相对路径，省略空目录。选定项中没有普通文件时返回 `AU_INVALID`。
 
 ## 格式配置
 

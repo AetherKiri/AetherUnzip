@@ -109,7 +109,8 @@ void aether_unzip_archive_close(au_archive *archive);
 au_status aether_unzip_create_zip(const char *directory, const char *const *names, size_t count,
                                  const char *archive_name, const au_options *options);
 /* Same ownership, limits and publication guarantees as create_zip. The output
- * suffix selects ZIP, TAR, TAR.GZ or TAR.ZST (case-insensitive). */
+ * suffix selects ZIP, TAR, TAR.GZ, TAR.ZST or standard unprotected XP3
+ * (case-insensitive). XP3 stores files and needs at least one regular file. */
 au_status aether_unzip_create_archive(const char *directory, const char *const *names, size_t count,
                                      const char *archive_name, const au_options *options);
 

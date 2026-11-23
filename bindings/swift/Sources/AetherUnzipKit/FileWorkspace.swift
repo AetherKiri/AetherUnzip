@@ -70,7 +70,7 @@ public enum WorkspaceTextError: LocalizedError, Equatable, Sendable {
 public struct FileWorkspace: Sendable {
     public enum Transfer: Sendable { case copy, move }
     public enum CompressionFormat: String, CaseIterable, Sendable {
-        case zip = "zip", tar = "tar", tarGzip = "tar.gz", tarZstandard = "tar.zst"
+        case zip = "zip", tar = "tar", tarGzip = "tar.gz", tarZstandard = "tar.zst", xp3 = "xp3"
 
         public var fileExtension: String { rawValue }
     }
