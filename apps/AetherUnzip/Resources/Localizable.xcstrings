@@ -1323,16 +1323,16 @@
         "zh-Hans": { "stringUnit": { "state": "translated", "value": "压缩" } }
       }
     },
-    "Compress to ZIP": {
+    "Compress Files": {
       "localizations": {
-        "ja": { "stringUnit": { "state": "translated", "value": "ZIP に圧縮" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "压缩为 ZIP" } }
+        "ja": { "stringUnit": { "state": "translated", "value": "ファイルを圧縮" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "压缩文件" } }
       }
     },
-    "Compress to ZIP…": {
+    "Compress Files…": {
       "localizations": {
-        "ja": { "stringUnit": { "state": "translated", "value": "ZIP に圧縮…" } },
-        "zh-Hans": { "stringUnit": { "state": "translated", "value": "压缩为 ZIP…" } }
+        "ja": { "stringUnit": { "state": "translated", "value": "ファイルを圧縮…" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "压缩文件…" } }
       }
     },
     "Compressing…": {

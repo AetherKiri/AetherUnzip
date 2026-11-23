@@ -969,7 +969,12 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(compress.waitForExistence(timeout: 8), app.debugDescription)
         compress.tap()
         XCTAssertTrue(field.waitForExistence(timeout: 8), app.debugDescription)
-        let name = field.value as? String ?? "Archive.zip"
+        let picker = app.buttons["workspace-compression-format"].firstMatch
+        XCTAssertTrue(picker.waitForExistence(timeout: 8), app.debugDescription)
+        picker.tap()
+        app.buttons["TAR.GZ"].firstMatch.tap()
+        let name = field.value as? String ?? ""
+        XCTAssertTrue(name.hasSuffix(".tar.gz"), app.debugDescription)
         let save = app.buttons["workspace-save-name"].firstMatch
         XCTAssertTrue(save.isEnabled)
         save.tap()

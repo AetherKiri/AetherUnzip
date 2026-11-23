@@ -27,7 +27,7 @@
 | See the output path before you extract. Smart Extraction keeps an existing top-level folder or groups loose files into a new one. | Identify archives by their contents from the context menu. AetherUnzip can open a valid ZIP appended to a viewable JPEG. |
 
 - **File management and previews.** Browse folders you have granted access to. Search, sort, copy, move, or edit files. Browse archive folders, open nested archives, and preview common documents and images with Quick Look. If a file is too large to preview, you can extract it on its own.
-- **ZIP compression.** Use the context menu on a file or folder, or select several items and choose **Compress to ZIP**. The new archive is saved beside the selected items.
+- **Create archives.** Choose **Compress Files** in the context menu or after selecting several items. Choose ZIP, TAR, TAR.GZ, or TAR.ZST. The archive is saved beside the selected items.
 - **Batch extraction and retries.** Choose one destination and conflict policy for the batch. Open the output folder for any successful archive, or retry a failed archive on its own and enter a password if needed.
 - **Password library.** Store passwords in the system Keychain. A remembered password remains associated with its archive after a rename. During extraction, choose a saved password or try the entire library. The driver documentation covers Chinese password encodings for ZIP. [Archive drivers](docs/drivers.md)
 - **Cache controls.** Check disk usage, clear unused previews, and set separate limits for single-file previews and nested archive staging.
@@ -103,6 +103,8 @@ Create a ZIP next to the selected files and folders, then verify it:
 build/core/aether-unzip --compress ./workspace Project.zip Notes.txt Assets
 build/core/aether-unzip --verify ./workspace/Project.zip
 ```
+
+Use `.tar`, `.tar.gz`, or `.tar.zst` as the output suffix to select another format.
 
 Use the CLI to verify detection, decoding, and extracted files independently of the app. These commands use fixtures supplied with the repository.
 

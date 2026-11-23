@@ -92,7 +92,7 @@ struct FileBrowserView: View {
         let id = UUID()
         let names: [String]
         let folder: BrowserFolder
-        let suggestedName: String
+        let suggestedNames: [FileWorkspace.CompressionFormat: String]
     }
 
     @AppStorage("fileBrowserSort") private var sort: Sort = .name
@@ -183,19 +183,20 @@ struct FileBrowserView: View {
         .sheet(item: $rename) { target in
             let folder = model.folder
             FileNameSheet(title: target.title, action: target.action, initial: target.initial,
-                          location: folder.name) { name in
+                          location: folder.name) { name, _ in
                 try await applyName(name, to: target, in: folder)
                 rename = nil
             }
         }
         .sheet(item: $compression) { request in
-            FileNameSheet(title: String(localized: "Compress to ZIP"), action: "Compress",
-                          initial: request.suggestedName, location: request.folder.name, creatingZIP: true) { name in
+            FileNameSheet(title: String(localized: "Compress Files"), action: "Compress",
+                          initial: request.suggestedNames[.zip] ?? "Archive.zip", location: request.folder.name,
+                          suggestedNames: request.suggestedNames) { name, format in
                 let folder = request.folder
                 let limits = limits
                 try await model.mutate { service in
-                    _ = try await service.compressZIP(request.names, named: name, in: folder.url,
-                                                      access: folder.location, limits: limits)
+                    _ = try await service.compress(request.names, named: name, format: format, in: folder.url,
+                                                   access: folder.location, limits: limits)
                 }
                 clearSelection()
                 query = ""
@@ -615,7 +616,7 @@ struct FileBrowserView: View {
         Button("Rename", systemImage: "pencil") { rename = .item(file.name) }
             .disabled(model.working)
         if file.kind == .file || file.kind == .folder {
-            Button("Compress to ZIP…", systemImage: "doc.zipper") { beginCompression([file]) }
+            Button("Compress Files…", systemImage: "doc.zipper") { beginCompression([file]) }
                 .disabled(model.working)
                 .accessibilityIdentifier("compress-workspace-item")
         }
@@ -650,7 +651,7 @@ struct FileBrowserView: View {
                     .accessibilityIdentifier("open-selected-files")
                 }
                 if selectedFiles.allSatisfy({ $0.kind == .file || $0.kind == .folder }) {
-                    Button("Compress to ZIP…", systemImage: "doc.zipper") { beginCompression(selectedFiles) }
+                    Button("Compress Files…", systemImage: "doc.zipper") { beginCompression(selectedFiles) }
                         .accessibilityIdentifier("compress-workspace-selection")
                 }
                 Button("Copy to…", systemImage: "document.on.document") { chooseTransfer(.copy, names: selectedNames) }
@@ -819,13 +820,16 @@ struct FileBrowserView: View {
             base = String(localized: "Archive")
         }
         let existing = Set(model.files.map { $0.name.lowercased() })
-        var name = "\(base).zip"
-        var suffix = 2
-        while existing.contains(name.lowercased()) {
-            name = "\(base) (\(suffix)).zip"
-            suffix += 1
-        }
-        compression = CompressionRequest(names: files.map(\.name), folder: model.folder, suggestedName: name)
+        let suggestions = Dictionary(uniqueKeysWithValues: FileWorkspace.CompressionFormat.allCases.map { format in
+            var name = "\(base).\(format.fileExtension)"
+            var suffix = 2
+            while existing.contains(name.lowercased()) {
+                name = "\(base) (\(suffix)).\(format.fileExtension)"
+                suffix += 1
+            }
+            return (format, name)
+        })
+        compression = CompressionRequest(names: files.map(\.name), folder: model.folder, suggestedNames: suggestions)
     }
 
     private func perform(_ operation: @escaping @Sendable (FileWorkspace) async throws -> Void) {
@@ -843,21 +847,23 @@ private struct FileNameSheet: View {
     let action: LocalizedStringKey
     let initial: String
     let location: String
-    let creatingZIP: Bool
-    let save: (String) async throws -> Void
+    let suggestedNames: [FileWorkspace.CompressionFormat: String]?
+    let save: (String, FileWorkspace.CompressionFormat) async throws -> Void
     @State private var name: String
+    @State private var format: FileWorkspace.CompressionFormat = .zip
     @State private var error: String?
     @State private var operation: Task<Void, Never>?
     @FocusState private var focused: Bool
     @Environment(\.dismiss) private var dismiss
 
-    init(title: String, action: LocalizedStringKey, initial: String, location: String, creatingZIP: Bool = false,
-         save: @escaping (String) async throws -> Void) {
+    init(title: String, action: LocalizedStringKey, initial: String, location: String,
+         suggestedNames: [FileWorkspace.CompressionFormat: String]? = nil,
+         save: @escaping (String, FileWorkspace.CompressionFormat) async throws -> Void) {
         self.title = title
         self.action = action
         self.initial = initial
         self.location = location
-        self.creatingZIP = creatingZIP
+        self.suggestedNames = suggestedNames
         self.save = save
         _name = State(initialValue: initial)
     }
@@ -865,6 +871,32 @@ private struct FileNameSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             WorkspaceHeading(title: title, detail: location, singleLine: true)
+            if creatingArchive {
+                HStack {
+                    Text("Format").font(.subheadline.weight(.medium))
+                    Spacer()
+                    Picker("Format", selection: $format) {
+                        ForEach(FileWorkspace.CompressionFormat.allCases, id: \.self) { format in
+                            Text(verbatim: format.fileExtension.uppercased()).tag(format)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("workspace-compression-format")
+                }
+                .disabled(saving)
+                .onChange(of: format) { previous, current in
+                    if name == suggestedNames?[previous], let suggestion = suggestedNames?[current] {
+                        name = suggestion
+                    } else {
+                        let previousSuffix = "." + previous.fileExtension
+                        if name.lowercased().hasSuffix(previousSuffix) {
+                            name = String(name.dropLast(previousSuffix.count)) + "." + current.fileExtension
+                        }
+                    }
+                    error = nil
+                }
+            }
             VStack(alignment: .leading, spacing: 6) {
                 Text("Name").font(.subheadline.weight(.medium))
                 HStack(spacing: 8) {
@@ -902,9 +934,9 @@ private struct FileNameSheet: View {
                 Button("Cancel", role: .cancel) {
                     if let operation { operation.cancel() } else { dismiss() }
                 }
-                .keyboardShortcut(.cancelAction).disabled(saving && !creatingZIP)
+                .keyboardShortcut(.cancelAction).disabled(saving && !creatingArchive)
                 if saving {
-                    ProgressView().controlSize(.small).accessibilityLabel(creatingZIP ? "Compressing…" : "Saving")
+                    ProgressView().controlSize(.small).accessibilityLabel(creatingArchive ? "Compressing…" : "Saving")
                 }
                 Button(action, action: commit)
                     .modifier(WorkspaceButton(prominent: true))
@@ -929,31 +961,33 @@ private struct FileNameSheet: View {
     private var invalidName: String? {
         if name == "." || name == ".." { return String(localized: "Choose a name other than ‘.’ or ‘..’.") }
         if name.contains("/") { return String(localized: "Remove the slash (/) from the name.") }
-        if name.utf8.contains(0) || (creatingZIP && (name.contains("\\") || name.contains(":"))) {
+        if name.utf8.contains(0) || (creatingArchive && (name.contains("\\") || name.contains(":"))) {
             return String(localized: "This name contains a character that isn’t allowed.")
         }
         return nil
     }
 
     private var message: String? { invalidName ?? error }
+    private var creatingArchive: Bool { suggestedNames != nil }
     private var saving: Bool { operation != nil }
 
     private var canSave: Bool {
-        !saving && (creatingZIP || name != initial) && invalidName == nil &&
+        !saving && (creatingArchive || name != initial) && invalidName == nil &&
             !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func commit() {
         guard canSave else { return }
         let submittedName = name
+        let submittedFormat = format
         error = nil
         operation = Task {
             defer { operation = nil }
             do {
-                try await save(submittedName)
+                try await save(submittedName, submittedFormat)
             } catch let error as ArchiveError where error == .conflict {
                 self.error = String(localized: "That name is already in use in this folder.")
-            } catch let error where creatingZIP && (error is CancellationError || (error as? ArchiveError) == .cancelled) {
+            } catch let error where creatingArchive && (error is CancellationError || (error as? ArchiveError) == .cancelled) {
                 dismiss()
             } catch let error as CocoaError where error.code == .fileWriteFileExists {
                 self.error = String(localized: "That name is already in use in this folder.")
