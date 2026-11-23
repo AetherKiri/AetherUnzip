@@ -484,7 +484,10 @@ static au_status skip_data(void *data, int catalog_only, int *skipped) {
         return aether_archive_read_rar5_skip_raw(state->handle) == ARCHIVE_OK
             ? AU_OK : decoder_error(state, AU_CORRUPT);
     }
+    /* Unfiltered TAR can seek over file data when only the directory is requested. */
     *skipped = state->format == AU_FORMAT_ZIP || state->raw ||
+               (catalog_only && state->format == AU_FORMAT_TAR &&
+                archive_filter_code(state->handle, 0) == ARCHIVE_FILTER_NONE) ||
                (state->format == AU_FORMAT_7ZIP && aether_archive_read_7zip_can_skip(state->handle));
     if (*skipped && !state->raw && archive_read_data_skip(state->handle) != ARCHIVE_OK)
         return decoder_error(state, AU_CORRUPT);

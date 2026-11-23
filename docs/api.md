@@ -11,7 +11,7 @@
 5. `aether_unzip_extract` 重新打开输入游标。传入 `NULL, 0` 提取全部，或传入严格递增的条目索引提取选定项。索引绑定于当前输入内容。
 6. 关闭各自拥有的句柄。归档和切片保留底层源，可在打开后释放调用方的引用。资源文件可在卸载原挂载后继续读。
 
-`aether_unzip_archive_open_catalog` 打开仅用于枚举的游标，允许驱动跳过文件数据。对目录游标调用 `aether_unzip_archive_read` 会返回 `AU_UNSUPPORTED`。读取或验证内容时用相同参数另开普通游标，条目编号保持一致。Swift 归档清单和 Core 资源索引使用目录游标。
+`aether_unzip_archive_open_catalog` 打开仅用于枚举的游标。对于 ZIP 和无外层压缩的 TAR 等支持直接跳过文件数据的格式，未解码的数据不计入解码预算。顺序压缩格式如 TAR.GZ 仍受预算限制。对目录游标调用 `aether_unzip_archive_read` 会返回 `AU_UNSUPPORTED`。读取或验证内容时用相同参数另开普通游标，条目编号保持一致。Swift 归档清单和 Core 资源索引使用目录游标。
 
 `AU_OK` 表示成功，`AU_END` 表示枚举结束，负值为错误。使用 `aether_unzip_error_message` 获取静态消息。严重的条目读取错误会终止当前游标。文件和内存 sink 支持顺序、偏移写入与 flush。内存视图由 sink 所有，在下一次写入或关闭前有效。
 

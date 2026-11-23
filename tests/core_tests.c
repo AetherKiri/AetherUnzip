@@ -1131,6 +1131,31 @@ static void security_tests(void) {
     snprintf(path, sizeof(path), "%s/escaped.txt", work);
     REQUIRE(access(path, F_OK) != 0);
 
+    au_options catalog_options = aether_unzip_options_default();
+    catalog_options.max_entry_bytes = 1;
+    catalog_options.max_total_bytes = 1;
+    au_source *tar = fixture("sample.tar");
+    au_archive *tar_catalog = NULL;
+    REQUIRE(aether_unzip_archive_open_catalog(context, tar, NULL, &catalog_options, &tar_catalog) == AU_OK);
+    const au_entry *tar_entry;
+    au_status catalog_status;
+    size_t tar_files = 0;
+    while ((catalog_status = aether_unzip_archive_next_entry(tar_catalog, &tar_entry)) == AU_OK) {
+        if (tar_entry->kind == AU_ENTRY_FILE) ++tar_files;
+    }
+    REQUIRE(catalog_status == AU_END && tar_files == 1);
+    aether_unzip_archive_close(tar_catalog);
+    REQUIRE(aether_unzip_extract(context, tar, NULL, output, NULL, 0, &catalog_options) == AU_LIMIT);
+    no_output(output);
+    aether_unzip_source_close(tar);
+
+    tar = fixture("sample.tar.gz");
+    REQUIRE(aether_unzip_archive_open_catalog(context, tar, NULL, &catalog_options, &tar_catalog) == AU_OK);
+    while ((catalog_status = aether_unzip_archive_next_entry(tar_catalog, &tar_entry)) == AU_OK) {}
+    REQUIRE(catalog_status == AU_LIMIT);
+    aether_unzip_archive_close(tar_catalog);
+    aether_unzip_source_close(tar);
+
     const char *bad_gzip[] = {"gzip-crc.gz", "gzip-size.gz"};
     for (size_t i = 0; i < sizeof(bad_gzip) / sizeof(bad_gzip[0]); ++i) {
         au_source *gzip = fixture(bad_gzip[i]);
