@@ -9,6 +9,7 @@
   <link rel="canonical" href="https://aetherkiri.github.io/AetherUnzip/">
   <link rel="icon" href="privacy/icon.png" type="image/png">
   <link rel="stylesheet" href="landing/style.css">
+  <script src="landing/gallery.js" defer></script>
 </head>
 <body>
   <main class="page">
@@ -25,10 +26,27 @@
           <span class="beta">测试版</span>
         </div>
       </div>
-      <figure class="preview">
-        <img src="landing/smart-extraction.png" width="377" height="820" alt="以太解压的 iPhone 解压界面，显示选定的目标目录、智能解压布局与保留两份文件的冲突策略。">
-        <figcaption>解压前，先确认文件会放在哪里。</figcaption>
-      </figure>
+      <section class="preview" aria-label="应用截图轮播">
+        <figure>
+          <div class="phone">
+            <div class="phone-screen">
+              <img src="landing/smart-extraction.png" width="377" height="820" alt="解压界面列出目标目录、智能解压布局和文件冲突策略。" data-caption="解压前，先确认文件会放在哪里。">
+              <img src="landing/archive-preview.png" width="377" height="820" alt="归档预览界面显示文件列表、搜索框和全部解压按钮。" data-caption="在解压前浏览、搜索或选择归档里的文件。" hidden>
+              <img src="landing/archive-identification.png" width="377" height="820" alt="识别窗口显示 JPG 后缀的文件含有 ZIP 归档，可直接打开或重命名。" data-caption="按文件内容识别归档，再决定如何打开。" hidden>
+              <img src="landing/password-library.png" width="377" height="820" alt="密码库列出两条示例密码的名称，并提供添加按钮。" data-caption="将常用解压密码保存在密码库。" hidden>
+              <span class="dynamic-island" aria-hidden="true"></span>
+            </div>
+          </div>
+          <figcaption>解压前，先确认文件会放在哪里。</figcaption>
+        </figure>
+        <div class="preview-controls" role="group" aria-label="截图切换" hidden>
+          <button type="button" class="preview-dot" aria-label="智能解压" aria-current="true"></button>
+          <button type="button" class="preview-dot" aria-label="归档预览"></button>
+          <button type="button" class="preview-dot" aria-label="格式识别"></button>
+          <button type="button" class="preview-dot" aria-label="密码库"></button>
+          <button type="button" class="preview-playback" aria-label="暂停轮播"></button>
+        </div>
+      </section>
     </section>
 
     <section class="features" aria-label="主要功能">
