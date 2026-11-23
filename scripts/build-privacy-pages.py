@@ -60,8 +60,11 @@ def main():
     landing.mkdir(exist_ok=True)
     landing_source = ROOT / "docs/landing-site"
     shutil.copyfile(landing_source / "index.html", output / "index.html")
-    shutil.copyfile(landing_source / "style.css", landing / "style.css")
-    shutil.copyfile(ROOT / "docs/images/smart-extraction.png", landing / "smart-extraction.png")
+    for asset in ("style.css", "gallery.js"):
+        shutil.copyfile(landing_source / asset, landing / asset)
+    for screenshot in ("smart-extraction.png", "archive-preview.png", "archive-identification.png",
+                       "password-library.png"):
+        shutil.copyfile(ROOT / "docs/images" / screenshot, landing / screenshot)
     (output / ".nojekyll").touch()
 
 
