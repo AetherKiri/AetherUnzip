@@ -53,6 +53,21 @@ int au_open_temp(int parent, const char *reserved, char *name, size_t capacity, 
     return -1;
 }
 
+/* A successful exclusive rename consumes the staging name; a hard link leaves it in place. */
+au_status au_publish_exclusive(int parent, char *temporary, const char *name) {
+#ifdef __APPLE__
+    if (!renameatx_np(parent, temporary, parent, name, RENAME_EXCL)) {
+        temporary[0] = '\0';
+        return AU_OK;
+    }
+    if (errno == ENOTSUP || errno == EINVAL)
+#endif
+    {
+        if (!linkat(parent, temporary, parent, name, 0)) return AU_OK;
+    }
+    return errno == EEXIST ? AU_EXISTS : au_output_error(errno);
+}
+
 au_status au_normalize_path(const char *name, uint32_t kind, uint32_t max_depth,
                             const char **normalized, size_t *normalized_length) {
     if (!*name || *name == '/' || strchr(name, '\\') || strchr(name, ':')) return AU_UNSAFE_PATH;

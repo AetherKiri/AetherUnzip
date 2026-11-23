@@ -15,6 +15,8 @@
 
 `AU_OK` 表示成功，`AU_END` 表示枚举结束，负值为错误。使用 `aether_unzip_error_message` 获取静态消息。严重的条目读取错误会终止当前游标。文件和内存 sink 支持顺序、偏移写入与 flush。内存视图由 sink 所有，在下一次写入或关闭前有效。
 
+`aether_unzip_create_zip` 在指定目录中将一组互不重复的 UTF-8 文件名和文件夹名流式写入 ZIP。传入没有路径分隔符的直接子项名称，以及以 `.zip` 结尾的输出名称。选中的文件夹会保留为顶层目录。Core 只读普通文件和目录，按输入大小、条目数和路径深度限额执行，响应取消，在归档完成后独占发布输出。同名时返回 `AU_EXISTS`。同步调用期间参数及回调数据由调用方保有，回调在调用线程执行。Swift SDK 通过 `FileWorkspace.compressZIP(_:named:in:access:limits:)` 在授权目录内执行同一操作。
+
 ## 格式配置
 
 公共定义位于 `aetherunzip/profile.h`。配置验证包装文件的固定签名并提供有界切片。`aether_unzip_profile_open` 还会验证内层归档的实际格式。调用方可保留返回的切片用于归档枚举、资源挂载与安全提取。[格式配置](format-profiles.md)

@@ -1274,6 +1274,50 @@ static void extraction_cancellation_test(void) {
     aether_unzip_source_close(source);
 }
 
+static int32_t cancel_on_poll(void *user) { return --*(int *)user <= 0; }
+
+static void compression_tests(void) {
+    char input[512], path[1024];
+    snprintf(input, sizeof(input), "%s", directory("compression-input"));
+    snprintf(path, sizeof(path), "%s/资料", input);
+    REQUIRE(mkdir(path, 0700) == 0);
+    snprintf(path, sizeof(path), "%s/资料/空目录", input);
+    REQUIRE(mkdir(path, 0700) == 0);
+    snprintf(path, sizeof(path), "%s/资料/说明.txt", input);
+    FILE *file = fopen(path, "wb");
+    REQUIRE(file && fputs(message, file) >= 0 && fclose(file) == 0);
+    const char *names[] = {"资料"};
+    REQUIRE(aether_unzip_create_zip(input, names, 1, "pack.zip", NULL) == AU_OK);
+    REQUIRE(aether_unzip_create_zip(input, names, 1, "pack.zip", NULL) == AU_EXISTS);
+    snprintf(path, sizeof(path), "%s/pack.zip", input);
+    au_source *source = NULL;
+    REQUIRE(aether_unzip_source_file(path, &source) == AU_OK);
+    const char *output = directory("compression-output");
+    REQUIRE(aether_unzip_extract(context, source, NULL, output, NULL, 0, NULL) == AU_OK);
+    aether_unzip_source_close(source);
+    snprintf(path, sizeof(path), "%s/资料/说明.txt", output);
+    contents(path, message);
+    snprintf(path, sizeof(path), "%s/资料/空目录", output);
+    no_output(path);
+
+    snprintf(path, sizeof(path), "%s/large.bin", input);
+    int fd = open(path, O_WRONLY | O_CREAT | O_EXCL, 0600);
+    REQUIRE(fd >= 0 && ftruncate(fd, 128 * 1024) == 0 && close(fd) == 0);
+    const char *large[] = {"large.bin"};
+    int polls = 4;
+    au_options options = aether_unzip_options_default();
+    options.cancel = cancel_on_poll;
+    options.user = &polls;
+    REQUIRE(aether_unzip_create_zip(input, large, 1, "cancelled.zip", &options) == AU_CANCELLED);
+    snprintf(path, sizeof(path), "%s/cancelled.zip", input);
+    REQUIRE(access(path, F_OK) != 0);
+    DIR *directory = opendir(input);
+    REQUIRE(directory);
+    struct dirent *entry;
+    while ((entry = readdir(directory))) REQUIRE(strncmp(entry->d_name, ".aetherunzip-", 13) != 0);
+    REQUIRE(closedir(directory) == 0);
+}
+
 static void extraction_layout_tests(void) {
     const char *fixtures[] = {"layout.zip", "layout.tar.gz"};
     char path[512];
@@ -1344,6 +1388,7 @@ int main(int argc, char **argv) {
         security_tests();
         extraction_layout_tests();
         extraction_cancellation_test();
+        compression_tests();
     }
     else if (!strcmp(argv[1], "resource")) resource_tests();
     else if (!strcmp(argv[1], "profile")) profile_tests();

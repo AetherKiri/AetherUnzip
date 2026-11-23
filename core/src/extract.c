@@ -26,21 +26,6 @@ static au_status existing_file(int parent, const char *name, int *exists, const 
     return protected_source && au_source_uses_file(protected_source, &info) ? AU_EXISTS : AU_OK;
 }
 
-/* A successful exclusive rename consumes the staging name; a hard link leaves it in place. */
-static au_status publish_exclusive(int parent, char *temporary, const char *name) {
-#ifdef __APPLE__
-    if (!renameatx_np(parent, temporary, parent, name, RENAME_EXCL)) {
-        temporary[0] = '\0';
-        return AU_OK;
-    }
-    if (errno == ENOTSUP || errno == EINVAL)
-#endif
-    {
-        if (!linkat(parent, temporary, parent, name, 0)) return AU_OK;
-    }
-    return errno == EEXIST ? AU_EXISTS : au_output_error(errno);
-}
-
 static au_status publish_numbered(int parent, char *temporary, const char *name) {
     size_t length = strlen(name);
     long limit = fpathconf(parent, _PC_NAME_MAX);
@@ -68,7 +53,7 @@ static au_status publish_numbered(int parent, char *temporary, const char *name)
         memcpy(alternate, name, stem);
         memcpy(alternate + stem, suffix, suffix_length);
         memcpy(alternate + stem + suffix_length, extension, extension_length + 1);
-        status = publish_exclusive(parent, temporary, alternate);
+        status = au_publish_exclusive(parent, temporary, alternate);
     }
     free(alternate);
     return status;
@@ -82,7 +67,7 @@ static au_status publish(int parent, char *temporary, const char *name, uint32_t
         if (status != AU_OK) return status;
         return renameat(parent, temporary, parent, name) ? au_output_error(errno) : AU_OK;
     }
-    au_status status = publish_exclusive(parent, temporary, name);
+    au_status status = au_publish_exclusive(parent, temporary, name);
     if (status != AU_EXISTS || policy == AU_CONFLICT_FAIL) return status;
     status = existing_file(parent, name, &exists, NULL);
     if (status != AU_OK) return status;

@@ -109,6 +109,31 @@ struct ArchiveServiceTests {
 
     private let service = ArchiveService()
 
+    @Test func compressesAndExtractsFilesAndEmptyFolders() async throws {
+        try await temporaryDirectory { folder in
+            let workspace = FileWorkspace()
+            let access = WorkspaceAccess(folder)
+            let child = folder.appending(path: "素材")
+            let output = folder.appending(path: "Output")
+            try FileManager.default.createDirectory(at: child.appending(path: "空目录"), withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: output, withIntermediateDirectories: false)
+            let contents = Data("内容\n".utf8)
+            try contents.write(to: child.appending(path: "说明.txt"))
+            try contents.write(to: folder.appending(path: "notes.txt"))
+
+            let zip = try await workspace.compressZIP(["素材", "notes.txt"], named: "测试资料", in: folder, access: access)
+            #expect(zip.lastPathComponent == "测试资料.zip")
+            await #expect(throws: ArchiveError.conflict) {
+                try await workspace.compressZIP(["notes.txt"], named: "测试资料.zip", in: folder, access: access)
+            }
+            let archive = try await service.open(zip)
+            try await service.extract(archive, to: output).value()
+            #expect(try Data(contentsOf: output.appending(path: "素材/说明.txt")) == contents)
+            #expect(try Data(contentsOf: output.appending(path: "notes.txt")) == contents)
+            #expect(try FileManager.default.contentsOfDirectory(atPath: output.appending(path: "素材/空目录").path).isEmpty)
+        }
+    }
+
     @Test func managesFilesInACoordinatedWorkspace() async throws {
         try await temporaryDirectory { root in
             let files = FileWorkspace()

@@ -11,7 +11,7 @@
 #define PASSWORD_LIMIT 4096
 #define RESOURCE_NAME_BUDGET (16 * 1024 * 1024)
 
-typedef enum { AUTO, PROBE, VERIFY, CAT, LIST_DIRECTORY } command;
+typedef enum { AUTO, PROBE, VERIFY, CAT, LIST_DIRECTORY, COMPRESS } command;
 
 typedef struct {
     command mode;
@@ -43,6 +43,7 @@ static void usage(FILE *stream, const char *program) {
                     "       %s --verify [OPTIONS] ARCHIVE\n"
                     "       %s --cat [OPTIONS] ARCHIVE RESOURCE_PATH\n"
                     "       %s --ls [OPTIONS] ARCHIVE DIRECTORY_PATH\n"
+                    "       %s --compress [OPTIONS] DIRECTORY OUTPUT.zip NAME...\n"
                     "  --volume PATH          Add the next archive volume in order; repeat as needed.\n"
                     "  --entry INDEX          Verify or extract this zero-based entry index; repeat in ascending order.\n"
                     "  --password-stdin       Read one UTF-8 line from standard input.\n"
@@ -50,7 +51,7 @@ static void usage(FILE *stream, const char *program) {
                     "  --strip-root NAME      Remove one shared top-level directory when extracting.\n"
                     "  --keep-both           Give incoming files a new name when a file already exists.\n"
                     "  --help                 Show this usage.\n",
-                    program, program, program, program, program);
+                    program, program, program, program, program, program);
 }
 
 static int decimal(const char *value, uint64_t *out) {
@@ -225,6 +226,7 @@ static int parse_options(int argc, char **argv, cli_options *cli) {
     static const struct option flags[] = {
         {"probe", no_argument, NULL, PROBE}, {"verify", no_argument, NULL, VERIFY},
         {"cat", no_argument, NULL, CAT}, {"ls", no_argument, NULL, LIST_DIRECTORY},
+        {"compress", no_argument, NULL, COMPRESS},
         {"volume", required_argument, NULL, ADD_VOLUME}, {"entry", required_argument, NULL, ADD_ENTRY},
         {"password-stdin", no_argument, NULL, PASSWORD},
         {"strip-root", required_argument, NULL, STRIP_ROOT}, {"keep-both", no_argument, NULL, KEEP_BOTH},
@@ -236,7 +238,7 @@ static int parse_options(int argc, char **argv, cli_options *cli) {
     while ((flag = getopt_long(argc, argv, "+h", flags, NULL)) != -1) {
         switch (flag) {
         case 'h': return -1;
-        case PROBE: case VERIFY: case CAT: case LIST_DIRECTORY:
+        case PROBE: case VERIFY: case CAT: case LIST_DIRECTORY: case COMPRESS:
             if (cli->mode != AUTO) return 0;
             cli->mode = (command)flag;
             break;
@@ -272,6 +274,8 @@ static int parse_options(int argc, char **argv, cli_options *cli) {
     int operands = argc - optind;
     if (cli->strip_root || cli->options.conflict_policy == AU_CONFLICT_KEEP_BOTH)
         return cli->mode == AUTO && operands == 2;
+    if (cli->mode == COMPRESS)
+        return operands >= 3 && !cli->entry_count && !cli->volume_count && !cli->password_stdin;
     if (cli->mode == CAT || cli->mode == LIST_DIRECTORY)
         return operands == 2 && !cli->entry_count;
     if (cli->mode == VERIFY) return operands == 1;
@@ -301,11 +305,18 @@ int main(int argc, char **argv) {
     cli.options.cancel = cancelled;
     const char *input = argv[optind];
     const char *operand = optind + 1 < argc ? argv[optind + 1] : NULL;
+    if (cli.mode == COMPRESS) {
+        status = aether_unzip_create_zip(input, (const char *const *)(argv + optind + 2),
+                                        (size_t)(argc - optind - 2), operand, &cli.options);
+        code = status == AU_OK ? 0 : 1;
+        goto done;
+    }
     status = password_context(cli.password_stdin, &context);
     if (status == AU_OK) status = open_source(input, &cli, &source);
     if (status == AU_OK) {
         switch (cli.mode) {
         case PROBE: status = probe_archive(context, source, input); break;
+        case COMPRESS: break;
         case VERIFY: status = verify_archive(context, source, input, &cli); break;
         case CAT: case LIST_DIRECTORY:
             status = read_resource(context, source, input, operand, &cli);

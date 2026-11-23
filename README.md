@@ -96,6 +96,13 @@ Select all parts of a multi-volume archive together in the file picker. Supporte
 
 ## CLI Verification Examples
 
+Create a ZIP next to the selected files and folders, then verify it:
+
+```sh
+build/core/aether-unzip --compress ./workspace Project.zip Notes.txt Assets
+build/core/aether-unzip --verify ./workspace/Project.zip
+```
+
 Use the CLI to verify detection, decoding, and extracted files independently of the app. These commands use fixtures supplied with the repository.
 
 ```sh

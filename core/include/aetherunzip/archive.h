@@ -102,6 +102,13 @@ au_status aether_unzip_archive_read(au_archive *archive, void *buffer, size_t ca
                                     size_t *read_count);
 void aether_unzip_archive_close(au_archive *archive);
 
+/* Streams a ZIP of regular files and directories directly under directory. Names are
+ * distinct UTF-8 basenames. Publishes the ZIP in directory without replacing anything.
+ * Options apply the entry, byte, path-depth and cancellation limits; other fields are
+ * ignored. Arguments are borrowed for the duration of the synchronous call. */
+au_status aether_unzip_create_zip(const char *directory, const char *const *names, size_t count,
+                                 const char *archive_name, const au_options *options);
+
 /* Extract from a fresh cursor into an existing directory. NULL/0 selects all entries.
  * A non-NULL selection holds strictly increasing entry indexes. */
 au_status aether_unzip_extract(const au_context *context, au_source *source, const char *name_hint,

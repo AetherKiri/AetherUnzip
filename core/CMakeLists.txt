@@ -1,6 +1,7 @@
 add_library(aetherunzip STATIC
     src/runtime.c src/io.c src/archive.c src/resource.c src/security.c src/extract.c
     ../modules/archive/libarchive/driver.c
+    ../modules/archive/libarchive/write_zip.c
     ../modules/codecs/brotli.c
     ../modules/game_formats/xp3/driver.c
     ../modules/profiles/profile.c)

@@ -1,3 +1,4 @@
+import CAetherUnzip
 import Darwin
 import Foundation
 
@@ -104,6 +105,35 @@ public struct FileWorkspace: Sendable {
             try FileManager.default.createDirectory(at: target, withIntermediateDirectories: false)
             return target
         }
+    }
+
+    /// Creates a ZIP beside the selected items. An existing name produces a conflict.
+    public func compressZIP(_ names: [String], named name: String, in folder: URL,
+                            access: WorkspaceAccess, limits: ExtractionOptions.Limits = .init()) async throws -> URL {
+        try Self.checkName(name)
+        try names.forEach(Self.checkName)
+        let archiveName = name.lowercased().hasSuffix(".zip") ? name : name + ".zip"
+        let control = OperationControl()
+        let intent = NSFileAccessIntent.writingIntent(with: folder, options: [])
+        return try await withTaskCancellationHandler {
+            try await coordinate([intent], accesses: [access]) { urls, _ in
+                let root = urls[0]
+                try Self.requireDirectory(root)
+                var arguments: [UnsafePointer<CChar>?] = []
+                arguments.reserveCapacity(names.count)
+                defer { arguments.forEach { free(UnsafeMutablePointer(mutating: $0)) } }
+                for item in names {
+                    guard let name = strdup(item) else { throw ArchiveError.outOfMemory }
+                    arguments.append(UnsafePointer(name))
+                }
+                var options = control.options(.init(limits: limits))
+                let status = arguments.withUnsafeBufferPointer {
+                    aether_unzip_create_zip(root.path, $0.baseAddress, $0.count, archiveName, &options)
+                }
+                guard status == AU_OK else { throw ArchiveError(status) }
+                return folder.appending(path: archiveName, directoryHint: .notDirectory)
+            }
+        } onCancel: { control.cancel() }
     }
 
     /// Creates a UTF-8 file and fails if the name is already taken.

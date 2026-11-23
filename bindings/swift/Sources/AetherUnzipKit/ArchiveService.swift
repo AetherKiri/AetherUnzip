@@ -689,7 +689,7 @@ private actor ManifestIterator {
 
 // Only the cancellation bit is mutable and it is protected by NSLock. The
 // continuation is Sendable. Core handles stay on the synchronous worker stack.
-fileprivate final class OperationControl: @unchecked Sendable {
+final class OperationControl: @unchecked Sendable {
     private let lock = NSLock()
     private var cancelled = false
     let progress: AsyncStream<ExtractionProgress>.Continuation?

@@ -56,4 +56,5 @@ au_status au_safe_parent(int root, const char *name, size_t length,
 au_status au_write_all(int fd, const void *data, size_t size);
 au_status au_output_error(int error);
 int au_open_temp(int parent, const char *reserved, char *name, size_t capacity, int access);
+au_status au_publish_exclusive(int parent, char *temporary, const char *name);
 #endif
