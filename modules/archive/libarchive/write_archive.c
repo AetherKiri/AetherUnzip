@@ -17,7 +17,26 @@ typedef struct {
     uint64_t entries, bytes;
     char path[4097];
     unsigned char buffer[65536];
-} zip_writer;
+} archive_writer;
+
+typedef enum { ZIP, TAR, TAR_GZIP, TAR_ZSTD } write_format;
+
+static int has_suffix(const char *name, const char *suffix) {
+    size_t length = strlen(name), suffix_length = strlen(suffix);
+    return length > suffix_length && !strcasecmp(name + length - suffix_length, suffix);
+}
+
+static int configure_writer(struct archive *archive, write_format format) {
+    if (format == ZIP) {
+        int result = archive_write_set_format_zip(archive);
+        return result == ARCHIVE_OK ? archive_write_zip_set_compression_deflate(archive) : result;
+    }
+    int result = archive_write_set_format_pax_restricted(archive);
+    if (result != ARCHIVE_OK) return result;
+    if (format == TAR_GZIP) return archive_write_add_filter_gzip(archive);
+    if (format == TAR_ZSTD) return archive_write_add_filter_zstd(archive);
+    return ARCHIVE_OK;
+}
 
 static int component_valid(const char *name) {
     const char *normalized = NULL;
@@ -32,12 +51,12 @@ static au_status input_error(int error) {
     return AU_IO;
 }
 
-static au_status writer_error(zip_writer *writer) {
+static au_status writer_error(archive_writer *writer) {
     int error = archive_errno(writer->archive);
     return error == ENOMEM ? AU_NOMEM : au_output_error(error);
 }
 
-static au_status write_file(zip_writer *writer, int fd, const struct stat *initial) {
+static au_status write_file(archive_writer *writer, int fd, const struct stat *initial) {
     uint64_t remaining = (uint64_t)initial->st_size;
     while (remaining) {
         if (au_cancelled(&writer->options)) return AU_CANCELLED;
@@ -61,9 +80,9 @@ static au_status write_file(zip_writer *writer, int fd, const struct stat *initi
     return AU_OK;
 }
 
-static au_status write_item(zip_writer *, int, const char *, size_t, uint32_t);
+static au_status write_item(archive_writer *, int, const char *, size_t, uint32_t);
 
-static au_status write_children(zip_writer *writer, int fd, size_t length, uint32_t depth) {
+static au_status write_children(archive_writer *writer, int fd, size_t length, uint32_t depth) {
     int descriptor = fcntl(fd, F_DUPFD_CLOEXEC, 0);
     if (descriptor < 0) return AU_IO;
     DIR *directory = fdopendir(descriptor);
@@ -81,7 +100,7 @@ static au_status write_children(zip_writer *writer, int fd, size_t length, uint3
     return status;
 }
 
-static au_status write_item(zip_writer *writer, int parent, const char *name,
+static au_status write_item(archive_writer *writer, int parent, const char *name,
                             size_t prefix, uint32_t depth) {
     if (au_cancelled(&writer->options)) return AU_CANCELLED;
     if (depth > writer->options.max_path_depth || depth > 64 ||
@@ -128,19 +147,18 @@ static int compare_names(const void *left, const void *right) {
     return strcmp(*(const char *const *)left, *(const char *const *)right);
 }
 
-static au_status write_zip(int root, int fd, const char *const *names, size_t count,
-                           const char *temporary, const au_options *options) {
+static au_status write_archive(int root, int fd, const char *const *names, size_t count,
+                               const char *temporary, write_format format, const au_options *options) {
     locale_t utf8 = newlocale(LC_CTYPE_MASK, "C.UTF-8", NULL);
     if (!utf8) utf8 = newlocale(LC_CTYPE_MASK, "en_US.UTF-8", NULL);
     if (!utf8) return AU_UNSUPPORTED;
     locale_t original = uselocale(utf8);
     if (!original) { freelocale(utf8); return AU_IO; }
 
-    zip_writer writer = {.archive = archive_write_new(), .entry = archive_entry_new(), .options = *options};
+    archive_writer writer = {.archive = archive_write_new(), .entry = archive_entry_new(), .options = *options};
     au_status status = AU_OK;
     if (!writer.archive || !writer.entry) status = AU_NOMEM;
-    else if (archive_write_set_format_zip(writer.archive) != ARCHIVE_OK ||
-             archive_write_zip_set_compression_deflate(writer.archive) != ARCHIVE_OK ||
+    else if (configure_writer(writer.archive, format) != ARCHIVE_OK ||
              archive_write_set_bytes_per_block(writer.archive, 0) != ARCHIVE_OK ||
              archive_write_open_fd(writer.archive, fd) != ARCHIVE_OK) status = writer_error(&writer);
     for (size_t i = 0; i < count && status == AU_OK; ++i) {
@@ -157,11 +175,15 @@ static au_status write_zip(int root, int fd, const char *const *names, size_t co
     return status;
 }
 
-au_status aether_unzip_create_zip(const char *directory, const char *const *names, size_t count,
-                                 const char *archive_name, const au_options *options) {
+au_status aether_unzip_create_archive(const char *directory, const char *const *names, size_t count,
+                                     const char *archive_name, const au_options *options) {
     if (!directory || !names || !count || !component_valid(archive_name)) return AU_INVALID;
-    size_t length = strlen(archive_name);
-    if (length <= 4 || strcasecmp(archive_name + length - 4, ".zip")) return AU_INVALID;
+    write_format format;
+    if (has_suffix(archive_name, ".zip")) format = ZIP;
+    else if (has_suffix(archive_name, ".tar")) format = TAR;
+    else if (has_suffix(archive_name, ".tar.gz")) format = TAR_GZIP;
+    else if (has_suffix(archive_name, ".tar.zst")) format = TAR_ZSTD;
+    else return AU_INVALID;
     au_options resolved;
     au_status status = au_options_resolve(options, &resolved);
     if (status != AU_OK) return status;
@@ -187,7 +209,7 @@ au_status aether_unzip_create_zip(const char *directory, const char *const *name
         int fd = au_open_temp(root, archive_name, temporary, sizeof(temporary), O_WRONLY);
         if (fd < 0) status = au_output_error(errno);
         else {
-            status = write_zip(root, fd, ordered, count, temporary, &resolved);
+            status = write_archive(root, fd, ordered, count, temporary, format, &resolved);
             if (close(fd) && status == AU_OK) status = au_output_error(errno);
             if (status == AU_OK && au_cancelled(&resolved)) status = AU_CANCELLED;
             if (status == AU_OK) status = au_publish_exclusive(root, temporary, archive_name);
@@ -197,4 +219,10 @@ au_status aether_unzip_create_zip(const char *directory, const char *const *name
     close(root);
     free(ordered);
     return status;
+}
+
+au_status aether_unzip_create_zip(const char *directory, const char *const *names, size_t count,
+                                 const char *archive_name, const au_options *options) {
+    if (!archive_name || !has_suffix(archive_name, ".zip")) return AU_INVALID;
+    return aether_unzip_create_archive(directory, names, count, archive_name, options);
 }

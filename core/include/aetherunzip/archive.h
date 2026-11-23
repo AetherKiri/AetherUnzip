@@ -108,6 +108,10 @@ void aether_unzip_archive_close(au_archive *archive);
  * ignored. Arguments are borrowed for the duration of the synchronous call. */
 au_status aether_unzip_create_zip(const char *directory, const char *const *names, size_t count,
                                  const char *archive_name, const au_options *options);
+/* Same ownership, limits and publication guarantees as create_zip. The output
+ * suffix selects ZIP, TAR, TAR.GZ or TAR.ZST (case-insensitive). */
+au_status aether_unzip_create_archive(const char *directory, const char *const *names, size_t count,
+                                     const char *archive_name, const au_options *options);
 
 /* Extract from a fresh cursor into an existing directory. NULL/0 selects all entries.
  * A non-NULL selection holds strictly increasing entry indexes. */

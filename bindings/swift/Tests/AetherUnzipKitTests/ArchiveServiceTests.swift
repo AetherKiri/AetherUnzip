@@ -109,7 +109,8 @@ struct ArchiveServiceTests {
 
     private let service = ArchiveService()
 
-    @Test func compressesAndExtractsFilesAndEmptyFolders() async throws {
+    @Test(arguments: FileWorkspace.CompressionFormat.allCases)
+    func compressesAndExtractsFilesAndEmptyFolders(_ format: FileWorkspace.CompressionFormat) async throws {
         try await temporaryDirectory { folder in
             let workspace = FileWorkspace()
             let access = WorkspaceAccess(folder)
@@ -121,12 +122,16 @@ struct ArchiveServiceTests {
             try contents.write(to: child.appending(path: "说明.txt"))
             try contents.write(to: folder.appending(path: "notes.txt"))
 
-            let zip = try await workspace.compressZIP(["素材", "notes.txt"], named: "测试资料", in: folder, access: access)
-            #expect(zip.lastPathComponent == "测试资料.zip")
+            let collection = ["素材", "notes.txt"]
+            let compressed = format == .zip
+                ? try await workspace.compressZIP(collection, named: "测试资料", in: folder, access: access)
+                : try await workspace.compress(collection, named: "测试资料", format: format, in: folder, access: access)
+            #expect(compressed.lastPathComponent == "测试资料.\(format.fileExtension)")
             await #expect(throws: ArchiveError.conflict) {
-                try await workspace.compressZIP(["notes.txt"], named: "测试资料.zip", in: folder, access: access)
+                try await workspace.compress(["notes.txt"], named: compressed.lastPathComponent,
+                                             format: format, in: folder, access: access)
             }
-            let archive = try await service.open(zip)
+            let archive = try await service.open(compressed)
             try await service.extract(archive, to: output).value()
             #expect(try Data(contentsOf: output.appending(path: "素材/说明.txt")) == contents)
             #expect(try Data(contentsOf: output.appending(path: "notes.txt")) == contents)

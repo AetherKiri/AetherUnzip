@@ -69,6 +69,11 @@ public enum WorkspaceTextError: LocalizedError, Equatable, Sendable {
 
 public struct FileWorkspace: Sendable {
     public enum Transfer: Sendable { case copy, move }
+    public enum CompressionFormat: String, CaseIterable, Sendable {
+        case zip = "zip", tar = "tar", tarGzip = "tar.gz", tarZstandard = "tar.zst"
+
+        public var fileExtension: String { rawValue }
+    }
     private static let textLimit = 1024 * 1024
     private static let utf8BOM = Data([0xef, 0xbb, 0xbf])
 
@@ -110,9 +115,16 @@ public struct FileWorkspace: Sendable {
     /// Creates a ZIP beside the selected items. An existing name produces a conflict.
     public func compressZIP(_ names: [String], named name: String, in folder: URL,
                             access: WorkspaceAccess, limits: ExtractionOptions.Limits = .init()) async throws -> URL {
+        try await compress(names, named: name, format: .zip, in: folder, access: access, limits: limits)
+    }
+
+    /// Creates an archive beside the selected items. An existing name produces a conflict.
+    public func compress(_ names: [String], named name: String, format: CompressionFormat, in folder: URL,
+                         access: WorkspaceAccess, limits: ExtractionOptions.Limits = .init()) async throws -> URL {
         try Self.checkName(name)
         try names.forEach(Self.checkName)
-        let archiveName = name.lowercased().hasSuffix(".zip") ? name : name + ".zip"
+        let suffix = "." + format.fileExtension
+        let archiveName = name.lowercased().hasSuffix(suffix) ? name : name + suffix
         let control = OperationControl()
         let intent = NSFileAccessIntent.writingIntent(with: folder, options: [])
         return try await withTaskCancellationHandler {
@@ -128,7 +140,7 @@ public struct FileWorkspace: Sendable {
                 }
                 var options = control.options(.init(limits: limits))
                 let status = arguments.withUnsafeBufferPointer {
-                    aether_unzip_create_zip(root.path, $0.baseAddress, $0.count, archiveName, &options)
+                    aether_unzip_create_archive(root.path, $0.baseAddress, $0.count, archiveName, &options)
                 }
                 guard status == AU_OK else { throw ArchiveError(status) }
                 return folder.appending(path: archiveName, directoryHint: .notDirectory)

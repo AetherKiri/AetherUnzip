@@ -43,7 +43,8 @@ static void usage(FILE *stream, const char *program) {
                     "       %s --verify [OPTIONS] ARCHIVE\n"
                     "       %s --cat [OPTIONS] ARCHIVE RESOURCE_PATH\n"
                     "       %s --ls [OPTIONS] ARCHIVE DIRECTORY_PATH\n"
-                    "       %s --compress [OPTIONS] DIRECTORY OUTPUT.zip NAME...\n"
+                    "       %s --compress [OPTIONS] DIRECTORY OUTPUT NAME...\n"
+                    "  Compression output suffixes: .zip, .tar, .tar.gz, .tar.zst\n"
                     "  --volume PATH          Add the next archive volume in order; repeat as needed.\n"
                     "  --entry INDEX          Verify or extract this zero-based entry index; repeat in ascending order.\n"
                     "  --password-stdin       Read one UTF-8 line from standard input.\n"
@@ -306,8 +307,9 @@ int main(int argc, char **argv) {
     const char *input = argv[optind];
     const char *operand = optind + 1 < argc ? argv[optind + 1] : NULL;
     if (cli.mode == COMPRESS) {
-        status = aether_unzip_create_zip(input, (const char *const *)(argv + optind + 2),
-                                        (size_t)(argc - optind - 2), operand, &cli.options);
+        size_t count = (size_t)(argc - optind - 2);
+        for (size_t i = 0; i < count; ++i) cli.volumes[i] = argv[optind + 2 + i];
+        status = aether_unzip_create_archive(input, cli.volumes, count, operand, &cli.options);
         code = status == AU_OK ? 0 : 1;
         goto done;
     }
