@@ -896,6 +896,11 @@ private struct FileNameSheet: View {
                     }
                     error = nil
                 }
+                if format == .xp3 {
+                    Text("XP3 stores files without compression and skips empty folders.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
             VStack(alignment: .leading, spacing: 6) {
                 Text("Name").font(.subheadline.weight(.medium))

@@ -972,9 +972,9 @@ final class ArchiveWorkflowTests: XCTestCase {
         let picker = app.buttons["workspace-compression-format"].firstMatch
         XCTAssertTrue(picker.waitForExistence(timeout: 8), app.debugDescription)
         picker.tap()
-        app.buttons["TAR.GZ"].firstMatch.tap()
+        app.buttons["XP3"].firstMatch.tap()
         let name = field.value as? String ?? ""
-        XCTAssertTrue(name.hasSuffix(".tar.gz"), app.debugDescription)
+        XCTAssertTrue(name.hasSuffix(".xp3"), app.debugDescription)
         let save = app.buttons["workspace-save-name"].firstMatch
         XCTAssertTrue(save.isEnabled)
         save.tap()
@@ -982,7 +982,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         XCTAssertTrue(result.waitForExistence(timeout: 10), app.debugDescription)
         result.tap()
         XCTAssertTrue(app.buttons["extract-all"].firstMatch.waitForExistence(timeout: 8), app.debugDescription)
-        XCTAssertTrue(app.staticTexts["Guides"].firstMatch.exists)
+        XCTAssertFalse(app.staticTexts["Guides"].firstMatch.exists)
         XCTAssertTrue(app.staticTexts["Release Notes.txt"].firstMatch.exists)
     }
 

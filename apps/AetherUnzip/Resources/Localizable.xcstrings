@@ -5663,6 +5663,12 @@
         }
       }
     },
+    "XP3 stores files without compression and skips empty folders.": {
+      "localizations": {
+        "ja": { "stringUnit": { "state": "translated", "value": "XP3 はファイルを無圧縮で格納し、空のフォルダは省略します。" } },
+        "zh-Hans": { "stringUnit": { "state": "translated", "value": "XP3 以原始大小存储文件，并跳过空文件夹。" } }
+      }
+    },
     "YAML (.yaml)": {
       "localizations": {
         "ja": {
