@@ -195,7 +195,12 @@ struct AppSafetyLimits: Equatable {
     var depth: Int
     var expansion: Int
 
-    static let defaults = Self(entryGiB: 4, totalGiB: 16, entries: 10_000, depth: 32, expansion: 1_000)
+    static let defaults: Self = {
+        let limits = ExtractionOptions.Limits()
+        return Self(entryGiB: Int(limits.maxEntryBytes >> 30), totalGiB: Int(limits.maxTotalBytes >> 30),
+                    entries: Int(limits.maxEntries), depth: Int(limits.maxPathDepth),
+                    expansion: Int(limits.maxExpansionRatio))
+    }()
 }
 
 private struct SafetyLimitsEditor: View {

@@ -248,6 +248,7 @@ final class ArchiveWorkflowTests: XCTestCase {
 
     func testSettingsEditsAndRestoresSafetyLimits() {
         let app = XCUIApplication()
+        app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         openSettings(in: app, title: "Settings")
 
@@ -266,7 +267,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         safety.tap()
         let field = app.textFields["settings-limit-file"].firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 8))
-        let originalLimit = field.value as? String ?? "4"
+        let originalLimit = field.value as? String ?? "16"
         let save = app.buttons["settings-safety-save"].firstMatch
         replaceLimit(field, in: app, with: "65")
         XCTAssertTrue(app.staticTexts["settings-limit-error-file"].firstMatch.waitForExistence(timeout: 8))
@@ -288,7 +289,7 @@ final class ArchiveWorkflowTests: XCTestCase {
         let savedLimit = field.value as? String
         XCTAssertEqual(savedLimit, originalLimit == "12" ? "8" : "12")
         app.buttons["settings-safety-reset"].firstMatch.tap()
-        XCTAssertEqual(field.value as? String, "4")
+        XCTAssertEqual(field.value as? String, "16")
         app.buttons["Cancel"].firstMatch.tap()
         XCTAssertTrue(safety.waitForExistence(timeout: 8))
         safety.tap()

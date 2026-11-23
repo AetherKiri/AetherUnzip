@@ -100,11 +100,11 @@ const char *aether_unzip_format_name(au_format format) {
 au_options aether_unzip_options_default(void) {
     return (au_options){
         .struct_size = sizeof(au_options),
-        .max_entry_bytes = UINT64_C(4) << 30,
-        .max_total_bytes = UINT64_C(16) << 30,
-        .max_entries = 10000,
+        .max_entry_bytes = UINT64_C(16) << 30,
+        .max_total_bytes = UINT64_C(64) << 30,
+        .max_entries = 30000,
         .max_path_depth = 32,
-        .max_expansion_ratio = 1000
+        .max_expansion_ratio = 2000
     };
 }
 uint64_t au_expansion_budget(const au_options *options, uint64_t source_length) {
